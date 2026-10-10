@@ -9,6 +9,9 @@ import { useResumes } from '@/store/resumes'
 import { sampleContent, SAMPLE_JD } from '@/test/fixtures'
 import { mockLlm, renderAt } from '@/test/helpers'
 import { AtsPanel } from './ats/AtsPanel'
+import { useResumeScore } from './ats/useResumeScore'
+import type { Embedder } from '@/lib/ats/embeddings'
+import type { Resume } from '@/types/resume'
 import { ChatPanel } from './chat/ChatPanel'
 import { useChats } from './chat/chatStore'
 import { CoverLetterPage } from './cover/CoverLetterPage'
@@ -132,31 +135,78 @@ describe('score badge', () => {
   it('shows a live ATS score in the workspace header and updates after edits', async () => {
     const r = seedResume()
     renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
-    const badge = screen.getAllByText(/^ATS \d+\/100$/)[0]!
+    const badge = screen.getByText(/ATS score \d+\/100/)
     const before = badge.textContent
     await userEvent.clear(screen.getByLabelText('Email'))
-    expect(screen.getAllByText(/^ATS \d+\/100$/)[0]!.textContent).not.toBe(before)
+    expect(screen.getByText(/ATS score \d+\/100/).textContent).not.toBe(before)
   })
 })
 
+function AtsHarness({ resume, embedderFactory }: { resume: Resume; embedderFactory?: () => Embedder }) {
+  const scoring = useResumeScore(resume, embedderFactory)
+  return (
+    <>
+      <p data-testid="overall">{scoring.report.overall}</p>
+      <AtsPanel resume={resume} scoring={scoring} />
+    </>
+  )
+}
+
 describe('ATS panel', () => {
-  it('shows score, breakdown and missing keywords, and adds semantic score on demand', async () => {
+  it('shows the breakdown and missing keywords, and adds the semantic part on demand', async () => {
     const r = seedResume()
     const embedderFactory = () => ({ embed: async (t: string[]) => t.map(() => [1, 0]) })
-    renderAt(<AtsPanel resume={r} embedderFactory={embedderFactory} />)
-    expect(screen.getByRole('img', { name: /overall ats score \d+ out of 100/i })).toBeInTheDocument()
+    renderAt(<AtsHarness resume={r} embedderFactory={embedderFactory} />)
     expect(screen.getByText(/missing keywords/i)).toBeInTheDocument()
     expect(screen.getByText('graphql')).toBeInTheDocument()
-    expect(screen.queryByText(/semantic similarity \(/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('progressbar', { name: /Semantic similarity/ })).not.toBeInTheDocument()
+    const before = screen.getByTestId('overall').textContent
     await userEvent.click(screen.getByRole('button', { name: 'Run semantic match' }))
     expect(await screen.findByRole('progressbar', { name: /Semantic similarity/ })).toBeInTheDocument()
+    expect(screen.getByTestId('overall').textContent).not.toBe(before)
   })
 
   it('works without a job description', () => {
     const r = seedResume({ title: '', company: '', description: '' })
-    renderAt(<AtsPanel resume={r} />)
+    renderAt(<AtsHarness resume={r} />)
     expect(screen.queryByText(/missing keywords/i)).not.toBeInTheDocument()
     expect(screen.getByText(/add a job description/i)).toBeInTheDocument()
+  })
+
+  it('lets you edit a weak bullet in place and saves it into the resume', async () => {
+    const r = seedResume()
+    renderAt(<AtsHarness resume={r} />)
+    const box = screen.getByLabelText(/Software Engineer at Analytical Co, bullet 2/)
+    expect(box).toHaveValue('worked on APIs')
+    await userEvent.clear(box)
+    await userEvent.type(box, 'Maintained 6 internal APIs used by the analytics team every day')
+    expect(screen.getByText(/100\/100/)).toBeInTheDocument()
+    await userEvent.click(screen.getAllByRole('button', { name: 'Save to resume' })[0]!)
+    expect(useResumes.getState().resumes[0]!.content.experience[0]!.bullets[1]).toBe('Maintained 6 internal APIs used by the analytics team every day')
+  })
+})
+
+describe('target job tab', () => {
+  it('groups ATS analysis, Tailor and Agent under one Target job tab with a single job form and one score', async () => {
+    const r = seedResume()
+    renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
+    expect(screen.queryByRole('button', { name: 'Tailor' })).not.toBeInTheDocument()
+    expect(screen.getAllByText(/ATS score \d+\/100/)).toHaveLength(1)
+    await userEvent.click(screen.getByRole('button', { name: 'Target job' }))
+    expect(screen.getAllByLabelText('Job description')).toHaveLength(1)
+    for (const name of ['Tailor', 'Agent', 'ATS analysis']) {
+      await userEvent.click(screen.getByRole('button', { name }))
+      expect(screen.getAllByLabelText('Job description')).toHaveLength(1)
+    }
+    expect(screen.getByText(/Score breakdown/)).toBeInTheDocument()
+    expect(screen.getAllByText(/ATS score \d+\/100/)).toHaveLength(1)
+  })
+
+  it('clicking the header score opens the Target job tab', async () => {
+    const r = seedResume()
+    renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
+    await userEvent.click(screen.getByRole('button', { name: /ATS score/ }))
+    expect(screen.getByText(/Score breakdown/)).toBeInTheDocument()
   })
 })
 
@@ -261,6 +311,21 @@ describe('resume agent chat', () => {
     await userEvent.click(apply)
     expect(useResumes.getState().resumes[0]!.content.experience[0]!.bullets[1]).toBe('Maintained internal APIs used by analysts')
     expect(screen.getByText(/Applied/)).toBeInTheDocument()
+  })
+
+  it('lets the user edit a suggestion before applying it', async () => {
+    const r = seedResume()
+    mockLlm(['Which APIs?', edits])
+    renderAt(<ChatPanel resume={r} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Review my summary' }))
+    await screen.findByText(/Which APIs/)
+    await userEvent.type(screen.getByLabelText(/message the resume counselor/i), 'internal ones')
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }))
+    const box = await screen.findByLabelText('Edit before applying')
+    await userEvent.clear(box)
+    await userEvent.type(box, 'Maintained internal APIs for analysts')
+    await userEvent.click(screen.getByRole('button', { name: 'Apply my edited version' }))
+    expect(useResumes.getState().resumes[0]!.content.experience[0]!.bullets[1]).toBe('Maintained internal APIs for analysts')
   })
 
   it('ignores edit blocks the model emits on the clarifying turn', async () => {

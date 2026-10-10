@@ -1,21 +1,8 @@
-import { useMemo } from 'react'
 import { ErrorBanner, ProgressBar, Spinner } from '@/components/ui'
-import { computeAtsScore } from '@/lib/ats/score'
 import type { Check } from '@/lib/ats/score'
-import type { Embedder, EmbedProgress } from '@/lib/ats/embeddings'
-import { resumeToText } from '@/lib/resume'
 import type { Resume } from '@/types/resume'
-import { useSemantic } from './useSemantic'
-
-function ScoreRing({ value }: { value: number }) {
-  const color = value >= 75 ? 'text-brand-600' : value >= 50 ? 'text-spark-500' : 'text-red-600'
-  return (
-    <div className={`flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-full border-8 border-current ${color}`} role="img" aria-label={`Overall ATS score ${value} out of 100`}>
-      <span className="text-3xl font-bold leading-none">{value}</span>
-      <span className="text-[10px] text-ink-500">/ 100</span>
-    </div>
-  )
-}
+import type { ResumeScore } from './useResumeScore'
+import { WeakBullets } from './WeakBullets'
 
 function Checks({ title, checks }: { title: string; checks: Check[] }) {
   return (
@@ -38,40 +25,32 @@ function Checks({ title, checks }: { title: string; checks: Check[] }) {
   )
 }
 
-export function AtsPanel({ resume, embedderFactory }: { resume: Resume; embedderFactory?: (p: (e: EmbedProgress) => void) => Embedder }) {
-  const { state, run } = useSemantic(embedderFactory)
-  const jd = resume.target.description
-  const text = useMemo(() => resumeToText(resume.content), [resume.content])
-  const key = `${text}\u0000${jd}`
-  const similarity = state.phase === 'done' && state.key === key ? state.similarity : undefined
-  const report = useMemo(() => computeAtsScore({ content: resume.content, jobDescription: jd, semanticSimilarity: similarity }), [resume.content, jd, similarity])
+export function AtsPanel({ resume, scoring }: { resume: Resume; scoring: ResumeScore }) {
+  const { report, semantic: state, semanticStale, runSemantic } = scoring
 
   return (
     <div className="space-y-4">
-      <section className="card flex items-center gap-4" aria-labelledby="ats-h">
-        <ScoreRing value={report.overall} />
+      <section className="card space-y-3" aria-label="Score breakdown">
         <div>
-          <h2 id="ats-h" className="text-base font-semibold">
-            ATS score
-          </h2>
+          <h2 className="text-base font-semibold">Score breakdown</h2>
           <p className="text-sm text-ink-500 dark:text-ink-400">
-            Computed by fixed rules from the parts below, not guessed by the AI.
+            Your overall score ({report.overall}/100, shown at the top) is a fixed-rule weighted sum of these parts, not guessed by the AI.
             {!report.hasJobDescription && ' Add a job description above to include keyword and semantic matching.'}
           </p>
         </div>
-      </section>
-
-      <section className="card space-y-3" aria-label="Score breakdown">
-        <h3 className="text-sm font-semibold">Breakdown</h3>
         {report.components.map((c) => (
           <div key={c.id}>
             <ProgressBar value={c.score} label={`${c.label} (${Math.round(c.weight * 100)}% of total)`} />
             <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">{c.summary}</p>
           </div>
         ))}
-        {report.hasJobDescription && report.semanticPending && (
+        {report.hasJobDescription && (report.semanticPending || semanticStale || state.phase === 'loading') && (
           <div className="rounded-lg bg-ink-50 p-3 text-sm dark:bg-ink-800">
-            <p className="mb-2">Semantic similarity is not included yet. It runs a small embedding model in your browser (about 25 MB, downloaded once, then cached).</p>
+            <p className="mb-2">
+              {report.semanticPending
+                ? 'Semantic similarity is not included yet. It runs a small embedding model in your browser (about 25 MB, downloaded once, then cached).'
+                : 'You edited your resume since the semantic match was calculated. Re-run it to refresh that part of the score.'}
+            </p>
             {state.phase === 'loading' ? (
               <div className="space-y-1" aria-live="polite">
                 <ProgressBar value={state.progress} label={state.label} />
@@ -80,21 +59,14 @@ export function AtsPanel({ resume, embedderFactory }: { resume: Resume; embedder
                 </span>
               </div>
             ) : (
-              <button type="button" className="btn-secondary btn-sm" onClick={() => void run(text, jd)}>
-                Run semantic match
+              <button type="button" className="btn-secondary btn-sm" onClick={() => void runSemantic()}>
+                {report.semanticPending ? 'Run semantic match' : 'Re-run semantic match'}
               </button>
-            )}
-            {state.phase === 'error' && (
-              <div className="mt-2">
-                <ErrorBanner error={new Error('Could not load the embedding model. Check your internet connection for the one-time download and try again.')} />
-              </div>
             )}
           </div>
         )}
-        {report.hasJobDescription && !report.semanticPending && (
-          <button type="button" className="btn-ghost btn-sm" onClick={() => void run(text, jd)}>
-            Re-run semantic match
-          </button>
+        {state.phase === 'error' && (
+          <ErrorBanner error={new Error('Could not load the embedding model. Check your internet connection for the one-time download and try again.')} />
         )}
       </section>
 
@@ -141,21 +113,7 @@ export function AtsPanel({ resume, embedderFactory }: { resume: Resume; embedder
         )}
       </section>
 
-      {report.weakBullets.length > 0 && (
-        <section className="card" aria-label="Weak bullets">
-          <h3 className="mb-2 text-sm font-semibold">Bullets to improve ({report.weakBullets.length})</h3>
-          <ul className="space-y-2 text-sm">
-            {report.weakBullets.slice(0, 8).map((b, i) => (
-              <li key={i} className="rounded-lg border border-ink-200 p-2 dark:border-ink-700">
-                <p>&ldquo;{b.text}&rdquo;</p>
-                <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-400">
-                  {b.score}/100 · {b.issues.join('; ')}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <WeakBullets resume={resume} />
 
       <section className="card grid gap-4 sm:grid-cols-2" aria-label="Checks">
         <Checks title="Section completeness" checks={report.completeness} />

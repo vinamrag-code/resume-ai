@@ -13,7 +13,7 @@ import { proposeTailoring } from './tailorResume'
 
 type Mode = 'edit' | 'copy'
 
-export function TailorPanel({ resume }: { resume: Resume }) {
+export function TailorPanel({ resume, similarity }: { resume: Resume; similarity?: number }) {
   const navigate = useNavigate()
   const [changes, setChanges] = useState<Change[] | null>(null)
   const [mode, setMode] = useState<Mode>('edit')
@@ -25,14 +25,14 @@ export function TailorPanel({ resume }: { resume: Resume }) {
   const accepted = changes?.filter((c) => c.status === 'accepted').length ?? 0
   const pending = changes?.filter((c) => c.status === 'pending') ?? []
 
-  const scoreOf = (content: Resume['content']) => computeAtsScore({ content, jobDescription: description }).overall
-  const current = useMemo(() => scoreOf(resume.content), [resume.content, description]) // eslint-disable-line react-hooks/exhaustive-deps
+  const scoreOf = (content: Resume['content']) => computeAtsScore({ content, jobDescription: description, semanticSimilarity: similarity }).overall
+  const current = useMemo(() => scoreOf(resume.content), [resume.content, description, similarity]) // eslint-disable-line react-hooks/exhaustive-deps
   // Score if every undecided change were accepted too (edit mode) or all accepted changes (copy mode).
   const projected = useMemo(() => {
     if (!changes) return current
     const pool = changes.map((c) => (c.status === 'pending' ? { ...c, status: 'accepted' as const } : c))
     return scoreOf(applyChanges(resume.content, mode === 'edit' ? pool : pool.filter((c) => c.status === 'accepted')).content)
-  }, [changes, resume.content, mode, current]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [changes, resume.content, mode, current, similarity]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const generate = async () => {
     setLoading(true)
@@ -136,7 +136,7 @@ export function TailorPanel({ resume }: { resume: Resume }) {
 
       {changes && (
         <div className="card flex flex-wrap items-center gap-3 text-sm" aria-label="Score impact">
-          <span className="font-semibold">ATS score</span>
+          <span className="font-semibold">Overall ATS score</span>
           {baseline !== null && <span className={`rounded-full px-2 py-0.5 font-semibold ${scoreTone(baseline)}`}>Before {baseline}</span>}
           <span aria-hidden="true">→</span>
           <span className={`rounded-full px-2 py-0.5 font-semibold ${scoreTone(current)}`}>Now {current}</span>

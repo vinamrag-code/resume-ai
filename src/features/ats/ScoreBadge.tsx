@@ -10,15 +10,29 @@ export function scoreTone(value: number): string {
       : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200'
 }
 
-/** Live ATS score (rule-based, without the optional semantic part). */
-export function ScoreBadge({ resume }: { resume: Resume }) {
-  const score = useMemo(
-    () => computeAtsScore({ content: resume.content, jobDescription: resume.target.description }).overall,
-    [resume.content, resume.target.description],
+interface Props {
+  /** Pass `score` when it is already computed (workspace); otherwise it is computed from `resume`. */
+  resume?: Resume
+  score?: number
+  onClick?: () => void
+}
+
+/** The overall ATS score. */
+export function ScoreBadge({ resume, score, onClick }: Props) {
+  const computed = useMemo(
+    () => (score !== undefined || !resume ? 0 : computeAtsScore({ content: resume.content, jobDescription: resume.target.description }).overall),
+    [score, resume],
   )
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${scoreTone(score)}`} title="ATS score: keywords, completeness, bullet quality and formatting">
-      ATS {score}/100
+  const value = score ?? computed
+  const cls = `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${scoreTone(value)}`
+  const title = 'Overall ATS score: keywords, semantic match, completeness, bullet quality and formatting'
+  return onClick ? (
+    <button type="button" className={`${cls} hover:opacity-80`} title={title} onClick={onClick}>
+      ATS score {value}/100 ›
+    </button>
+  ) : (
+    <span className={cls} title={title}>
+      ATS {value}/100
     </span>
   )
 }

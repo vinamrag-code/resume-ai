@@ -19,15 +19,32 @@ const NO_TURNS: ChatTurn[] = []
 const STARTERS = ['Help me improve my experience section', 'Review my summary', 'Make my skills fit the target job', 'Strengthen my project bullets']
 
 function Suggestion({ change, resume, onApplied }: { change: Change; resume: Resume; onApplied: () => void }) {
+  const [text, setText] = useState(change.after)
   const stale = change.status !== 'accepted' && isStale(resume.content, change)
+  const edited = text !== change.after
   const apply = () => {
-    useResumes.getState().updateContent(resume.id, (c) => applyChanges(c, [{ ...change, status: 'accepted' }]).content)
+    const finalChange: Change = {
+      ...change,
+      after: text.trim(),
+      afterSkills: change.target.kind === 'skills' ? text.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
+      status: 'accepted',
+    }
+    useResumes.getState().updateContent(resume.id, (c) => applyChanges(c, [finalChange]).content)
     onApplied()
   }
+  const id = `suggestion-${change.id}`
   return (
     <li className="card space-y-2 bg-ink-50 dark:bg-ink-800">
       <h4 className="text-sm font-semibold">{change.label}</h4>
-      <DiffView before={change.before} after={change.after} />
+      <DiffView before={change.before} after={text} />
+      {change.status !== 'accepted' && !stale && (
+        <div>
+          <label htmlFor={id} className="label">
+            Edit before applying
+          </label>
+          <textarea id={id} rows={2} className="input" value={text} onChange={(e) => setText(e.target.value)} />
+        </div>
+      )}
       {change.reason && <p className="text-xs text-ink-500 dark:text-ink-400">Why: {change.reason}</p>}
       {change.warnings.map((w) => (
         <p key={w} role="note" className="rounded bg-spark-400/20 p-1.5 text-xs">
@@ -39,8 +56,8 @@ function Suggestion({ change, resume, onApplied }: { change: Change; resume: Res
       ) : stale ? (
         <p className="text-xs text-ink-500">This part of your resume changed since the suggestion, so it can no longer be applied.</p>
       ) : (
-        <button type="button" className="btn-primary btn-sm" onClick={apply}>
-          Apply to resume
+        <button type="button" className="btn-primary btn-sm" disabled={!text.trim()} onClick={apply}>
+          {edited ? 'Apply my edited version' : 'Apply to resume'}
         </button>
       )}
     </li>

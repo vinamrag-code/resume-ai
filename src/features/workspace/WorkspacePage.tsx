@@ -2,32 +2,25 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { EmptyState } from '@/components/ui'
 import { ScoreBadge } from '@/features/ats/ScoreBadge'
-import { AtsPanel } from '@/features/ats/AtsPanel'
-import { ChatPanel } from '@/features/chat/ChatPanel'
+import { useResumeScore } from '@/features/ats/useResumeScore'
 import { ResumeEditor } from '@/features/editor/ResumeEditor'
 import { DesignPanel } from '@/features/templates/DesignPanel'
 import { ResumePreview } from '@/features/templates/ResumePreview'
-import { TailorPanel } from '@/features/tailor/TailorPanel'
 import { useResumes } from '@/store/resumes'
+import type { Resume } from '@/types/resume'
 import { ExportBar } from './ExportBar'
-import { TargetJobForm } from './TargetJobForm'
+import { JobPanel } from './JobPanel'
 
 const TABS = [
   { id: 'edit', label: 'Edit' },
   { id: 'design', label: 'Design' },
-  { id: 'ats', label: 'ATS analysis' },
-  { id: 'tailor', label: 'Tailor' },
-  { id: 'agent', label: 'Agent' },
+  { id: 'job', label: 'Target job' },
 ] as const
 type TabId = (typeof TABS)[number]['id']
 
 export function WorkspacePage() {
   const { id } = useParams()
   const resume = useResumes((s) => s.resumes.find((r) => r.id === id))
-  const rename = useResumes((s) => s.rename)
-  const updateContent = useResumes((s) => s.updateContent)
-  const [tab, setTab] = useState<TabId>('edit')
-
   if (!resume) {
     return (
       <EmptyState title="Resume not found" action={<Link to="/" className="btn-primary">Back to resumes</Link>}>
@@ -35,6 +28,14 @@ export function WorkspacePage() {
       </EmptyState>
     )
   }
+  return <Workspace key={resume.id} resume={resume} />
+}
+
+function Workspace({ resume }: { resume: Resume }) {
+  const scoring = useResumeScore(resume)
+  const rename = useResumes((s) => s.rename)
+  const updateContent = useResumes((s) => s.updateContent)
+  const [tab, setTab] = useState<TabId>('edit')
 
   return (
     <div className="space-y-4">
@@ -48,7 +49,7 @@ export function WorkspacePage() {
           </label>
           <input id="resume-name" className="input max-w-md font-semibold" value={resume.name} onChange={(e) => rename(resume.id, e.target.value)} />
         </div>
-        <ScoreBadge resume={resume} />
+        <ScoreBadge score={scoring.report.overall} onClick={() => setTab('job')} />
         <Link to={`/cover?resume=${resume.id}`} className="btn-secondary btn-sm">
           Write cover letter
         </Link>
@@ -72,12 +73,9 @@ export function WorkspacePage() {
               </button>
             ))}
           </nav>
-          {tab !== 'edit' && tab !== 'design' && <TargetJobForm resume={resume} />}
-          {tab === 'edit' && <ResumeEditor key={resume.id} content={resume.content} onChange={(fn) => updateContent(resume.id, fn)} />}
+          {tab === 'edit' && <ResumeEditor content={resume.content} onChange={(fn) => updateContent(resume.id, fn)} />}
           {tab === 'design' && <DesignPanel resume={resume} />}
-          {tab === 'ats' && <AtsPanel resume={resume} />}
-          {tab === 'tailor' && <TailorPanel resume={resume} />}
-          {tab === 'agent' && <ChatPanel resume={resume} />}
+          {tab === 'job' && <JobPanel resume={resume} scoring={scoring} />}
         </div>
         <div className="min-w-0 space-y-3">
           <ExportBar resume={resume} />
