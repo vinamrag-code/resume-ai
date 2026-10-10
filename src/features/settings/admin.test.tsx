@@ -73,6 +73,19 @@ describe('admin detection and helpers', () => {
   })
 })
 
+describe('account roles', () => {
+  it('shows Member for an ordinary account and Admin for an admin, and hides the admin panel from members', () => {
+    const first = renderAt(<SettingsPage />)
+    expect(screen.getByText('Member')).toBeInTheDocument()
+    expect(screen.queryByText('Admin: AI models')).not.toBeInTheDocument()
+    first.unmount()
+    useAuth.setState({ isAdmin: true })
+    renderAt(<SettingsPage />)
+    expect(screen.getByText('Admin')).toBeInTheDocument()
+    expect(screen.getByText('Admin: AI models')).toBeInTheDocument()
+  })
+})
+
 describe('Settings model picker and admin panel', () => {
   it('shows ordinary users a dropdown of the allowed models, with the default marked, and no admin panel', async () => {
     renderAt(<SettingsPage />)

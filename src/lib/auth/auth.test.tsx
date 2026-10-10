@@ -26,6 +26,10 @@ const fb = vi.hoisted(() => {
   }
   return state
 })
+// Controls the background "is this user an admin?" lookup.
+const admin = vi.hoisted(() => ({ check: (_uid: string): Promise<boolean> => Promise.resolve(false) }))
+vi.mock('@/lib/admin/models', () => ({ fetchIsAdmin: (uid: string) => admin.check(uid) }))
+
 // Like the real Auth object: one stable instance whose `currentUser` is live.
 const auth = vi.hoisted(() => ({ get currentUser() { return fb.currentUser } }))
 vi.mock('@/lib/firebase/app', () => ({ getFirebase: () => ({ app: {}, db: {}, auth }) }))
@@ -118,6 +122,56 @@ describe('auth store (Firebase)', () => {
     fb.popupError = { code: 'auth/unauthorized-domain' }
     await useAuth.getState().signIn()
     expect(useAuth.getState().error).toMatch(/authorised domain/)
+  })
+})
+
+describe('admin status', () => {
+  const asUser = (uid: string) => ({ uid, email: `${uid}@example.com`, displayName: uid, photoURL: '', emailVerified: true })
+  afterEach(() => {
+    admin.check = () => Promise.resolve(false)
+  })
+
+  it('is true only for the account that has an admin document', async () => {
+    serverConfig()
+    admin.check = async (uid) => uid === 'A'
+    fb.user = asUser('A')
+    await useAuth.getState().load()
+    await waitFor(() => expect(useAuth.getState().isAdmin).toBe(true))
+    fb.listener?.(asUser('B'))
+    expect(useAuth.getState().isAdmin).toBe(false)
+    await new Promise((r) => setTimeout(r, 10))
+    expect(useAuth.getState().isAdmin).toBe(false)
+  })
+
+  it("never gives a new account the previous account's admin status, even if A's slow check finishes late", async () => {
+    serverConfig()
+    let releaseA: (v: boolean) => void = () => undefined
+    let aStarted = false
+    admin.check = (uid) => {
+      if (uid !== 'A') return Promise.resolve(false)
+      aStarted = true
+      return new Promise<boolean>((r) => (releaseA = r))
+    }
+    fb.user = asUser('A')
+    await useAuth.getState().load()
+    await waitFor(() => expect(aStarted).toBe(true)) // A's lookup is now in flight
+    fb.listener?.(asUser('B')) // account B signs in before A's check returns
+    await new Promise((r) => setTimeout(r, 20)) // B's own (negative) check completes first
+    expect(useAuth.getState().isAdmin).toBe(false)
+    releaseA(true) // ...and only now does A's stale "admin" answer arrive
+    await new Promise((r) => setTimeout(r, 20))
+    expect(useAuth.getState().user?.uid).toBe('B')
+    expect(useAuth.getState().isAdmin).toBe(false)
+  })
+
+  it('is cleared on sign-out', async () => {
+    serverConfig()
+    admin.check = async () => true
+    fb.user = asUser('A')
+    await useAuth.getState().load()
+    await waitFor(() => expect(useAuth.getState().isAdmin).toBe(true))
+    await useAuth.getState().signOut()
+    expect(useAuth.getState().isAdmin).toBe(false)
   })
 })
 

@@ -168,7 +168,7 @@ export function SettingsPage() {
           {auth.user ? (
             <>
               <p className="text-sm">
-                Signed in as <strong>{auth.user.email}</strong>. Your resumes, jobs and cover letters are synced to your account so they follow you across devices.
+                Signed in as <strong>{auth.user.email}</strong> <span className="chip ml-1">{auth.isAdmin ? 'Admin' : 'Member'}</span>. Your resumes, jobs and cover letters are synced to your account so they follow you across devices.
               </p>
               <p className="text-sm text-ink-500 dark:text-ink-400" role="status">
                 {sync.state === 'syncing' ? 'Syncing…' : sync.state === 'error' ? `Sync problem: ${sync.error}` : sync.lastSynced ? `Last synced ${new Date(sync.lastSynced).toLocaleString()}` : 'Waiting for the first sync…'}

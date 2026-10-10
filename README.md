@@ -96,11 +96,14 @@ Admins see **Admin: AI models** in Settings: one list of allowed models per prov
 
 #### Testing the security rules
 
-`firestore-rules/rules.test.ts` runs against the Firestore emulator (it is skipped in a normal `npm test`). The emulator needs Java 21; with Docker you do not need to install it:
+`firestore-rules/rules.test.ts` runs against the Firestore emulator (it is skipped in a normal `npm test`). The emulator needs Java 21; with Docker you do not need to install anything. Build a reusable image once (about 2.9 GB, 5 minutes; remove it later with `docker rmi resume-ai-rules`), then each run takes about a minute:
 
 ```
-docker run --rm -v "$PWD":/work -w /work node:22-trixie bash -c "apt-get update -qq && apt-get install -y -qq openjdk-21-jre-headless && npx --yes firebase-tools@latest emulators:exec --only firestore --project demo-resume-ai 'npx vitest run firestore-rules'"
+docker build -t resume-ai-rules firestore-rules
+docker run --rm -v "$PWD":/work -w /work resume-ai-rules firebase emulators:exec --only firestore --project demo-resume-ai "npx vitest run firestore-rules"
 ```
+
+(In PowerShell use `${PWD}` instead of `$PWD`.) The test leaves a `firestore-debug.log`, which is git-ignored.
 
 ### How models are chosen (Auto mode, the default)
 

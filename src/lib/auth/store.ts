@@ -115,7 +115,8 @@ export const useAuth = create<AuthState>()((set, get) => ({
             if (u) {
               void import('@/lib/admin/models')
                 .then((m) => m.fetchIsAdmin(u.uid))
-                .then((isAdmin) => set({ isAdmin }))
+                // Ignore the answer if a different account is signed in by now (fast account switching).
+                .then((isAdmin) => (get().user?.uid === u.uid ? set({ isAdmin }) : undefined))
                 .catch(() => undefined)
             }
             resolve()
