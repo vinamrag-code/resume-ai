@@ -15,6 +15,8 @@ interface AuthState {
   required: boolean
   firebase: FirebaseWebConfig | null
   user: AuthUser | null
+  /** Has an admins/{uid} document, so may manage AI models. */
+  isAdmin: boolean
   error: string | null
   load: () => Promise<void>
   signIn: () => Promise<void>
@@ -44,6 +46,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
   required: false,
   firebase: null,
   user: null,
+  isAdmin: false,
   error: null,
   load: () => {
     loading ??= (async () => {
@@ -55,7 +58,13 @@ export const useAuth = create<AuthState>()((set, get) => ({
         fb = await loadFirebase(cfg.firebase)
         await new Promise<void>((resolve) => {
           fb!.authMod.onAuthStateChanged(fb!.auth, (u) => {
-            set({ loaded: true, user: u ? { uid: u.uid, email: u.email ?? '', name: u.displayName ?? u.email ?? '', picture: u.photoURL ?? '' } : null })
+            set({ loaded: true, isAdmin: false, user: u ? { uid: u.uid, email: u.email ?? '', name: u.displayName ?? u.email ?? '', picture: u.photoURL ?? '' } : null })
+            if (u) {
+              void import('@/lib/admin/models')
+                .then((m) => m.fetchIsAdmin(u.uid))
+                .then((isAdmin) => set({ isAdmin }))
+                .catch(() => undefined)
+            }
             resolve()
           })
         })
@@ -87,7 +96,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
   },
   signOut: async () => {
     await fb?.authMod.signOut(fb.auth)
-    set({ user: null })
+    set({ user: null, isAdmin: false })
   },
 }))
 
@@ -100,5 +109,5 @@ export function canUseAi(s: Pick<AuthState, 'required' | 'user'>): boolean {
 export function resetAuthForTests(): void {
   fb = null
   loading = null
-  useAuth.setState({ loaded: false, required: false, firebase: null, user: null, error: null })
+  useAuth.setState({ loaded: false, required: false, firebase: null, user: null, isAdmin: false, error: null })
 }

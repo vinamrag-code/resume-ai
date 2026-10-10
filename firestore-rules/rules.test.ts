@@ -65,6 +65,48 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('Firestore security rules'
     await assertFails(anon().doc('anything/here').get())
   })
 
+  describe('admins and the model config', () => {
+    const models = (over: Record<string, unknown> = {}) => ({ groq: ['a/b'], openrouter: ['c/d:free'], defaults: { groq: 'a/b', openrouter: 'c/d:free' }, updatedAt: 1, ...over })
+    const makeAdmin = (uid: string) => env.withSecurityRulesDisabled(async (ctx) => void (await ctx.firestore().doc(`admins/${uid}`).set({ role: 'admin' })))
+    const cfg = (db: ReturnType<typeof ada>) => db.doc('config/models')
+
+    it('lets only an admin change the models, and everyone read them', async () => {
+      await makeAdmin('ada')
+      await assertSucceeds(cfg(ada()).set(models()))
+      await assertSucceeds(cfg(ada()).set(models({ groq: ['a/b', 'e/f'], updatedAt: 2 })))
+      await assertFails(cfg(bob()).set(models()))
+      await assertFails(cfg(anon()).set(models()))
+      await assertSucceeds(cfg(bob()).get())
+      await assertSucceeds(cfg(anon()).get())
+      await assertFails(ada().collection('config').get())
+      await assertFails(cfg(ada()).delete())
+    })
+
+    it('validates the config an admin writes', async () => {
+      await makeAdmin('ada')
+      await assertFails(cfg(ada()).set(models({ groq: [] })))
+      await assertFails(cfg(ada()).set(models({ groq: 'a/b' })))
+      await assertFails(cfg(ada()).set(models({ openrouter: Array.from({ length: 21 }, (_, i) => `m/${i}`) })))
+      await assertFails(cfg(ada()).set(models({ defaults: 'x' })))
+      await assertFails(cfg(ada()).set(models({ updatedAt: 'now' })))
+      await assertFails(cfg(ada()).set(models({ extra: true })))
+      await assertFails(ada().doc('config/other').set(models()))
+    })
+
+    it('does not let users make themselves admin or see other admins', async () => {
+      await assertFails(ada().doc('admins/ada').set({ role: 'admin' }))
+      await assertFails(anon().doc('admins/ada').set({ role: 'admin' }))
+      await makeAdmin('ada')
+      await assertSucceeds(ada().doc('admins/ada').get())
+      await assertFails(bob().doc('admins/ada').get())
+      await assertFails(anon().doc('admins/ada').get())
+      await assertFails(ada().collection('admins').get())
+      await assertFails(ada().doc('admins/ada').delete())
+      // Being an admin gives no access to other users' resumes.
+      await assertFails(ada().doc('users/bob/items/abc').get())
+    })
+  })
+
   it('has the shape the app writes (one resume document passes)', () => {
     expect(Object.keys(item()).sort()).toEqual(['deleted', 'json', 'kind', 'updatedAt'])
   })

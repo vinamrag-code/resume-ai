@@ -1,9 +1,35 @@
 rules_version = '2';
 
 // Each signed-in user can read and write only their own items: users/{uid}/items/{id}.
-// Everything else is denied. Paste this into Firebase console -> Firestore Database -> Rules -> Publish.
+// Admins can also manage the AI model list. Everything else is denied. Paste this into Firebase console -> Firestore Database -> Rules -> Publish.
 service cloud.firestore {
   match /databases/{database}/documents {
+    // An admin is a signed-in user with a document at admins/{their uid}. Create it once by hand in the
+    // Firebase console (no code or rules edit needed); nobody can create or change it from the app.
+    function isAdmin() {
+      return request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    match /admins/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+
+    // The AI model allowlist and defaults. Anyone may read it (model names are not secret, and the server
+    // reads it without a user token); only admins may change it.
+    match /config/{doc} {
+      allow get: if true;
+      allow list, delete: if false;
+      allow create, update: if isAdmin()
+        && doc == 'models'
+        && request.resource.data.keys().hasOnly(['groq', 'openrouter', 'defaults', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['groq', 'openrouter', 'defaults', 'updatedAt'])
+        && request.resource.data.groq is list && request.resource.data.groq.size() >= 1 && request.resource.data.groq.size() <= 20
+        && request.resource.data.openrouter is list && request.resource.data.openrouter.size() >= 1 && request.resource.data.openrouter.size() <= 20
+        && request.resource.data.defaults is map
+        && request.resource.data.updatedAt is number;
+    }
+
     match /users/{uid}/items/{id} {
       allow read, delete: if request.auth != null && request.auth.uid == uid;
 

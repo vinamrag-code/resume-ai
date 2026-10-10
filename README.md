@@ -87,6 +87,12 @@ Setup:
 
 The page loads the Firebase SDK only when sign-in is enabled, and the browser then talks to Google/Firebase directly for sign-in and sync. Synced resumes are stored in your Firebase project, so treat them as personal data and add a privacy notice before inviting the public. Timestamps come from each device's clock, so a badly wrong clock can make an older edit win.
 
+#### Admin: managing AI models
+
+An admin is a signed-in user who has a document at `admins/{their uid}` in Firestore, created once by hand in the Firebase console (Authentication -> Users to copy the UID, then Firestore -> Start collection `admins`, Document ID = the UID, any field such as `role: "admin"`). Nobody can create or change that document from the app, and being an admin does not give access to other users' resumes.
+
+Admins see **Admin: AI models** in Settings: one list of allowed models per provider and a default for each. It is saved to `config/models` in Firestore (readable by everyone, writable only by admins) and the server reads it with a ~30 second cache, so changes apply to all users within about a minute and survive restarts and deploys. The server only calls models on this list. Other users see a dropdown of allowed models; until they pick one themselves they automatically follow the admin's default. Without an admin document the environment defaults (`GROQ_ALLOWED_MODELS`, `OPENROUTER_ALLOWED_MODELS`) apply.
+
 #### Testing the security rules
 
 `firestore-rules/rules.test.ts` runs against the Firestore emulator (it is skipped in a normal `npm test`). The emulator needs Java 21; with Docker you do not need to install it:

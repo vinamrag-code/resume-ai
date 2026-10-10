@@ -3,6 +3,8 @@ import { Readable } from 'node:stream'
 import { authEnabled } from './config'
 import type { Provider, ServerConfig } from './config'
 import { getUser } from './auth'
+import { createModelSource } from './modelConfig'
+import type { ModelConfig } from './modelConfig'
 import { RateLimiter } from './rateLimit'
 
 const UPSTREAM: Record<Provider, string> = {
@@ -35,11 +37,11 @@ interface Message {
 }
 
 /** Validate the client's request and keep only fields we allow (no tools, no unknown options). */
-export function sanitizeRequest(raw: unknown, provider: Provider, cfg: ServerConfig): { ok: true; body: Record<string, unknown> } | { ok: false; message: string } {
+export function sanitizeRequest(raw: unknown, provider: Provider, cfg: ServerConfig, allowed: string[] = cfg.allowedModels[provider]): { ok: true; body: Record<string, unknown> } | { ok: false; message: string } {
   if (typeof raw !== 'object' || raw === null) return { ok: false, message: 'Body must be a JSON object.' }
   const r = raw as Record<string, unknown>
-  if (typeof r.model !== 'string' || !cfg.allowedModels[provider].includes(r.model)) {
-    return { ok: false, message: `Model is not allowed. Allowed: ${cfg.allowedModels[provider].join(', ')}` }
+  if (typeof r.model !== 'string' || !allowed.includes(r.model)) {
+    return { ok: false, message: `Model is not allowed. Allowed: ${allowed.join(', ')}` }
   }
   if (!Array.isArray(r.messages) || r.messages.length === 0 || r.messages.length > cfg.maxMessages) {
     return { ok: false, message: `messages must contain 1 to ${cfg.maxMessages} items.` }
@@ -88,7 +90,8 @@ function sameOrigin(req: IncomingMessage): boolean {
  *   GET  /api/llm/status                       -> which providers have a key on the server
  *   POST /api/llm/{groq|openrouter}/chat/completions -> validated, rate-limited, key-injected passthrough (streaming supported)
  */
-export function createLlmHandler(cfg: ServerConfig, fetchImpl: FetchLike = fetch as FetchLike, limiter = new RateLimiter(cfg.perMinute, cfg.perDay), userLimiter = new RateLimiter(cfg.userPerMinute, cfg.userPerDay), deps: { verifyFetch?: (url: string) => Promise<Response> } = {}) {
+export function createLlmHandler(cfg: ServerConfig, fetchImpl: FetchLike = fetch as FetchLike, limiter = new RateLimiter(cfg.perMinute, cfg.perDay), userLimiter = new RateLimiter(cfg.userPerMinute, cfg.userPerDay), deps: { verifyFetch?: (url: string) => Promise<Response>; models?: () => Promise<ModelConfig> } = {}) {
+  const models = deps.models ?? createModelSource(cfg)
   const requireAuth = authEnabled(cfg)
   const timer = setInterval(() => {
     limiter.sweep()
@@ -104,7 +107,8 @@ export function createLlmHandler(cfg: ServerConfig, fetchImpl: FetchLike = fetch
       return true
     }
     if (url.pathname === '/api/llm/status' && req.method === 'GET') {
-      send(res, 200, { providers: { groq: !!cfg.keys.groq, openrouter: !!cfg.keys.openrouter }, models: cfg.allowedModels })
+      const m = await models()
+      send(res, 200, { providers: { groq: !!cfg.keys.groq, openrouter: !!cfg.keys.openrouter }, models: m.allowed, defaults: m.defaults })
       return true
     }
     const m = url.pathname.match(/^\/api\/llm\/(groq|openrouter)\/chat(?:\/completions)?$/)
@@ -145,7 +149,7 @@ export function createLlmHandler(cfg: ServerConfig, fetchImpl: FetchLike = fetch
       fail(res, 400, 'Body must be valid JSON.')
       return true
     }
-    const clean = sanitizeRequest(parsed, provider, cfg)
+    const clean = sanitizeRequest(parsed, provider, cfg, (await models()).allowed[provider])
     if (!clean.ok) {
       fail(res, 400, clean.message)
       return true

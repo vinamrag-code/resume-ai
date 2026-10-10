@@ -5,7 +5,8 @@ import { useSyncExternalStore } from 'react'
 import { GoogleSignInButton } from '@/components/GoogleSignInButton'
 import { useAuth } from '@/lib/auth/store'
 import { deleteCloudData, syncNow, useSyncStatus } from '@/lib/sync/engine'
-import { createLlm, getServerProviders, PROVIDERS, subscribeServerProviders } from '@/lib/llm'
+import { AdminModels } from '@/features/settings/AdminModels'
+import { createLlm, getServerModels, getServerProviders, PROVIDERS, resolveModel, subscribeServerProviders } from '@/lib/llm'
 import type { ProviderId } from '@/lib/llm'
 import type { ProviderChoice } from '@/lib/llm/providers'
 import type { ConnectionStatus } from '@/lib/llm'
@@ -18,9 +19,10 @@ import { DEFAULT_OLLAMA_URL, useSettings } from '@/store/settings'
 import type { ThemePref } from '@/store/settings'
 
 export function SettingsPage() {
-  const { provider, ollamaUrl, models, theme, update, setProvider, setModel } = useSettings()
+  const { provider, ollamaUrl, models, theme, update, setProvider, setModel, clearModel } = useSettings()
   const shown: ProviderId[] = provider === 'auto' ? ['groq', 'openrouter'] : [provider]
   const server = useSyncExternalStore(subscribeServerProviders, getServerProviders)
+  const serverModels = useSyncExternalStore(subscribeServerProviders, getServerModels)
   const keyState = (id: ProviderId) => (server === null ? 'checking…' : server.has(id as 'groq' | 'openrouter') ? 'available on server ✓' : 'not configured on server')
   const [status, setStatus] = useState<ConnectionStatus | null>(null)
   const [testing, setTesting] = useState(false)
@@ -94,7 +96,18 @@ export function SettingsPage() {
                 {PROVIDERS[id].label.replace(/ \(.*\)/, '')} model
                 {PROVIDERS[id].cloud && <span className="font-normal"> · {keyState(id)}</span>}
               </label>
-              <input id={`model-${id}`} className="input" value={models[id]} onChange={(e) => setModel(id, e.target.value)} placeholder={PROVIDERS[id].defaultModel} />
+              {id !== 'ollama' && serverModels ? (
+                <select id={`model-${id}`} className="input" value={resolveModel(id, models[id])} onChange={(e) => setModel(id, e.target.value)}>
+                  {serverModels.allowed[id].map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                      {m === serverModels.defaults[id] ? ' (default)' : ''}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input id={`model-${id}`} className="input" value={models[id] ?? ''} onChange={(e) => setModel(id, e.target.value)} placeholder={PROVIDERS[id].defaultModel} />
+              )}
             </div>
           ))}
           {provider === 'ollama' && (
@@ -127,7 +140,7 @@ export function SettingsPage() {
               'Test connection'
             )}
           </button>
-          <button type="button" className="btn-ghost" onClick={() => { update({ ollamaUrl: DEFAULT_OLLAMA_URL }); (Object.keys(PROVIDERS) as ProviderId[]).forEach((id) => setModel(id, PROVIDERS[id].defaultModel)) }}>
+          <button type="button" className="btn-ghost" onClick={() => { update({ ollamaUrl: DEFAULT_OLLAMA_URL }); (Object.keys(PROVIDERS) as ProviderId[]).forEach((id) => (id === 'ollama' ? setModel(id, PROVIDERS[id].defaultModel) : clearModel(id))) }}>
             Reset to defaults
           </button>
         </div>
@@ -181,6 +194,8 @@ export function SettingsPage() {
           )}
         </section>
       )}
+
+      <AdminModels />
 
       <section className="card space-y-3" aria-labelledby="s-theme">
         <h2 id="s-theme" className="text-base font-semibold">
