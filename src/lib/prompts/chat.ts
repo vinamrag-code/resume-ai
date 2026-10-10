@@ -11,7 +11,14 @@ export interface ChatContext {
 export const EDITS_OPEN = '<edits>'
 export const EDITS_CLOSE = '</edits>'
 
-export function chatSystemPrompt(ctx: ChatContext): ChatMessage {
+export type ChatPhase = 'clarify' | 'edit'
+
+const PHASE_NOTE: Record<ChatPhase, string> = {
+  clarify: `CURRENT TURN: this is the user's first message in the conversation. Ask 2-3 clarifying questions only. Do NOT propose edits and do NOT output an ${EDITS_OPEN} block.`,
+  edit: 'CURRENT TURN: the user has had a chance to answer. If you now have enough information, propose edits with an edits block; if something essential is still missing, ask one more short question instead.',
+}
+
+export function chatSystemPrompt(ctx: ChatContext, phase: ChatPhase = 'clarify'): ChatMessage {
   return {
     role: 'system',
     content: `You are a warm, direct career counselor helping the user improve their resume. You can see their current resume and (if provided) the job they are targeting.
@@ -32,6 +39,8 @@ ${ctx.jobDescription.slice(0, 6000) || '(none provided)'}
 """
 
 Current resume JSON:
-${ctx.resumeJson}`,
+${ctx.resumeJson}
+
+${PHASE_NOTE[phase]}`,
   }
 }
