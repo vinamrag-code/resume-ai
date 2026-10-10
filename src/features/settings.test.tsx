@@ -72,7 +72,7 @@ describe('provider switch', () => {
     await userEvent.selectOptions(screen.getByLabelText('Provider'), 'groq')
     expect(screen.getByRole('note')).toHaveTextContent(/sent to Groq/)
     expect(screen.getByRole('note')).toHaveTextContent('VITE_GROQ_API_KEY')
-    expect(screen.getByLabelText('Model')).toHaveValue('llama-3.3-70b-versatile')
+    expect(screen.getByLabelText('Model')).toHaveValue('openai/gpt-oss-120b')
     await userEvent.selectOptions(screen.getByLabelText('Provider'), 'ollama')
     expect(screen.getByLabelText('Model')).toHaveValue('llama3.1:8b')
     expect(screen.queryByRole('note')).not.toBeInTheDocument()
