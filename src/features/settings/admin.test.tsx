@@ -105,6 +105,37 @@ describe('admin detection and helpers', () => {
   })
 })
 
+describe('account diagnostics', () => {
+  it('shows the User ID and explains a Member result, with a way to check again', async () => {
+    const recheck = vi.fn(async () => undefined)
+    useAuth.setState({ adminStatus: 'member', recheckAdmin: recheck })
+    const writeText = vi.fn()
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+    renderAt(<SettingsPage />)
+    expect(screen.getByText('u1')).toBeInTheDocument()
+    expect(screen.getByText(/No admin document was found for this User ID/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Copy User ID' }))
+    expect(writeText).toHaveBeenCalledWith('u1')
+    await userEvent.click(screen.getByRole('button', { name: 'Check admin status again' }))
+    expect(recheck).toHaveBeenCalled()
+  })
+
+  it('shows the reason when the admin check failed, and Unknown instead of Member', () => {
+    useAuth.setState({ adminStatus: 'error', adminMessage: 'Firestore refused the admin check.' })
+    renderAt(<SettingsPage />)
+    expect(screen.getByRole('alert')).toHaveTextContent('Firestore refused the admin check.')
+    expect(screen.getByText('Unknown')).toBeInTheDocument()
+    expect(screen.queryByText('Member')).not.toBeInTheDocument()
+  })
+
+  it('hides the diagnostics for an admin', () => {
+    useAuth.setState({ isAdmin: true, adminStatus: 'admin' })
+    renderAt(<SettingsPage />)
+    expect(screen.queryByRole('button', { name: 'Check admin status again' })).not.toBeInTheDocument()
+    expect(screen.getByText('Admin')).toBeInTheDocument()
+  })
+})
+
 describe('account roles', () => {
   it('shows Member for an ordinary account and Admin for an admin, and hides the admin panel from members', () => {
     const first = renderAt(<SettingsPage />)

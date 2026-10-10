@@ -28,7 +28,10 @@ const fb = vi.hoisted(() => {
 })
 // Controls the background "is this user an admin?" lookup.
 const admin = vi.hoisted(() => ({ check: (_uid: string): Promise<boolean> => Promise.resolve(false) }))
-vi.mock('@/lib/admin/models', () => ({ fetchIsAdmin: (uid: string) => admin.check(uid) }))
+const adminResult = vi.hoisted(() => ({ error: null as null | string }))
+vi.mock('@/lib/admin/models', () => ({
+  checkAdmin: async (uid: string) => (adminResult.error ? { status: 'error', message: adminResult.error } : (await admin.check(uid)) ? { status: 'admin' } : { status: 'member' }),
+}))
 
 // Like the real Auth object: one stable instance whose `currentUser` is live.
 const auth = vi.hoisted(() => ({ get currentUser() { return fb.currentUser } }))
@@ -129,6 +132,29 @@ describe('admin status', () => {
   const asUser = (uid: string) => ({ uid, email: `${uid}@example.com`, displayName: uid, photoURL: '', emailVerified: true })
   afterEach(() => {
     admin.check = () => Promise.resolve(false)
+    adminResult.error = null
+  })
+
+  it('records why an account is a member, and can check again after the admin document is created', async () => {
+    serverConfig()
+    fb.user = asUser('A')
+    fb.currentUser = { getIdToken: async () => 't' }
+    await useAuth.getState().load()
+    await waitFor(() => expect(useAuth.getState().adminStatus).toBe('member'))
+    expect(useAuth.getState().isAdmin).toBe(false)
+    admin.check = async () => true // the admin document now exists
+    await useAuth.getState().recheckAdmin()
+    expect(useAuth.getState()).toMatchObject({ isAdmin: true, adminStatus: 'admin' })
+  })
+
+  it('reports a failed check as an error instead of silently saying member', async () => {
+    serverConfig()
+    adminResult.error = 'Firestore refused the admin check.'
+    fb.user = asUser('A')
+    fb.currentUser = { getIdToken: async () => 't' }
+    await useAuth.getState().load()
+    await waitFor(() => expect(useAuth.getState().adminStatus).toBe('error'))
+    expect(useAuth.getState()).toMatchObject({ isAdmin: false, adminMessage: 'Firestore refused the admin check.' })
   })
 
   it('is true only for the account that has an admin document', async () => {

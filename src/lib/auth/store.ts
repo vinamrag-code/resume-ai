@@ -25,6 +25,9 @@ interface AuthState {
   user: AuthUser | null
   /** Has an admins/{uid} document, so may manage AI models. */
   isAdmin: boolean
+  /** Outcome of the admin lookup, so the page can explain a "Member" result. */
+  adminStatus: 'unknown' | 'checking' | 'admin' | 'member' | 'error'
+  adminMessage: string | null
   error: string | null
   load: () => Promise<void>
   /** True while an email/password or Google request is in flight. */
@@ -36,6 +39,8 @@ interface AuthState {
   resendVerification: () => Promise<boolean>
   /** Re-read the account (after the user clicked the verification link). */
   refreshUser: () => Promise<void>
+  /** Run the admin lookup again (after a fresh token), e.g. after the admin document was created. */
+  recheckAdmin: (freshToken?: boolean) => Promise<void>
   clearError: () => void
   signOut: () => Promise<void>
 }
@@ -99,6 +104,8 @@ export const useAuth = create<AuthState>()((set, get) => ({
   firebase: null,
   user: null,
   isAdmin: false,
+  adminStatus: 'unknown',
+  adminMessage: null,
   error: null,
   busy: false,
   load: () => {
@@ -111,14 +118,8 @@ export const useAuth = create<AuthState>()((set, get) => ({
         fb = await loadFirebase(cfg.firebase)
         await new Promise<void>((resolve) => {
           fb!.authMod.onAuthStateChanged(fb!.auth, (u) => {
-            set({ loaded: true, isAdmin: false, user: u ? mapUser(u) : null })
-            if (u) {
-              void import('@/lib/admin/models')
-                .then((m) => m.fetchIsAdmin(u.uid))
-                // Ignore the answer if a different account is signed in by now (fast account switching).
-                .then((isAdmin) => (get().user?.uid === u.uid ? set({ isAdmin }) : undefined))
-                .catch(() => undefined)
-            }
+            set({ loaded: true, isAdmin: false, adminStatus: u ? 'checking' : 'unknown', adminMessage: null, user: u ? mapUser(u) : null })
+            if (u) void get().recheckAdmin(false)
             resolve()
           })
         })
@@ -216,10 +217,25 @@ export const useAuth = create<AuthState>()((set, get) => ({
       /* keep the current state */
     }
   },
+  recheckAdmin: async (freshToken = true) => {
+    const uid = get().user?.uid
+    if (!uid) return
+    set({ adminStatus: 'checking', adminMessage: null })
+    try {
+      if (freshToken) await fb?.auth.currentUser?.getIdToken(true) // pick up the latest email_verified claim
+    } catch {
+      /* the check below reports any real problem */
+    }
+    const { checkAdmin } = await import('@/lib/admin/models')
+    const result = await checkAdmin(uid)
+    // Ignore the answer if a different account is signed in by now (fast account switching).
+    if (get().user?.uid !== uid) return
+    set({ isAdmin: result.status === 'admin', adminStatus: result.status, adminMessage: result.status === 'error' ? result.message : null })
+  },
   clearError: () => set({ error: null }),
   signOut: async () => {
     await fb?.authMod.signOut(fb.auth)
-    set({ user: null, isAdmin: false })
+    set({ user: null, isAdmin: false, adminStatus: 'unknown', adminMessage: null })
   },
 }))
 
@@ -232,5 +248,5 @@ export function canUseAi(s: Pick<AuthState, 'required' | 'user'>): boolean {
 export function resetAuthForTests(): void {
   fb = null
   loading = null
-  useAuth.setState({ loaded: false, required: false, firebase: null, user: null, isAdmin: false, error: null, busy: false })
+  useAuth.setState({ loaded: false, required: false, firebase: null, user: null, isAdmin: false, adminStatus: 'unknown', adminMessage: null, error: null, busy: false })
 }

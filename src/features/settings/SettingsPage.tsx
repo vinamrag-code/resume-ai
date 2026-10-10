@@ -179,8 +179,32 @@ export function SettingsPage() {
           {auth.user ? (
             <>
               <p className="text-sm">
-                Signed in as <strong>{auth.user.email}</strong> <span className="chip ml-1">{auth.isAdmin ? 'Admin' : 'Member'}</span>. Your resumes, jobs and cover letters are synced to your account so they follow you across devices.
+                Signed in as <strong>{auth.user.email}</strong>{' '}
+                <span className="chip ml-1">{auth.isAdmin ? 'Admin' : auth.adminStatus === 'checking' ? 'Checking…' : auth.adminStatus === 'error' ? 'Unknown' : 'Member'}</span>. Your resumes, jobs and cover letters are synced to your account so they follow you across devices.
               </p>
+              <div className="rounded-lg bg-ink-50 p-3 text-sm dark:bg-ink-800" aria-label="Account details">
+                <p>
+                  Your User ID: <code className="break-all font-mono text-xs">{auth.user.uid}</code>{' '}
+                  <button type="button" className="btn-ghost btn-sm" onClick={() => void navigator.clipboard?.writeText(auth.user!.uid)} aria-label="Copy User ID">
+                    Copy
+                  </button>
+                </p>
+                {!auth.isAdmin && auth.adminStatus === 'member' && (
+                  <p className="mt-2 text-ink-600 dark:text-ink-300">
+                    No admin document was found for this User ID. In Firebase → Firestore → <code>admins</code>, the <strong>Document ID</strong> must be exactly the ID above.
+                  </p>
+                )}
+                {auth.adminStatus === 'error' && (
+                  <p role="alert" className="mt-2 text-red-700 dark:text-red-300">
+                    {auth.adminMessage}
+                  </p>
+                )}
+                {!auth.isAdmin && (
+                  <button type="button" className="btn-secondary btn-sm mt-2" disabled={auth.adminStatus === 'checking'} onClick={() => void auth.recheckAdmin()}>
+                    {auth.adminStatus === 'checking' ? 'Checking…' : 'Check admin status again'}
+                  </button>
+                )}
+              </div>
               <p className="text-sm text-ink-500 dark:text-ink-400" role="status">
                 {sync.state === 'syncing' ? 'Syncing…' : sync.state === 'error' ? `Sync problem: ${sync.error}` : sync.lastSynced ? `Last synced ${new Date(sync.lastSynced).toLocaleString()}` : 'Waiting for the first sync…'}
               </p>

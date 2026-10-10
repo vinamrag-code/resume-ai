@@ -10,14 +10,28 @@ async function db() {
   return { fs, db: getFirebase(cfg).db }
 }
 
-/** Admins are users with a document at admins/{uid}, created once by hand in the Firebase console. */
-export async function fetchIsAdmin(uid: string): Promise<boolean> {
+export type AdminCheck = { status: 'admin' | 'member' } | { status: 'error'; message: string }
+
+/**
+ * Admins are users with a document at admins/{uid}, created once by hand in the Firebase console.
+ * Distinguishes "no such document" (a member) from "the check itself failed", so the page can say why.
+ */
+export async function checkAdmin(uid: string): Promise<AdminCheck> {
   try {
     const { fs, db: d } = await db()
-    return (await fs.getDoc(fs.doc(d, 'admins', uid))).exists()
-  } catch {
-    return false
+    return { status: (await fs.getDoc(fs.doc(d, 'admins', uid))).exists() ? 'admin' : 'member' }
+  } catch (e) {
+    const code = (e as { code?: string }).code ?? ''
+    if (code === 'permission-denied') {
+      return { status: 'error', message: 'Firestore refused the admin check. Your session may not know your email is verified yet (sign out and back in), or the Firestore rules are not published.' }
+    }
+    if (code === 'unavailable') return { status: 'error', message: 'Could not reach Firestore to check admin status. Check your connection.' }
+    return { status: 'error', message: 'Could not check admin status.' }
   }
+}
+
+export async function fetchIsAdmin(uid: string): Promise<boolean> {
+  return (await checkAdmin(uid)).status === 'admin'
 }
 
 /** Parse a textarea of model names (one per line, or comma separated) into a valid, de-duplicated list. */
