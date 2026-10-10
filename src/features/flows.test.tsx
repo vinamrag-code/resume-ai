@@ -128,6 +128,17 @@ describe('editor and preview', () => {
   })
 })
 
+describe('score badge', () => {
+  it('shows a live ATS score in the workspace header and updates after edits', async () => {
+    const r = seedResume()
+    renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
+    const badge = screen.getAllByText(/^ATS \d+\/100$/)[0]!
+    const before = badge.textContent
+    await userEvent.clear(screen.getByLabelText('Email'))
+    expect(screen.getAllByText(/^ATS \d+\/100$/)[0]!.textContent).not.toBe(before)
+  })
+})
+
 describe('ATS panel', () => {
   it('shows score, breakdown and missing keywords, and adds semantic score on demand', async () => {
     const r = seedResume()
@@ -163,6 +174,7 @@ describe('tailoring', () => {
     const r = seedResume()
     mockLlm([reply])
     renderAt(<TailorPanel resume={r} />, { path: '/resume/:id', route: `/resume/${r.id}` })
+    await userEvent.click(screen.getByLabelText(/save as a new tailored copy/i))
     await userEvent.click(screen.getByRole('button', { name: 'Suggest tailored changes' }))
     const cards = await screen.findAllByRole('listitem', { name: /^Change:/ })
     expect(cards).toHaveLength(4)
@@ -187,6 +199,26 @@ describe('tailoring', () => {
     const job = useJobs.getState().jobs[0]!
     expect(job).toMatchObject({ company: 'Acme', status: 'saved', resumeId: copy!.id })
     expect(copy!.jobId).toBe(job.id)
+  })
+
+  it('edit mode: accepting writes into this resume, shows score impact, and can be undone', async () => {
+    const r = seedResume()
+    mockLlm([reply])
+    renderAt(<TailorPanel resume={useResumes.getState().resumes[0]!} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Suggest tailored changes' }))
+    const cards = await screen.findAllByRole('listitem', { name: /^Change:/ })
+    const score = screen.getByLabelText('Score impact')
+    expect(score).toHaveTextContent(/Before \d+/)
+    expect(score).toHaveTextContent(/If all accepted \d+/)
+    const bullets = () => useResumes.getState().resumes.find((x) => x.id === r.id)!.content.experience[0]!.bullets
+    expect(bullets()[1]).toBe('worked on APIs')
+    await userEvent.click(within(cards[1]!).getByRole('button', { name: 'Accept' }))
+    expect(bullets()[1]).toBe('Maintained internal APIs used across the analytics team')
+    expect(within(cards[1]!).getByText(/Applied/)).toBeInTheDocument()
+    expect(useResumes.getState().resumes).toHaveLength(1)
+    await userEvent.click(within(cards[1]!).getByRole('button', { name: 'Undo' }))
+    expect(bullets()[1]).toBe('worked on APIs')
+    expect(within(cards[1]!).queryByText(/Applied/)).not.toBeInTheDocument()
   })
 
   it('requires a job description and shows errors', async () => {

@@ -108,7 +108,7 @@ src/
 - **PDF export uses the browser print dialog** (choose "Save as PDF"); there is no bundled PDF generator.
 - **Semantic matching is opt-in** (button) so the ~25 MB model is only downloaded when wanted. The ONNX runtime is bundled with the app rather than loaded from a CDN.
 - **Job description lives on the resume** ("Target job") and is shared by ATS, Tailor and Agent.
-- **Tailoring** saves a copy and also creates a "Saved" job in the tracker linked to it.
+- **Tailoring** has two modes. "Edit this resume" (default) writes each accepted change into the resume immediately, with per-change Undo. "Save as a new tailored copy" leaves the original untouched and also creates a "Saved" job in the tracker linked to the copy. The ATS score is shown before, now, and projected if everything is accepted.
 - **Clarify-then-edit** in the agent is enforced in code: edit blocks on the first assistant turn are ignored.
 - **Drag and drop** uses native HTML5 events; each card also has a status menu for keyboard use.
 - **Chat history** is not persisted or included in backups.

@@ -16,8 +16,9 @@ export interface Change {
   label: string
   before: string
   after: string
-  /** Only for skills changes: the proposed ordered list. */
+  /** Only for skills changes: the proposed ordered list, and the list it replaces. */
   afterSkills?: string[]
+  beforeSkills?: string[]
   reason: string
   status: ChangeStatus
   /** Truthfulness warnings, e.g. numbers that do not appear in the original resume. */
@@ -106,6 +107,7 @@ export function buildChanges(content: ResumeContent, proposed: ProposedEdits, so
       before,
       after: after.trim(),
       afterSkills,
+      beforeSkills: afterSkills ? [...content.skills] : undefined,
       reason,
       status: 'pending',
       warnings,
@@ -171,4 +173,16 @@ export function applyChanges(content: ResumeContent, changes: Change[]): ApplyRe
     applied.push(c.id)
   }
   return { content: next, applied, skipped }
+}
+
+/** The change that undoes `change` (swaps before/after). Apply it to revert an accepted change. */
+export function invertChange(change: Change): Change {
+  return {
+    ...change,
+    before: change.after,
+    after: change.before,
+    beforeSkills: change.afterSkills,
+    afterSkills: change.beforeSkills,
+    status: 'accepted',
+  }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { sampleContent } from '@/test/fixtures'
-import { applyChanges, buildChanges, findNewNumbers, isStale, ProposedEditsSchema, sanitizeSkills, setAllStatus, setStatus } from './changes'
+import { applyChanges, buildChanges, invertChange, findNewNumbers, isStale, ProposedEditsSchema, sanitizeSkills, setAllStatus, setStatus } from './changes'
 import { diffWords } from './diff'
 import { resumeToText } from './resume'
 
@@ -100,5 +100,16 @@ describe('accept / reject / apply', () => {
     const res = applyChanges(edited, setAllStatus(changes, 'accepted'))
     expect(res.skipped).toContain(bulletChange.id)
     expect(res.content.experience[0]!.bullets[1]).toBe('Something the user rewrote')
+  })
+})
+
+describe('invertChange', () => {
+  it('reverts an applied bullet and skills change exactly', () => {
+    const content = sampleContent()
+    const all = setAllStatus(buildChanges(content, proposed(), resumeToText(content)), 'accepted')
+    const applied = applyChanges(content, all).content
+    expect(applied).not.toEqual(content)
+    const reverted = applyChanges(applied, all.map(invertChange)).content
+    expect(reverted).toEqual(content)
   })
 })
