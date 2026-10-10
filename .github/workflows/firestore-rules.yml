@@ -1,0 +1,39 @@
+name: Firestore rules
+
+# Tests firestore.rules against the Firestore emulator. Runs only when the rules or their tests change,
+# or by hand from the Actions tab ("Run workflow").
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - firestore.rules
+      - firestore-rules/**
+      - firebase.json
+  pull_request:
+    paths:
+      - firestore.rules
+      - firestore-rules/**
+      - firebase.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rules:
+    name: Security rules (emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - name: Run the rules tests in the Firestore emulator
+        run: npx --yes firebase-tools@latest emulators:exec --only firestore --project demo-resume-ai "npx vitest run firestore-rules"
