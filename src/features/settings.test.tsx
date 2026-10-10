@@ -12,7 +12,7 @@ import { render } from '@testing-library/react'
 
 beforeEach(() => {
   useResumes.setState({ resumes: [] })
-  useSettings.setState({ onboarded: true, ollamaUrl: 'http://localhost:11434', model: 'llama3.1:8b' })
+  useSettings.setState({ provider: 'ollama', onboarded: true, ollamaUrl: 'http://localhost:11434', model: 'llama3.1:8b' })
 })
 afterEach(() => vi.unstubAllGlobals())
 
@@ -63,5 +63,18 @@ describe('onboarding', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(useSettings.getState().onboarded).toBe(true)
+  })
+})
+
+describe('provider switch', () => {
+  it('shows a cloud privacy notice and key status, and remembers models per provider', async () => {
+    renderAt(<SettingsPage />)
+    await userEvent.selectOptions(screen.getByLabelText('Provider'), 'groq')
+    expect(screen.getByRole('note')).toHaveTextContent(/sent to Groq/)
+    expect(screen.getByRole('note')).toHaveTextContent('VITE_GROQ_API_KEY')
+    expect(screen.getByLabelText('Model')).toHaveValue('llama-3.3-70b-versatile')
+    await userEvent.selectOptions(screen.getByLabelText('Provider'), 'ollama')
+    expect(screen.getByLabelText('Model')).toHaveValue('llama3.1:8b')
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
   })
 })

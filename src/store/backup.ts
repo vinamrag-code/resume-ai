@@ -11,6 +11,7 @@ export const BackupSchema = z.object({
   version: z.literal(1),
   exportedAt: z.string(),
   settings: z.object({
+    provider: z.enum(['ollama', 'openrouter', 'groq']).default('ollama'),
     ollamaUrl: z.string(),
     model: z.string(),
     theme: z.enum(['system', 'light', 'dark']),
@@ -22,12 +23,12 @@ export const BackupSchema = z.object({
 export type Backup = z.infer<typeof BackupSchema>
 
 export function createBackup(): Backup {
-  const { ollamaUrl, model, theme } = useSettings.getState()
+  const { provider, ollamaUrl, model, theme } = useSettings.getState()
   return {
     app: 'resume-ai',
     version: 1,
     exportedAt: new Date().toISOString(),
-    settings: { ollamaUrl, model, theme },
+    settings: { provider, ollamaUrl, model, theme },
     resumes: useResumes.getState().resumes,
     jobs: useJobs.getState().jobs,
     letters: useCoverLetters.getState().letters,

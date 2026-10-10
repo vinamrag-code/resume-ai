@@ -21,14 +21,14 @@ export function Spinner({ label = 'Loading' }: { label?: string }) {
 
 export function ErrorBanner({ error, onDismiss }: { error: unknown; onDismiss?: () => void }) {
   if (!error) return null
-  const needsSettings = error instanceof LlmError && (error.kind === 'unreachable' || error.kind === 'model-missing')
+  const needsSettings = error instanceof LlmError && (error.kind === 'unreachable' || error.kind === 'model-missing' || error.kind === 'auth')
   return (
     <div role="alert" className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
       <div>
         <p>{errorMessage(error)}</p>
         {needsSettings && (
           <Link to="/settings" className="mt-1 inline-block font-medium underline">
-            Open Settings to check your Ollama connection
+            Open Settings to check your AI connection
           </Link>
         )}
       </div>
