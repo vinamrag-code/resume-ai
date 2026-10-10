@@ -10,8 +10,8 @@ import { loadConfig } from './server/config'
 function llmProxy(env: Record<string, string>): Plugin {
   return {
     name: 'resume-ai-llm-proxy',
-    async configureServer(server) {
-      const { handle } = await createApiHandler(loadConfig(env))
+    configureServer(server) {
+      const handle = createApiHandler(loadConfig(env))
       server.middlewares.use((req, res, next) => {
         handle(req, res).then((handled) => (handled ? undefined : next()), next)
       })

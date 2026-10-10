@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { Readable } from 'node:stream'
 import { authEnabled } from './config'
 import type { Provider, ServerConfig } from './config'
-import { getSession } from './session'
+import { getUser } from './auth'
 import { RateLimiter } from './rateLimit'
 
 const UPSTREAM: Record<Provider, string> = {
@@ -88,7 +88,7 @@ function sameOrigin(req: IncomingMessage): boolean {
  *   GET  /api/llm/status                       -> which providers have a key on the server
  *   POST /api/llm/{groq|openrouter}/chat/completions -> validated, rate-limited, key-injected passthrough (streaming supported)
  */
-export function createLlmHandler(cfg: ServerConfig, fetchImpl: FetchLike = fetch as FetchLike, limiter = new RateLimiter(cfg.perMinute, cfg.perDay), userLimiter = new RateLimiter(cfg.userPerMinute, cfg.userPerDay)) {
+export function createLlmHandler(cfg: ServerConfig, fetchImpl: FetchLike = fetch as FetchLike, limiter = new RateLimiter(cfg.perMinute, cfg.perDay), userLimiter = new RateLimiter(cfg.userPerMinute, cfg.userPerDay), deps: { verifyFetch?: (url: string) => Promise<Response> } = {}) {
   const requireAuth = authEnabled(cfg)
   const timer = setInterval(() => {
     limiter.sweep()
@@ -123,12 +123,12 @@ export function createLlmHandler(cfg: ServerConfig, fetchImpl: FetchLike = fetch
       return true
     }
     // When sign-in is configured, AI use requires it and limits are per account instead of per IP.
-    const user = requireAuth ? getSession(req, cfg) : null
+    const user = requireAuth ? await getUser(req, cfg, deps.verifyFetch) : null
     if (requireAuth && !user) {
       fail(res, 401, 'Sign in with Google to use AI features.')
       return true
     }
-    const limit = user ? userLimiter.check(user.sub) : limiter.check(clientIp(req, cfg.trustProxy))
+    const limit = user ? userLimiter.check(user.uid) : limiter.check(clientIp(req, cfg.trustProxy))
     if (!limit.ok) {
       fail(res, 429, limit.reason === 'day' ? 'Daily request limit reached. Try again tomorrow.' : 'Too many requests. Please wait a moment.', { 'Retry-After': String(limit.retryAfter) })
       return true

@@ -1,5 +1,5 @@
 # One Render web service: serves the built app and the AI proxy (keys stay on the server).
-# Step 1 of the setup: deploy WITHOUT AI keys first (manual editing works), add keys once sign-in is in place.
+# Sign-in (Firebase) is on, so AI needs a signed-in user. Add the two AI keys in the dashboard.
 services:
   - type: web
     name: resume-ai
@@ -14,7 +14,16 @@ services:
         value: 20
       - key: TRUST_PROXY
         value: "1"
-      # Added later, in the Render dashboard (never commit real values):
+      # Firebase web config: public by design (it ships in every Firebase web app).
+      - key: FIREBASE_API_KEY
+        value: AIzaSyBz1ZQYNiD4_3j0dxhm0NGWYD3iPE3QAag
+      - key: FIREBASE_AUTH_DOMAIN
+        value: resume-ai-8befd.firebaseapp.com
+      - key: FIREBASE_PROJECT_ID
+        value: resume-ai-8befd
+      - key: FIREBASE_APP_ID
+        value: 1:1006652007250:web:2bb16a2943d9759d4d108b
+      # Secrets: set these in the Render dashboard only (never commit real values):
       - key: GROQ_API_KEY
         sync: false
       - key: OPENROUTER_API_KEY

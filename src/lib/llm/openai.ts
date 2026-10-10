@@ -6,6 +6,8 @@ export interface OpenAiConfig {
   model: string
   /** Direct API key. Leave empty when `baseUrl` is the server proxy, which adds the key itself. */
   apiKey?: string
+  /** Returns a sign-in token to send to the server proxy (Firebase ID token), if the user is signed in. */
+  getToken?: () => Promise<string | null>
   label: string
   supportsJsonFormat: boolean
 }
@@ -18,11 +20,12 @@ export class OpenAiCompatibleClient implements LlmClient {
 
   private async request(path: string, init: RequestInit): Promise<Response> {
     const direct = !!this.config.apiKey
+    const token = direct ? null : ((await this.config.getToken?.()) ?? null)
     let res: Response
     try {
       res = await fetch(`${this.config.baseUrl.replace(/\/+$/, '')}${path}`, {
         ...init,
-        headers: { 'Content-Type': 'application/json', ...(direct ? { Authorization: `Bearer ${this.config.apiKey}` } : {}), ...init.headers },
+        headers: { 'Content-Type': 'application/json', ...(direct ? { Authorization: `Bearer ${this.config.apiKey}` } : token ? { Authorization: `Bearer ${token}` } : {}), ...init.headers },
       })
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') throw new LlmError('aborted', 'Request cancelled.')

@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '@/App'
-import { ErrorBanner } from '@/components/ui'
 import { GoogleSignInButton } from '@/components/GoogleSignInButton'
+import { ErrorBanner } from '@/components/ui'
 import { ChatPanel } from '@/features/chat/ChatPanel'
 import { CoverLetterPage } from '@/features/cover/CoverLetterPage'
 import { ImportPage } from '@/features/import/ImportPage'
@@ -14,21 +14,62 @@ import { useResumes } from '@/store/resumes'
 import { useSettings } from '@/store/settings'
 import { SAMPLE_JD, sampleContent } from '@/test/fixtures'
 import { mockLlm, renderAt } from '@/test/helpers'
-import { useAuth } from './store'
+import { getIdToken, resetAuthForTests, useAuth } from './store'
 
-const signedOut = () => useAuth.setState({ loaded: true, required: true, googleClientId: 'cid', user: null, error: null })
-const signedIn = () => useAuth.setState({ loaded: true, required: true, googleClientId: 'cid', user: { email: 'ada@example.com', name: 'Ada', picture: '' }, error: null })
+// A scripted stand-in for the Firebase SDK.
+const fb = vi.hoisted(() => {
+  const state = {
+    user: null as null | { uid: string; email: string; displayName: string; photoURL: string },
+    listener: null as null | ((u: unknown) => void),
+    popupError: null as null | { code: string },
+    currentUser: null as null | { getIdToken: () => Promise<string> },
+  }
+  return state
+})
+// Like the real Auth object: one stable instance whose `currentUser` is live.
+const auth = vi.hoisted(() => ({ get currentUser() { return fb.currentUser } }))
+vi.mock('@/lib/firebase/app', () => ({ getFirebase: () => ({ app: {}, db: {}, auth }) }))
+vi.mock('firebase/auth', () => ({
+  GoogleAuthProvider: class {},
+  onAuthStateChanged: (_auth: unknown, cb: (u: unknown) => void) => {
+    fb.listener = cb
+    cb(fb.user)
+    return () => undefined
+  },
+  signInWithPopup: vi.fn(async () => {
+    if (fb.popupError) throw fb.popupError
+    fb.user = { uid: 'u1', email: 'ada@example.com', displayName: 'Ada', photoURL: '' }
+    fb.currentUser = { getIdToken: async () => 'firebase-token' }
+    fb.listener?.(fb.user)
+  }),
+  signOut: vi.fn(async () => {
+    fb.user = null
+    fb.currentUser = null
+    fb.listener?.(null)
+  }),
+}))
+
+const CONFIG = { apiKey: 'k', authDomain: 'x.firebaseapp.com', projectId: 'x', appId: '1' }
+const serverConfig = (required = true) =>
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (u: string) => new Response(JSON.stringify(u.includes('auth/config') ? { required, firebase: required ? CONFIG : null } : { providers: {} }))),
+  )
+const signedOut = () => useAuth.setState({ loaded: true, required: true, firebase: CONFIG, user: null, error: null })
+const signedIn = () => useAuth.setState({ loaded: true, required: true, firebase: CONFIG, user: { uid: 'u1', email: 'ada@example.com', name: 'Ada', picture: '' }, error: null })
 
 beforeEach(() => {
+  resetAuthForTests()
+  fb.user = null
+  fb.currentUser = null
+  fb.popupError = null
   useResumes.setState({ resumes: [] })
   useSettings.setState({ provider: 'auto', onboarded: true })
-  useAuth.setState({ loaded: true, required: false, googleClientId: '', user: null, error: null })
-  window.google = { accounts: { id: { initialize: vi.fn(), renderButton: vi.fn() } } }
+  useAuth.setState({ loaded: true, required: false, user: null })
 })
 afterEach(() => {
   vi.unstubAllGlobals()
   setLlmClient(null)
-  delete window.google
 })
 
 const seed = () => {
@@ -37,41 +78,56 @@ const seed = () => {
   return useResumes.getState().resumes.find((x) => x.id === r.id)!
 }
 
-describe('auth store', () => {
-  it('loads config and the current user', async () => {
-    vi.stubGlobal('fetch', vi.fn(async (u: string) => new Response(JSON.stringify(u.endsWith('config') ? { required: true, googleClientId: 'cid' } : { user: { email: 'a@b.c', name: 'A', picture: '' } }))))
-    await useAuth.getState().load()
-    expect(useAuth.getState()).toMatchObject({ loaded: true, required: true, googleClientId: 'cid', user: { email: 'a@b.c' } })
-  })
-  it('treats a failing server as "no sign-in needed" so local use keeps working', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
+describe('auth store (Firebase)', () => {
+  it('stays off when the server does not require sign-in', async () => {
+    serverConfig(false)
     await useAuth.getState().load()
     expect(useAuth.getState()).toMatchObject({ loaded: true, required: false, user: null })
   })
-  it('signs in with a credential, surfaces server errors, and signs out', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ user: { email: 'a@b.c', name: 'A', picture: '' } }))))
-    expect(await useAuth.getState().signInWithCredential('tok')).toBe(true)
-    expect(useAuth.getState().user?.email).toBe('a@b.c')
+  it('loads the config from the server and reports the signed-in user', async () => {
+    serverConfig()
+    fb.user = { uid: 'u1', email: 'a@b.c', displayName: 'A', photoURL: 'p' }
+    await useAuth.getState().load()
+    expect(useAuth.getState()).toMatchObject({ loaded: true, required: true, firebase: CONFIG, user: { uid: 'u1', email: 'a@b.c', name: 'A', picture: 'p' } })
+  })
+  it('keeps local use working if the server is unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
+    await useAuth.getState().load()
+    expect(useAuth.getState()).toMatchObject({ loaded: true, user: null })
+  })
+  it('signs in with a Google popup, exposes an ID token, and signs out', async () => {
+    serverConfig()
+    await useAuth.getState().load()
+    expect(await getIdToken()).toBeNull()
+    await useAuth.getState().signIn()
+    expect(useAuth.getState().user).toMatchObject({ email: 'ada@example.com' })
+    expect(await getIdToken()).toBe('firebase-token')
     await useAuth.getState().signOut()
     expect(useAuth.getState().user).toBeNull()
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: { message: 'Token has expired.' } }), { status: 401 })))
-    expect(await useAuth.getState().signInWithCredential('bad')).toBe(false)
-    expect(useAuth.getState().error).toBe('Token has expired.')
+    expect(await getIdToken()).toBeNull()
+  })
+  it('explains common sign-in failures and ignores a closed popup', async () => {
+    serverConfig()
+    await useAuth.getState().load()
+    fb.popupError = { code: 'auth/popup-closed-by-user' }
+    await useAuth.getState().signIn()
+    expect(useAuth.getState().error).toBeNull()
+    fb.popupError = { code: 'auth/popup-blocked' }
+    await useAuth.getState().signIn()
+    expect(useAuth.getState().error).toMatch(/blocked/)
+    fb.popupError = { code: 'auth/unauthorized-domain' }
+    await useAuth.getState().signIn()
+    expect(useAuth.getState().error).toMatch(/authorised domain/)
   })
 })
 
 describe('Google button', () => {
-  it('initialises Google Identity Services with the server client id and signs in on callback', async () => {
-    useAuth.setState({ googleClientId: 'cid' })
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ user: { email: 'a@b.c', name: 'A', picture: '' } })))
-    vi.stubGlobal('fetch', fetchMock)
+  it('starts the sign-in when clicked', async () => {
+    serverConfig()
+    await useAuth.getState().load()
     render(<GoogleSignInButton />)
-    await waitFor(() => expect(window.google!.accounts.id.renderButton).toHaveBeenCalled())
-    const init = vi.mocked(window.google!.accounts.id.initialize).mock.calls[0]![0]
-    expect(init.client_id).toBe('cid')
-    init.callback({ credential: 'jwt-from-google' })
-    await waitFor(() => expect(useAuth.getState().user?.email).toBe('a@b.c'))
-    expect(JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)).toEqual({ credential: 'jwt-from-google' })
+    await userEvent.click(screen.getByRole('button', { name: /Sign in with Google/ }))
+    await waitFor(() => expect(useAuth.getState().user?.email).toBe('ada@example.com'))
   })
 })
 
@@ -137,6 +193,19 @@ describe('AI features need sign-in; manual editing does not', () => {
   })
 })
 
+describe('the AI proxy request carries the Firebase token', () => {
+  it('sends Authorization: Bearer <token> to /api/llm when signed in', async () => {
+    serverConfig()
+    await useAuth.getState().load()
+    await useAuth.getState().signIn()
+    const { OpenAiCompatibleClient } = await import('@/lib/llm/openai')
+    const calls: RequestInit[] = []
+    vi.stubGlobal('fetch', vi.fn(async (_u: string, init?: RequestInit) => (calls.push(init ?? {}), new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] })))))
+    await new OpenAiCompatibleClient({ baseUrl: '/api/llm/groq', model: 'm', label: 'Groq', supportsJsonFormat: true, getToken: getIdToken }).chat([{ role: 'user', content: 'hi' }])
+    expect((calls[0]!.headers as Record<string, string>).Authorization).toBe('Bearer firebase-token')
+  })
+})
+
 describe('profile menu', () => {
   const setup = () =>
     render(
@@ -144,37 +213,26 @@ describe('profile menu', () => {
         <App />
       </MemoryRouter>,
     )
-  beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn(async (u: string) => new Response(JSON.stringify(u.includes('providers') || u.includes('status') ? { providers: {} } : { required: false }))))
-  })
 
   it('offers Google sign-in when signed out and required', async () => {
-    signedOut()
-    vi.stubGlobal('fetch', vi.fn(async (u: string) => new Response(JSON.stringify(u.endsWith('config') ? { required: true, googleClientId: 'cid' } : { user: null, providers: {} }))))
+    serverConfig()
+    resetAuthForTests()
     setup()
-    await userEvent.click(screen.getByRole('button', { name: 'Profile' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Profile' }))
     expect(await screen.findByText(/Sign in to use AI features and sync/)).toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Sign out' })).not.toBeInTheDocument()
   })
 
   it('shows the account and signs out when signed in', async () => {
-    const calls: string[] = []
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (u: string, i?: RequestInit) => {
-        calls.push(`${i?.method ?? 'GET'} ${u}`)
-        if (u.endsWith('config')) return new Response(JSON.stringify({ required: true, googleClientId: 'cid' }))
-        if (u.endsWith('/me')) return new Response(JSON.stringify({ user: { email: 'ada@example.com', name: 'Ada L', picture: '' } }))
-        if (u === '/api/sync') return new Response(JSON.stringify({ rev: 0, data: null }))
-        return new Response(JSON.stringify({ ok: true, providers: {} }))
-      }),
-    )
+    serverConfig()
+    fb.user = { uid: 'u1', email: 'ada@example.com', displayName: 'Ada L', photoURL: '' }
+    fb.currentUser = { getIdToken: async () => 't' }
+    resetAuthForTests()
     setup()
     await userEvent.click(await screen.findByRole('button', { name: 'Profile' }))
     expect(await screen.findByText('ada@example.com')).toBeInTheDocument()
     expect(screen.getByText('Ada L')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }))
-    await waitFor(() => expect(calls).toContain('POST /api/auth/logout'))
     await waitFor(() => expect(useAuth.getState().user).toBeNull())
   })
 })

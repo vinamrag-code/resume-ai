@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { useAuth } from '@/lib/auth/store'
 import { loadServerProviders } from '@/lib/llm'
-import { startSync } from '@/lib/sync/engine'
+import { startFirestoreSync } from '@/lib/sync/engine'
 import { Layout } from '@/components/Layout'
 import { CoverLetterPage } from '@/features/cover/CoverLetterPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
@@ -14,13 +14,25 @@ import { EmptyState } from '@/components/ui'
 import { Link } from 'react-router-dom'
 
 export function App() {
-  const signedIn = useAuth((s) => s.user !== null)
+  const uid = useAuth((s) => s.user?.uid ?? null)
+  const email = useAuth((s) => s.user?.email ?? '')
   useEffect(() => {
     void loadServerProviders()
     void useAuth.getState().load()
   }, [])
   // While signed in, keep this device and the cloud copy in sync.
-  useEffect(() => (signedIn ? startSync() : undefined), [signedIn])
+  useEffect(() => {
+    if (!uid) return
+    let stop: (() => void) | undefined
+    let cancelled = false
+    void startFirestoreSync(uid, email)
+      .then((s) => (cancelled ? s() : (stop = s)))
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+      stop?.()
+    }
+  }, [uid, email])
   return (
     <>
       {/* <OnboardingModal /> is intentionally not mounted: hosted users share the owner's API key. */}

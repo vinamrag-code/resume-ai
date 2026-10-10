@@ -1,3 +1,4 @@
+import { getIdToken } from '@/lib/auth/store'
 import { useSettings } from '@/store/settings'
 import type { SettingsState } from '@/store/settings'
 import { FallbackClient } from './fallback'
@@ -31,6 +32,7 @@ function single(id: ProviderId, s: ClientSettings): LlmClient {
   return new OpenAiCompatibleClient({
     baseUrl: info.baseUrl,
     model,
+    getToken: getIdToken,
     label: info.label.replace(/ \(.*\)/, ''),
     supportsJsonFormat: info.supportsJsonFormat,
   })

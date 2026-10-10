@@ -11,7 +11,7 @@ try {
 }
 
 const cfg = loadConfig()
-const { handle: handleApi } = await createApiHandler(cfg)
+const handleApi = createApiHandler(cfg)
 const root = resolve(cfg.staticDir)
 
 const TYPES: Record<string, string> = {
@@ -41,5 +41,5 @@ const server = createServer(async (req, res) => {
 
 server.listen(cfg.port, () => {
   const on = (['groq', 'openrouter'] as const).filter((p) => cfg.keys[p])
-  console.log(`Resume AI server on http://localhost:${cfg.port}  (AI providers: ${on.join(', ') || 'none configured'}; sign-in: ${authEnabled(cfg) ? 'on' : 'off'}; storage: ${cfg.databaseUrl ? 'postgres' : 'files'})`)
+  console.log(`Resume AI server on http://localhost:${cfg.port}  (AI providers: ${on.join(', ') || 'none configured'}; sign-in: ${authEnabled(cfg) ? 'on' : 'off'})`)
 })

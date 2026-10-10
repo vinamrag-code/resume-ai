@@ -1,48 +1,23 @@
-import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/lib/auth/store'
 
-const SCRIPT = 'https://accounts.google.com/gsi/client'
-
-function loadScript(): Promise<void> {
-  if (window.google?.accounts?.id) return Promise.resolve()
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(`script[src="${SCRIPT}"]`)
-    const s = existing ?? Object.assign(document.createElement('script'), { src: SCRIPT, async: true, defer: true })
-    s.addEventListener('load', () => resolve(), { once: true })
-    s.addEventListener('error', () => reject(new Error('Could not load Google sign-in. Check your connection or ad blocker.')), { once: true })
-    if (!existing) document.head.appendChild(s)
-  })
-}
-
-/** Google's official "Sign in with Google" button. The script loads only when this is shown. */
-export function GoogleSignInButton({ text = 'signin_with' }: { text?: 'signin_with' | 'continue_with' }) {
-  const clientId = useAuth((s) => s.googleClientId)
-  const signIn = useAuth((s) => s.signInWithCredential)
+/** "Sign in with Google" using Firebase Authentication (popup). */
+export function GoogleSignInButton({ label = 'Sign in with Google' }: { label?: string }) {
+  const signIn = useAuth((s) => s.signIn)
   const error = useAuth((s) => s.error)
-  const holder = useRef<HTMLDivElement>(null)
-  const [loadError, setLoadError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!clientId) return
-    let cancelled = false
-    loadScript()
-      .then(() => {
-        if (cancelled || !holder.current || !window.google) return
-        window.google.accounts.id.initialize({ client_id: clientId, callback: (r) => void signIn(r.credential), cancel_on_tap_outside: true })
-        window.google.accounts.id.renderButton(holder.current, { theme: 'outline', size: 'large', text, shape: 'pill' })
-      })
-      .catch((e: unknown) => !cancelled && setLoadError(e instanceof Error ? e.message : 'Could not load Google sign-in.'))
-    return () => {
-      cancelled = true
-    }
-  }, [clientId, signIn, text])
-
   return (
-    <div>
-      <div ref={holder} data-testid="google-button" />
-      {(loadError || error) && (
+    <div data-testid="google-button">
+      <button type="button" className="btn-secondary gap-2.5 rounded-full px-4" onClick={() => void signIn()}>
+        <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden="true">
+          <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z" />
+          <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z" />
+          <path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z" />
+          <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z" />
+        </svg>
+        {label}
+      </button>
+      {error && (
         <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-300">
-          {loadError ?? error}
+          {error}
         </p>
       )}
     </div>
