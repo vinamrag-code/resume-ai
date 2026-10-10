@@ -1,34 +1,21 @@
-# Deploys the app + AI proxy as one Node web service on Render.
-# Set GROQ_API_KEY and OPENROUTER_API_KEY in the Render dashboard (they are never in the repo or the browser bundle).
+# One Render web service: serves the built app and the AI proxy (keys stay on the server).
+# Step 1 of the setup: deploy WITHOUT AI keys first (manual editing works), add keys once sign-in is in place.
 services:
   - type: web
     name: resume-ai
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run build && npm run build:server
+    branch: dev
+    buildCommand: npm ci --include=dev && npm run build && npm run build:server
     startCommand: npm start
+    healthCheckPath: /
     envVars:
       - key: NODE_VERSION
         value: 20
       - key: TRUST_PROXY
         value: "1"
+      # Added later, in the Render dashboard (never commit real values):
       - key: GROQ_API_KEY
         sync: false
       - key: OPENROUTER_API_KEY
         sync: false
-      - key: GOOGLE_CLIENT_ID
-        sync: false
-      - key: SESSION_SECRET
-        generateValue: true
-      - key: DATABASE_URL
-        fromDatabase:
-          name: resume-ai-db
-          property: connectionString
-      - key: RATE_LIMIT_PER_MINUTE
-        value: "20"
-      - key: RATE_LIMIT_PER_DAY
-        value: "300"
-
-databases:
-  - name: resume-ai-db
-    plan: free
