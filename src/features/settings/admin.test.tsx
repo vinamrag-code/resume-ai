@@ -30,7 +30,7 @@ beforeEach(() => {
   setServerModels(MODELS)
   setServerProviders(new Set(['groq', 'openrouter']))
   useSettings.setState({ provider: 'auto', onboarded: true, models: defaultModels() })
-  useAuth.setState({ loaded: true, required: true, firebase: CONFIG, user: { uid: 'u1', email: 'me@example.com', name: 'Me', picture: '' }, isAdmin: false })
+  useAuth.setState({ loaded: true, required: true, firebase: CONFIG, user: { uid: 'u1', email: 'me@example.com', name: 'Me', picture: '', emailVerified: true }, isAdmin: false })
 })
 afterEach(() => {
   setServerModels(null)

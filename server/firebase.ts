@@ -12,6 +12,7 @@ export interface FirebaseUser {
   email: string
   name: string
   picture: string
+  emailVerified: boolean
 }
 
 let cache: { keys: Jwk[]; at: number } | null = null
@@ -62,5 +63,5 @@ export async function verifyFirebaseIdToken(token: string, projectId: string, fe
   if (typeof c.exp !== 'number' || c.exp * 1000 < now) throw new Error('Token has expired.')
   if (typeof c.iat === 'number' && c.iat * 1000 > now + 300_000) throw new Error('Token was issued in the future.')
   if (typeof c.sub !== 'string' || !c.sub || c.sub.length > 128) throw new Error('Token has no subject.')
-  return { uid: c.sub, email: String(c.email ?? ''), name: String(c.name ?? c.email ?? ''), picture: String(c.picture ?? '') }
+  return { uid: c.sub, email: String(c.email ?? ''), name: String(c.name ?? c.email ?? ''), picture: String(c.picture ?? ''), emailVerified: c.email_verified === true }
 }

@@ -46,3 +46,8 @@
   .resume-paper { box-shadow: none !important; max-width: none !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; }
   .no-print { display: none !important; }
 }
+
+/* Respect "reduce motion": no entrance or floating animations. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up, .animate-modal-in, .animate-backdrop-in, .animate-float { animation: none !important; }
+}

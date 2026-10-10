@@ -29,7 +29,9 @@ export async function getUser(req: IncomingMessage, cfg: ServerConfig, fetchImpl
   const token = header?.startsWith('Bearer ') ? header.slice(7).trim() : ''
   if (!token || token.length > 4000) return null
   try {
-    return await verifyFirebaseIdToken(token, cfg.firebase.projectId, fetchImpl)
+    const user = await verifyFirebaseIdToken(token, cfg.firebase.projectId, fetchImpl)
+    // Email/password accounts must verify their address before using AI (Google accounts arrive verified).
+    return user.emailVerified ? user : null
   } catch {
     return null
   }

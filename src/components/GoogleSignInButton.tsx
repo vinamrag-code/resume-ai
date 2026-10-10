@@ -1,7 +1,7 @@
 import { useAuth } from '@/lib/auth/store'
 
 /** "Sign in with Google" using Firebase Authentication (popup). */
-export function GoogleSignInButton({ label = 'Sign in with Google' }: { label?: string }) {
+export function GoogleSignInButton({ label = 'Sign in with Google', showError = true }: { label?: string; showError?: boolean }) {
   const signIn = useAuth((s) => s.signIn)
   const error = useAuth((s) => s.error)
   return (
@@ -15,7 +15,7 @@ export function GoogleSignInButton({ label = 'Sign in with Google' }: { label?: 
         </svg>
         {label}
       </button>
-      {error && (
+      {showError && error && (
         <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-300">
           {error}
         </p>

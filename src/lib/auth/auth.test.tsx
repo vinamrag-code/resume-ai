@@ -19,7 +19,7 @@ import { getIdToken, resetAuthForTests, useAuth } from './store'
 // A scripted stand-in for the Firebase SDK.
 const fb = vi.hoisted(() => {
   const state = {
-    user: null as null | { uid: string; email: string; displayName: string; photoURL: string },
+    user: null as null | { uid: string; email: string; displayName: string; photoURL: string; emailVerified: boolean },
     listener: null as null | ((u: unknown) => void),
     popupError: null as null | { code: string },
     currentUser: null as null | { getIdToken: () => Promise<string> },
@@ -38,7 +38,7 @@ vi.mock('firebase/auth', () => ({
   },
   signInWithPopup: vi.fn(async () => {
     if (fb.popupError) throw fb.popupError
-    fb.user = { uid: 'u1', email: 'ada@example.com', displayName: 'Ada', photoURL: '' }
+    fb.user = { uid: 'u1', email: 'ada@example.com', displayName: 'Ada', photoURL: '', emailVerified: true }
     fb.currentUser = { getIdToken: async () => 'firebase-token' }
     fb.listener?.(fb.user)
   }),
@@ -56,7 +56,7 @@ const serverConfig = (required = true) =>
     vi.fn(async (u: string) => new Response(JSON.stringify(u.includes('auth/config') ? { required, firebase: required ? CONFIG : null } : { providers: {} }))),
   )
 const signedOut = () => useAuth.setState({ loaded: true, required: true, firebase: CONFIG, user: null, error: null })
-const signedIn = () => useAuth.setState({ loaded: true, required: true, firebase: CONFIG, user: { uid: 'u1', email: 'ada@example.com', name: 'Ada', picture: '' }, error: null })
+const signedIn = () => useAuth.setState({ loaded: true, required: true, firebase: CONFIG, user: { uid: 'u1', email: 'ada@example.com', name: 'Ada', picture: '', emailVerified: true }, error: null })
 
 beforeEach(() => {
   resetAuthForTests()
@@ -86,9 +86,9 @@ describe('auth store (Firebase)', () => {
   })
   it('loads the config from the server and reports the signed-in user', async () => {
     serverConfig()
-    fb.user = { uid: 'u1', email: 'a@b.c', displayName: 'A', photoURL: 'p' }
+    fb.user = { uid: 'u1', email: 'a@b.c', displayName: 'A', photoURL: 'p', emailVerified: true }
     await useAuth.getState().load()
-    expect(useAuth.getState()).toMatchObject({ loaded: true, required: true, firebase: CONFIG, user: { uid: 'u1', email: 'a@b.c', name: 'A', picture: 'p' } })
+    expect(useAuth.getState()).toMatchObject({ loaded: true, required: true, firebase: CONFIG, user: { uid: 'u1', email: 'a@b.c', name: 'A', picture: 'p', emailVerified: true } })
   })
   it('keeps local use working if the server is unreachable', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
@@ -214,18 +214,17 @@ describe('profile menu', () => {
       </MemoryRouter>,
     )
 
-  it('offers Google sign-in when signed out and required', async () => {
+  it('shows the landing page instead of the app when signed out and sign-in is required', async () => {
     serverConfig()
     resetAuthForTests()
     setup()
-    await userEvent.click(await screen.findByRole('button', { name: 'Profile' }))
-    expect(await screen.findByText(/Sign in to use AI features and sync/)).toBeInTheDocument()
-    expect(screen.queryByRole('menuitem', { name: 'Sign out' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Sign up free' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Profile' })).not.toBeInTheDocument()
   })
 
   it('shows the account and signs out when signed in', async () => {
     serverConfig()
-    fb.user = { uid: 'u1', email: 'ada@example.com', displayName: 'Ada L', photoURL: '' }
+    fb.user = { uid: 'u1', email: 'ada@example.com', displayName: 'Ada L', photoURL: '', emailVerified: true }
     fb.currentUser = { getIdToken: async () => 't' }
     resetAuthForTests()
     setup()

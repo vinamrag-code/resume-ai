@@ -73,14 +73,15 @@ npm start              # reads PORT, GROQ_API_KEY, OPENROUTER_API_KEY, ...
 
 Optional, and recommended when other people can reach your server. Uses **Firebase Authentication** (Google sign-in) and **Cloud Firestore**:
 
-- **AI features need sign-in** (Agent, Tailor, AI import parsing, cover letters). **Manual editing, ATS scoring, templates and export never do.** Without the four `FIREBASE_*` settings the app behaves as before, with no sign-in.
+- **No free access.** When the four `FIREBASE_*` settings are present, visitors see only a landing page with **Log in** and **Sign up** (animated modal; sign-up asks for full name, email, password and confirm password, with validation and a strength hint). Nothing in the app is reachable until they sign in. Google sign-in is offered too, and password reset is built in. Without the `FIREBASE_*` settings the app is open (handy for local development).
+- **Email verification.** Email/password accounts must click the link we email before the app, cloud sync or AI work (a verify page checks in the background and offers resend). The server and the Firestore rules both enforce it; Google accounts arrive verified.
 - **Rate limits are per account** (default 30/minute, 500/day) instead of per IP. The server verifies the user's Firebase ID token (signature, audience, issuer, expiry) on every AI request.
 - **Cloud sync** stores each resume, job and cover letter as its own Firestore document under `users/{uid}/items/{id}`. The app stays local-first: it works from browser storage and syncs in the background while signed in (live updates plus a short debounce after edits; Firestore also queues edits made offline). The newer edit of each item wins and deletions propagate. Different accounts on one browser are never mixed. Users can delete their cloud data (and sign out) in Settings.
 - **Security rules** (`firestore.rules`) let a signed-in user read and write only their own items, with a fixed shape and size limit. They must be published in the Firebase console (see below); until then, sync reports a permission error and everything else keeps working.
 
 Setup:
 
-1. Create a Firebase project (turn Google Analytics off), enable **Authentication -> Google**, and create a **Firestore** database in production mode.
+1. Create a Firebase project (turn Google Analytics off), enable **Authentication -> Sign-in method -> Google** and **Email/Password** (just the first switch, not "Email link"), and create a **Firestore** database in production mode.
 2. Add your site's host (for example `your-app.onrender.com`) under **Authentication -> Settings -> Authorized domains** (`localhost` is there by default).
 3. Register a **web app** and copy its config into `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID`, `FIREBASE_APP_ID` (see `.env.example`; `render.yaml` already contains them).
 4. Open **Firestore Database -> Rules**, paste the contents of `firestore.rules`, and **Publish**.

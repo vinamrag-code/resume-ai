@@ -17,7 +17,7 @@ function idToken(claims: Record<string, unknown> = {}, opts: { kid?: string; key
   const enc = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url')
   const now = Math.floor(Date.now() / 1000)
   const head = enc({ alg: 'RS256', kid: opts.kid ?? 'k1', typ: 'JWT' })
-  const body = enc({ iss: `https://securetoken.google.com/${PROJECT}`, aud: PROJECT, sub: 'uid-1', iat: now - 10, exp: now + 3600, email: 'ada@example.com', name: 'Ada', picture: 'https://p/x.png', ...claims })
+  const body = enc({ iss: `https://securetoken.google.com/${PROJECT}`, aud: PROJECT, sub: 'uid-1', iat: now - 10, exp: now + 3600, email: 'ada@example.com', email_verified: true, name: 'Ada', picture: 'https://p/x.png', ...claims })
   const sig = createSign('RSA-SHA256').update(`${head}.${body}`).sign(opts.key ?? privateKey).toString('base64url')
   return `${head}.${body}.${sig}`
 }
@@ -27,7 +27,8 @@ beforeEach(() => resetKeyCache())
 describe('Firebase ID token verification', () => {
   const verify = (t: string) => verifyFirebaseIdToken(t, PROJECT, jwks)
   it('accepts a valid token', async () => {
-    expect(await verify(idToken())).toEqual({ uid: 'uid-1', email: 'ada@example.com', name: 'Ada', picture: 'https://p/x.png' })
+    expect(await verify(idToken())).toEqual({ uid: 'uid-1', email: 'ada@example.com', name: 'Ada', picture: 'https://p/x.png', emailVerified: true })
+    expect((await verify(idToken({ email_verified: false }))).emailVerified).toBe(false)
   })
   it('rejects wrong project, issuer, expiry, future iat, bad signature, unknown key, bad algorithm and junk', async () => {
     await expect(verify(idToken({ aud: 'other-project' }))).rejects.toThrow(/different project/)
@@ -84,6 +85,14 @@ describe('API with Firebase sign-in', () => {
     expect(upstream).not.toHaveBeenCalled()
     expect((await post(base, idToken())).status).toBe(200)
     expect(upstream).toHaveBeenCalledTimes(1)
+  })
+
+  it('refuses accounts whose email is not verified, even with a valid token', async () => {
+    const { base, upstream } = await start()
+    expect((await post(base, idToken({ email_verified: false }))).status).toBe(401)
+    expect((await post(base, idToken({ email_verified: undefined }))).status).toBe(401)
+    expect(upstream).not.toHaveBeenCalled()
+    expect((await post(base, idToken({ email_verified: true }))).status).toBe(200)
   })
 
   it('limits per account instead of per IP', async () => {

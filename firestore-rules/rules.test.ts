@@ -16,8 +16,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('Firestore security rules'
   afterAll(async () => env?.cleanup())
   beforeEach(async () => env.clearFirestore())
 
-  const ada = () => env.authenticatedContext('ada').firestore()
-  const bob = () => env.authenticatedContext('bob').firestore()
+  const ada = () => env.authenticatedContext('ada', { email_verified: true }).firestore()
+  const bob = () => env.authenticatedContext('bob', { email_verified: true }).firestore()
+  const unverified = () => env.authenticatedContext('ada', { email_verified: false }).firestore()
   const anon = () => env.unauthenticatedContext().firestore()
   const path = (db: ReturnType<typeof ada>, uid = 'ada', id = 'abc123') => db.doc(`users/${uid}/items/${id}`)
 
@@ -39,6 +40,19 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('Firestore security rules'
     await assertFails(path(anon(), 'ada').get())
     await assertFails(path(anon(), 'ada').set(item()))
     await assertFails(anon().collection('users/ada/items').get())
+  })
+
+  it('gives accounts with an unverified email no access at all', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await ctx.firestore().doc('users/ada/items/abc123').set(item())
+      await ctx.firestore().doc('admins/ada').set({ role: 'admin' })
+    })
+    await assertFails(path(unverified()).get())
+    await assertFails(path(unverified()).set(item()))
+    await assertFails(unverified().collection('users/ada/items').get())
+    await assertFails(unverified().doc('admins/ada').get())
+    await assertFails(unverified().doc('config/models').set({ groq: ['a'], openrouter: ['b'], defaults: {}, updatedAt: 1 })) // not even an admin
+    await assertSucceeds(unverified().doc('config/models').get()) // the model list stays public
   })
 
   it('rejects documents with the wrong shape', async () => {

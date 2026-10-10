@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth/store'
 import { loadServerProviders } from '@/lib/llm'
 import { startFirestoreSync } from '@/lib/sync/engine'
 import { Layout } from '@/components/Layout'
+import { AuthGate } from '@/features/auth/AuthGate'
 import { CoverLetterPage } from '@/features/cover/CoverLetterPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { ImportPage } from '@/features/import/ImportPage'
@@ -14,7 +15,8 @@ import { EmptyState } from '@/components/ui'
 import { Link } from 'react-router-dom'
 
 export function App() {
-  const uid = useAuth((s) => s.user?.uid ?? null)
+  // Cloud sync starts only for a verified account (the Firestore rules require it too).
+  const uid = useAuth((s) => (s.user?.emailVerified ? s.user.uid : null))
   const email = useAuth((s) => s.user?.email ?? '')
   useEffect(() => {
     void loadServerProviders()
@@ -34,7 +36,7 @@ export function App() {
     }
   }, [uid, email])
   return (
-    <>
+    <AuthGate>
       {/* <OnboardingModal /> is intentionally not mounted: hosted users share the owner's API key. */}
       <Routes>
         <Route element={<Layout />}>
@@ -54,6 +56,6 @@ export function App() {
           />
         </Route>
       </Routes>
-    </>
+    </AuthGate>
   )
 }
