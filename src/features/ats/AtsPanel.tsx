@@ -2,6 +2,7 @@ import { ErrorBanner, ProgressBar, Spinner } from '@/components/ui'
 import type { Check } from '@/lib/ats/score'
 import type { Resume } from '@/types/resume'
 import type { ResumeScore } from './useResumeScore'
+import { ScoreGauge } from './ScoreGauge'
 import { WeakBullets } from './WeakBullets'
 
 function Checks({ title, checks }: { title: string; checks: Check[] }) {
@@ -30,14 +31,21 @@ export function AtsPanel({ resume, scoring }: { resume: Resume; scoring: ResumeS
 
   return (
     <div className="space-y-4">
-      <section className="card space-y-3" aria-label="Score breakdown">
-        <div>
-          <h2 className="text-base font-semibold">Score breakdown</h2>
-          <p className="text-sm text-ink-500 dark:text-ink-400">
-            Your overall score ({report.overall}/100, shown at the top) is a fixed-rule weighted sum of these parts, not guessed by the AI.
+      <section className="card flex flex-wrap items-center gap-6" aria-labelledby="ats-overall">
+        <ScoreGauge value={report.overall} />
+        <div className="min-w-48 flex-1">
+          <h2 id="ats-overall" className="text-base font-semibold">
+            Overall ATS score
+          </h2>
+          <p className="mt-1 text-sm text-ink-500 dark:text-ink-400">
+            A fixed-rule weighted sum of the parts below, not guessed by the AI.
             {!report.hasJobDescription && ' Add a job description above to include keyword and semantic matching.'}
           </p>
         </div>
+      </section>
+
+      <section className="card space-y-3" aria-label="Score breakdown">
+        <h2 className="text-base font-semibold">Score breakdown</h2>
         {report.components.map((c) => (
           <div key={c.id}>
             <ProgressBar value={c.score} label={`${c.label} (${Math.round(c.weight * 100)}% of total)`} />

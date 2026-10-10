@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { EmptyState, Modal } from '@/components/ui'
-import { ScoreBadge } from '@/features/ats/ScoreBadge'
 import { useResumes } from '@/store/resumes'
 import type { Resume } from '@/types/resume'
 
@@ -39,10 +38,7 @@ function ResumeCard({ r, base }: { r: Resume; base?: Resume }) {
           Edited {new Date(r.updatedAt).toLocaleString()}
           {base && <> · Tailored from {base.name}</>}
         </p>
-        <div className="mt-2 flex items-center gap-2">
-          <ScoreBadge resume={r} />
-          {r.content.contact.name && <span className="truncate text-sm">{r.content.contact.name}</span>}
-        </div>
+        {r.content.contact.name && <p className="mt-1 truncate text-sm">{r.content.contact.name}</p>}
       </div>
       <div className="mt-auto flex flex-wrap gap-2">
         <Link to={`/resume/${r.id}`} className="btn-primary btn-sm">

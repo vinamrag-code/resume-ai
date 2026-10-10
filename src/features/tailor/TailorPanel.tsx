@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { EmptyState, ErrorBanner, Spinner, TruthfulnessNote } from '@/components/ui'
-import { scoreTone } from '@/features/ats/ScoreBadge'
+import { scoreTone } from '@/features/ats/scoreTone'
 import { computeAtsScore } from '@/lib/ats/score'
 import { applyChanges, invertChange, isStale, setAllStatus, setStatus } from '@/lib/changes'
 import type { Change } from '@/lib/changes'

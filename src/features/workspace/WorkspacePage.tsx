@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { EmptyState } from '@/components/ui'
-import { ScoreBadge } from '@/features/ats/ScoreBadge'
 import { useResumeScore } from '@/features/ats/useResumeScore'
 import { ResumeEditor } from '@/features/editor/ResumeEditor'
 import { DesignPanel } from '@/features/templates/DesignPanel'
@@ -49,7 +48,6 @@ function Workspace({ resume }: { resume: Resume }) {
           </label>
           <input id="resume-name" className="input max-w-md font-semibold" value={resume.name} onChange={(e) => rename(resume.id, e.target.value)} />
         </div>
-        <ScoreBadge score={scoring.report.overall} onClick={() => setTab('job')} />
         <Link to={`/cover?resume=${resume.id}`} className="btn-secondary btn-sm">
           Write cover letter
         </Link>

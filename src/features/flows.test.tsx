@@ -131,17 +131,6 @@ describe('editor and preview', () => {
   })
 })
 
-describe('score badge', () => {
-  it('shows a live ATS score in the workspace header and updates after edits', async () => {
-    const r = seedResume()
-    renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
-    const badge = screen.getByText(/ATS score \d+\/100/)
-    const before = badge.textContent
-    await userEvent.clear(screen.getByLabelText('Email'))
-    expect(screen.getByText(/ATS score \d+\/100/).textContent).not.toBe(before)
-  })
-})
-
 function AtsHarness({ resume, embedderFactory }: { resume: Resume; embedderFactory?: () => Embedder }) {
   const scoring = useResumeScore(resume, embedderFactory)
   return (
@@ -166,6 +155,17 @@ describe('ATS panel', () => {
     expect(screen.getByTestId('overall').textContent).not.toBe(before)
   })
 
+  it('shows a circular gauge whose arc matches the overall score', () => {
+    const r = seedResume()
+    renderAt(<AtsHarness resume={r} />)
+    const overall = Number(screen.getByTestId('overall').textContent)
+    const gauge = screen.getByRole('img', { name: new RegExp(`Overall ATS score: ${overall} out of 100`) })
+    expect(gauge).toBeInTheDocument()
+    const arc = screen.getByTestId('gauge-arc')
+    const c = Number(arc.getAttribute('stroke-dasharray'))
+    expect(Number(arc.getAttribute('stroke-dashoffset'))).toBeCloseTo(c * (1 - overall / 100), 3)
+  })
+
   it('works without a job description', () => {
     const r = seedResume({ title: '', company: '', description: '' })
     renderAt(<AtsHarness resume={r} />)
@@ -187,26 +187,20 @@ describe('ATS panel', () => {
 })
 
 describe('target job tab', () => {
-  it('groups ATS analysis, Tailor and Agent under one Target job tab with a single job form and one score', async () => {
+  it('groups ATS analysis, Tailor and Agent under one Target job tab with a single job form', async () => {
     const r = seedResume()
     renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
     expect(screen.queryByRole('button', { name: 'Tailor' })).not.toBeInTheDocument()
-    expect(screen.getAllByText(/ATS score \d+\/100/)).toHaveLength(1)
+    // The ATS score is not shown outside the Target job tab.
+    expect(screen.queryByRole('img', { name: /ATS score/ })).not.toBeInTheDocument()
+    expect(screen.queryByText(/ATS score/)).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Target job' }))
     expect(screen.getAllByLabelText('Job description')).toHaveLength(1)
     for (const name of ['Tailor', 'Agent', 'ATS analysis']) {
       await userEvent.click(screen.getByRole('button', { name }))
       expect(screen.getAllByLabelText('Job description')).toHaveLength(1)
     }
-    expect(screen.getByText(/Score breakdown/)).toBeInTheDocument()
-    expect(screen.getAllByText(/ATS score \d+\/100/)).toHaveLength(1)
-  })
-
-  it('clicking the header score opens the Target job tab', async () => {
-    const r = seedResume()
-    renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
-    await userEvent.click(screen.getByRole('button', { name: /ATS score/ }))
-    expect(screen.getByText(/Score breakdown/)).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /Overall ATS score: \d+ out of 100/ })).toBeInTheDocument()
   })
 })
 
