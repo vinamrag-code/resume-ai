@@ -78,6 +78,14 @@ export function createTransformersEmbedder(onProgress?: (p: EmbedProgress) => vo
         extractorPromise = (async () => {
           const { pipeline, env } = await import('@huggingface/transformers')
           env.allowLocalModels = false
+          // Serve the ONNX runtime from this app instead of the default CDN, so the only
+          // network call is the one-time model download.
+          const [{ default: mjs }, { default: wasm }] = await Promise.all([
+            import('../../../node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.mjs?url'),
+            import('../../../node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.wasm?url'),
+          ])
+          const onnx = env.backends.onnx as { wasm?: { wasmPaths?: unknown } }
+          if (onnx.wasm) onnx.wasm.wasmPaths = { mjs, wasm }
           const extractor = await pipeline('feature-extraction', EMBEDDING_MODEL, {
             progress_callback: (p: EmbedProgress) => onProgress?.(p),
           })
