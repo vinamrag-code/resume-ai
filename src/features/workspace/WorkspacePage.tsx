@@ -45,9 +45,6 @@ function Workspace({ resume }: { resume: Resume }) {
   return (
     <div className="space-y-4">
       <div className="no-print flex flex-wrap items-center gap-3">
-        <Link to="/" className="btn-ghost btn-sm">
-          ← Resumes
-        </Link>
         <div className="min-w-48 flex-1">
           <label htmlFor="resume-name" className="sr-only">
             Resume name

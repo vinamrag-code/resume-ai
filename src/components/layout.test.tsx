@@ -68,3 +68,37 @@ describe('navbar', () => {
     expect(document.documentElement).toHaveClass('dark')
   })
 })
+
+describe('active navigation highlight', () => {
+  const current = () => [...screen.getByRole('navigation', { name: 'Main' }).querySelectorAll('a[aria-current="page"]')].map((a) => a.textContent)
+
+  it('highlights Resumes on the list, import page and an open resume (which has no back button)', () => {
+    const r = useResumes.getState().create('R', sampleContent())
+    const first = setup('/')
+    expect(current()).toEqual(['Resumes'])
+    first.unmount()
+    const second = setup('/import')
+    expect(current()).toEqual(['Resumes'])
+    second.unmount()
+    setup(`/resume/${r.id}`)
+    expect(current()).toEqual(['Resumes'])
+    expect(screen.queryByRole('link', { name: /← Resumes|back/i })).not.toBeInTheDocument()
+  })
+
+  it('highlights Tracker and Cover letters on their pages', () => {
+    setup('/tracker').unmount()
+    setup('/tracker')
+    expect(current()).toEqual(['Tracker'])
+  })
+
+  it('highlights Cover letters, and the profile button on Settings', () => {
+    setup('/cover')
+    expect(current()).toEqual(['Cover letters'])
+  })
+
+  it('marks the profile button as current on Settings, with no nav item highlighted', () => {
+    setup('/settings')
+    expect(current()).toEqual([])
+    expect(screen.getByRole('button', { name: 'Profile' })).toHaveAttribute('aria-current', 'page')
+  })
+})

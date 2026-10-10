@@ -8,7 +8,7 @@ function initialsOf(name: string): string {
 }
 
 /** Profile button with a dropdown. There are no accounts; the name comes from your most recent resume. */
-export function ProfileMenu() {
+export function ProfileMenu({ active = false }: { active?: boolean }) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const menuId = useId()
@@ -42,9 +42,10 @@ export function ProfileMenu() {
         aria-label="Profile"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-current={active ? 'page' : undefined}
         aria-controls={open ? menuId : undefined}
         onClick={() => setOpen((o) => !o)}
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 dark:bg-brand-500 dark:text-ink-950"
+        className={`flex h-9 w-9 items-center justify-center rounded-full ${active ? 'ring-2 ring-brand-300 ring-offset-2 ring-offset-white dark:ring-offset-ink-900' : ''} bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 dark:bg-brand-500 dark:text-ink-950`}
       >
         {initials || (
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">

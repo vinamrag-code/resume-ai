@@ -1,14 +1,15 @@
 import { useEffect } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { ProfileMenu } from '@/components/ProfileMenu'
 import { Logo } from '@/components/ui'
 import { useSettings } from '@/store/settings'
 import type { ThemePref } from '@/store/settings'
 
+/** `match` decides which paths highlight an item (an open resume and the import page belong to "Resumes"). */
 const NAV = [
-  { to: '/', label: 'Resumes', end: true },
-  { to: '/tracker', label: 'Tracker', end: false },
-  { to: '/cover', label: 'Cover letters', end: false },
+  { to: '/', label: 'Resumes', match: (p: string) => p === '/' || p.startsWith('/resume') || p.startsWith('/import') },
+  { to: '/tracker', label: 'Tracker', match: (p: string) => p.startsWith('/tracker') },
+  { to: '/cover', label: 'Cover letters', match: (p: string) => p.startsWith('/cover') },
 ]
 
 const NEXT_THEME: Record<ThemePref, ThemePref> = { system: 'light', light: 'dark', dark: 'system' }
@@ -52,6 +53,7 @@ export function Layout() {
   useApplyTheme()
   const theme = useSettings((s) => s.theme)
   const update = useSettings((s) => s.update)
+  const { pathname } = useLocation()
   return (
     <div className="flex min-h-screen flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:p-2 focus:text-ink-900">
@@ -59,23 +61,24 @@ export function Layout() {
       </a>
       <header className="no-print sticky top-0 z-30 border-b border-ink-200 bg-white/90 backdrop-blur dark:border-ink-800 dark:bg-ink-900/90">
         <div className="mx-auto flex max-w-[1500px] items-center gap-4 px-4 py-2.5">
-          <NavLink to="/" className="flex items-center gap-2 font-semibold tracking-tight">
+          <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
             <Logo />
             <span>Resume AI</span>
-          </NavLink>
+          </Link>
           <nav aria-label="Main" className="flex flex-1 flex-wrap items-center gap-1">
-            {NAV.map((n) => (
-              <NavLink
-                key={n.to}
-                to={n.to}
-                end={n.end}
-                className={({ isActive }) =>
-                  `rounded-lg px-3 py-1.5 text-sm font-medium ${isActive ? 'bg-brand-50 text-brand-800 dark:bg-brand-900/40 dark:text-brand-100' : 'text-ink-600 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-ink-800'}`
-                }
-              >
-                {n.label}
-              </NavLink>
-            ))}
+            {NAV.map((n) => {
+              const active = n.match(pathname)
+              return (
+                <Link
+                  key={n.to}
+                  to={n.to}
+                  aria-current={active ? 'page' : undefined}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium ${active ? 'bg-brand-600 text-white shadow-sm dark:bg-brand-500 dark:text-ink-950' : 'text-ink-600 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-ink-800'}`}
+                >
+                  {n.label}
+                </Link>
+              )
+            })}
           </nav>
           <button
             type="button"
@@ -86,7 +89,7 @@ export function Layout() {
           >
             <ThemeIcon theme={theme} />
           </button>
-          <ProfileMenu />
+          <ProfileMenu active={pathname.startsWith('/settings')} />
         </div>
       </header>
       <main id="main" className="mx-auto w-full max-w-[1500px] flex-1 px-4 py-6">
