@@ -47,6 +47,9 @@ export function WorkspacePage() {
           </label>
           <input id="resume-name" className="input max-w-md font-semibold" value={resume.name} onChange={(e) => rename(resume.id, e.target.value)} />
         </div>
+        <Link to={`/cover?resume=${resume.id}`} className="btn-secondary btn-sm">
+          Write cover letter
+        </Link>
         <span className="text-xs text-ink-500 dark:text-ink-400" role="status">
           Saved {new Date(resume.updatedAt).toLocaleTimeString()}
         </span>

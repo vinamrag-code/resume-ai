@@ -24,11 +24,12 @@ export function CoverLetterPage() {
   const { add, update, remove } = useCoverLetters.getState()
   const selected = letters.find((l) => l.id === params.get('id'))
 
-  const [resumeId, setResumeId] = useState(params.get('resume') ?? resumes[0]?.id ?? '')
+  const initial = resumes.find((r) => r.id === params.get('resume')) ?? resumes[0]
+  const [resumeId, setResumeId] = useState(initial?.id ?? '')
   const resume = resumes.find((r) => r.id === resumeId)
-  const [jobTitle, setJobTitle] = useState('')
-  const [company, setCompany] = useState('')
-  const [jd, setJd] = useState('')
+  const [jobTitle, setJobTitle] = useState(initial?.target.title ?? '')
+  const [company, setCompany] = useState(initial?.target.company ?? '')
+  const [jd, setJd] = useState(initial?.target.description ?? '')
   const [tone, setTone] = useState<CoverTone>('formal')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
