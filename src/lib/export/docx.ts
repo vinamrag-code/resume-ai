@@ -1,4 +1,5 @@
-import { AlignmentType, Document, LevelFormat, Packer, Paragraph, TabStopPosition, TabStopType, TextRun } from 'docx'
+import { AlignmentType, Document, ExternalHyperlink, LevelFormat, Packer, Paragraph, TabStopPosition, TabStopType, TextRun } from 'docx'
+import { displayUrl, normalizeUrl } from '@/lib/links'
 import type { ResumeContent, ResumeStyle, TemplateId } from '@/types/resume'
 
 const FONTS: Record<TemplateId, string> = { classic: 'Times New Roman', modern: 'Arial', compact: 'Calibri' }
@@ -20,11 +21,18 @@ export function buildResumeDocx(content: ResumeContent, style: ResumeStyle, temp
       border: { bottom: { style: 'single', size: 6, color: '111111', space: 1 } },
       children: [run(text, { bold: true, allCaps: true, size: size + 2 })],
     })
-  const rowLine = (left: string, right: string) =>
+  /** Clickable link (blue, underlined). Plain text if the value is not a valid URL. */
+  const linkRun = (raw: string) => {
+    const url = normalizeUrl(raw)
+    const text = displayUrl(raw)
+    if (!url) return run(text)
+    return new ExternalHyperlink({ link: url, children: [new TextRun({ text, font, size, color: '0563C1', underline: {} })] })
+  }
+  const rowLine = (left: string, right: string, rightIsLink = false) =>
     new Paragraph({
       spacing: { before: gap },
       tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
-      children: [run(left, { bold: true }), ...(right ? [new TextRun({ text: `\t${right}`, font, size })] : [])],
+      children: [run(left, { bold: true }), ...(right ? [new TextRun({ text: '\t', font, size }), rightIsLink ? linkRun(right) : new TextRun({ text: right, font, size })] : [])],
     })
   const text = (t: string, o: { italics?: boolean } = {}) => new Paragraph({ spacing: { after: gap }, children: [run(t, o)] })
   const bullets = (items: string[]) =>
@@ -36,10 +44,10 @@ export function buildResumeDocx(content: ResumeContent, style: ResumeStyle, temp
   const body: Paragraph[] = []
   const align = centered ? AlignmentType.CENTER : AlignmentType.LEFT
   body.push(new Paragraph({ alignment: align, children: [run(c.contact.name || 'Your Name', { bold: true, size: size * 2 })] }))
-  const contact = [c.contact.email, c.contact.phone, c.contact.location].filter(Boolean).join(' | ')
-  if (contact) body.push(new Paragraph({ alignment: align, children: [run(contact)] }))
-  const links = c.contact.links.filter((l) => l.url).map((l) => (l.label ? `${l.label}: ${l.url}` : l.url)).join(' | ')
-  if (links) body.push(new Paragraph({ alignment: align, children: [run(links)] }))
+  const contactParts = [c.contact.email && linkRun(c.contact.email), c.contact.phone && run(c.contact.phone), c.contact.location && run(c.contact.location)].filter((x) => !!x)
+  if (contactParts.length) body.push(new Paragraph({ alignment: align, children: contactParts.flatMap((part, i) => (i ? [run(' | '), part] : [part])) }))
+  const linkParts = c.contact.links.filter((l) => l.url).map((l) => [...(l.label ? [run(`${l.label}: `)] : []), linkRun(l.url)])
+  if (linkParts.length) body.push(new Paragraph({ alignment: align, children: linkParts.flatMap((part, i) => (i ? [run(' | '), ...part] : part)) }))
 
   if (c.summary.trim()) body.push(heading('Summary'), text(c.summary))
   if (c.experience.length) {
@@ -52,7 +60,7 @@ export function buildResumeDocx(content: ResumeContent, style: ResumeStyle, temp
   }
   if (c.projects.length) {
     body.push(heading('Projects'))
-    for (const p of c.projects) body.push(rowLine(p.name, p.link), ...bullets(p.bullets))
+    for (const p of c.projects) body.push(rowLine(p.name, p.link, true), ...bullets(p.bullets))
   }
   if (c.education.length) {
     body.push(heading('Education'))

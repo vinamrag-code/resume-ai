@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
+import { displayUrl, normalizeUrl } from '@/lib/links'
 import type { Resume } from '@/types/resume'
 import { getTemplate } from './templates'
 import type { TemplateDef } from './templates'
@@ -18,12 +19,24 @@ function Heading({ t, children, space }: { t: TemplateDef; children: ReactNode; 
   return <h2 style={style}>{children}</h2>
 }
 
-function Row({ left, right }: { left: ReactNode; right?: string }) {
+function Row({ left, right }: { left: ReactNode; right?: ReactNode }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1em', alignItems: 'baseline' }}>
       <div>{left}</div>
       {right ? <div style={{ whiteSpace: 'nowrap' }}>{right}</div> : null}
     </div>
+  )
+}
+
+/** Real hyperlink so it stays clickable in the exported PDF. Falls back to plain text if not a valid URL. */
+function Link({ href, children }: { href: string; children?: ReactNode }) {
+  const url = normalizeUrl(href)
+  const text = children ?? displayUrl(href)
+  if (!url) return <>{text}</>
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+      {text}
+    </a>
   )
 }
 
@@ -59,8 +72,27 @@ export function ResumePreview({ resume }: { resume: Resume }) {
     >
       <header style={{ textAlign: t.headerAlign }}>
         <h1 style={{ fontSize: `${t.nameSize}em`, fontWeight: 700, lineHeight: 1.15, color: t.accent }}>{c.contact.name || 'Your Name'}</h1>
-        {contactLine.length > 0 && <p style={{ marginTop: '0.25em' }}>{contactLine.join(' | ')}</p>}
-        {links.length > 0 && <p>{links.map((l) => (l.label ? `${l.label}: ${l.url}` : l.url)).join(' | ')}</p>}
+        {contactLine.length > 0 && (
+          <p style={{ marginTop: '0.25em' }}>
+            {contactLine.map((part, i) => (
+              <span key={i}>
+                {i > 0 && ' | '}
+                {part === c.contact.email ? <Link href={part} /> : part}
+              </span>
+            ))}
+          </p>
+        )}
+        {links.length > 0 && (
+          <p>
+            {links.map((l, i) => (
+              <span key={l.id}>
+                {i > 0 && ' | '}
+                {l.label ? `${l.label}: ` : ''}
+                <Link href={l.url} />
+              </span>
+            ))}
+          </p>
+        )}
       </header>
 
       {c.summary.trim() && (
@@ -94,7 +126,7 @@ export function ResumePreview({ resume }: { resume: Resume }) {
           </Heading>
           {c.projects.map((p) => (
             <div key={p.id} style={entryGap}>
-              <Row left={<strong>{p.name}</strong>} right={p.link} />
+              <Row left={<strong>{p.name}</strong>} right={p.link ? <Link href={p.link} /> : undefined} />
               <Bullets items={p.bullets} space={sp} />
             </div>
           ))}

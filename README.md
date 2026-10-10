@@ -11,7 +11,7 @@ A free, open-source, **local-first** AI resume builder. Import a resume, analyse
 
 ## Features
 
-Import (PDF / DOCX / paste, LLM → zod-validated structure) · section editor with live preview, autosave and multiple resumes · 3 single-column ATS-safe templates with font and spacing controls · deterministic ATS score · tailoring with per-change Accept/Reject · resume agent chat · streamed cover letters (formal / friendly / concise) · Kanban tracker · PDF and DOCX export · JSON backup/restore · light/dark theme · first-run onboarding.
+Import (PDF / DOCX / paste, LLM → zod-validated structure) · section editor with live preview, autosave and multiple resumes · 3 single-column ATS-safe templates with font and spacing controls · deterministic ATS score · tailoring with per-change Accept/Reject · resume agent chat · streamed cover letters (formal / friendly / concise) · Kanban tracker · PDF and DOCX export (links stay clickable) · JSON backup/restore · light/dark theme · first-run onboarding.
 
 ## Setup
 
