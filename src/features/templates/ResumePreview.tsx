@@ -42,11 +42,11 @@ function Link({ href, children }: { href: string; children?: ReactNode }) {
 
 const dates = (start: string, end: string) => [start, end].filter(Boolean).join(' - ')
 
-function Bullets({ items, space }: { items: string[]; space: number }) {
+function Bullets({ items, space, indent }: { items: string[]; space: number; indent: number }) {
   const list = items.filter((b) => b.trim())
   if (!list.length) return null
   return (
-    <ul style={{ marginTop: `${0.2 * space}em` }}>
+    <ul style={{ marginTop: `${0.2 * space}em`, paddingLeft: `${indent}em` }}>
       {list.map((b, i) => (
         <li key={i} style={{ marginBottom: `${0.15 * space}em` }}>
           {b}
@@ -61,6 +61,8 @@ export function ResumePreview({ resume }: { resume: Resume }) {
   const t = getTemplate(resume.templateId)
   const { content: c, style } = resume
   const sp = style.spacing
+  const indent = style.bulletIndent ?? 1.1
+  const headerAlign = !style.headerAlign || style.headerAlign === 'auto' ? t.headerAlign : style.headerAlign
   const entryGap = { marginTop: `${0.6 * sp}em` }
   const contactLine = [c.contact.email, c.contact.phone, c.contact.location].filter(Boolean)
   const links = c.contact.links.filter((l) => l.url)
@@ -70,7 +72,7 @@ export function ResumePreview({ resume }: { resume: Resume }) {
       data-testid="resume-preview"
       style={{ fontFamily: t.fontFamily, fontSize: `${style.fontSize * t.scale}pt`, lineHeight: 1.3 + (sp - 1) * 0.15 }}
     >
-      <header style={{ textAlign: t.headerAlign }}>
+      <header style={{ textAlign: headerAlign }}>
         <h1 style={{ fontSize: `${t.nameSize}em`, fontWeight: 700, lineHeight: 1.15, color: t.accent }}>{c.contact.name || 'Your Name'}</h1>
         {contactLine.length > 0 && (
           <p style={{ marginTop: '0.25em' }}>
@@ -113,7 +115,7 @@ export function ResumePreview({ resume }: { resume: Resume }) {
             <div key={e.id} style={entryGap}>
               <Row left={<strong>{[e.title, e.company].filter(Boolean).join(', ')}</strong>} right={dates(e.start, e.end)} />
               {e.location && <div style={{ fontStyle: 'italic' }}>{e.location}</div>}
-              <Bullets items={e.bullets} space={sp} />
+              <Bullets items={e.bullets} space={sp} indent={indent} />
             </div>
           ))}
         </section>
@@ -127,7 +129,7 @@ export function ResumePreview({ resume }: { resume: Resume }) {
           {c.projects.map((p) => (
             <div key={p.id} style={entryGap}>
               <Row left={<strong>{p.name}</strong>} right={p.link ? <Link href={p.link} /> : undefined} />
-              <Bullets items={p.bullets} space={sp} />
+              <Bullets items={p.bullets} space={sp} indent={indent} />
             </div>
           ))}
         </section>
@@ -142,7 +144,7 @@ export function ResumePreview({ resume }: { resume: Resume }) {
             <div key={e.id} style={entryGap}>
               <Row left={<strong>{[e.degree, e.field].filter(Boolean).join(', ')}</strong>} right={dates(e.start, e.end)} />
               <div>{e.school}</div>
-              <Bullets items={e.details} space={sp} />
+              <Bullets items={e.details} space={sp} indent={indent} />
             </div>
           ))}
         </section>

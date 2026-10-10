@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ErrorBanner, Spinner, TruthfulnessNote } from '@/components/ui'
-import { applyChanges, isStale } from '@/lib/changes'
+import { applyChanges, currentFormat, formatPatch, isStaleFor } from '@/lib/changes'
 import type { Change } from '@/lib/changes'
 import { getLlm } from '@/lib/llm'
 import type { ChatMessage } from '@/lib/llm'
@@ -11,7 +11,7 @@ import { useResumes } from '@/store/resumes'
 import type { Resume } from '@/types/resume'
 import { DiffView } from '@/features/tailor/DiffView'
 import { verifyChanges } from '@/features/tailor/verifyChanges'
-import { parseEdits, visibleText } from './chatLogic'
+import { fallbackText, isPreparingEdits, parseEdits, visibleText } from './chatLogic'
 import { useChats } from './chatStore'
 import type { ChatTurn } from './chatStore'
 
@@ -20,7 +20,7 @@ const STARTERS = ['Help me improve my experience section', 'Review my summary', 
 
 function Suggestion({ change, resume, onApplied }: { change: Change; resume: Resume; onApplied: () => void }) {
   const [text, setText] = useState(change.after)
-  const stale = change.status !== 'accepted' && isStale(resume.content, change)
+  const stale = change.status !== 'accepted' && isStaleFor(resume, change)
   const edited = text !== change.after
   const apply = () => {
     const finalChange: Change = {
@@ -29,15 +29,21 @@ function Suggestion({ change, resume, onApplied }: { change: Change; resume: Res
       afterSkills: change.target.kind === 'skills' ? text.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
       status: 'accepted',
     }
-    useResumes.getState().updateContent(resume.id, (c) => applyChanges(c, [finalChange]).content)
+    const patch = formatPatch(finalChange)
+    if (patch) {
+      if (patch.templateId) useResumes.getState().setTemplate(resume.id, patch.templateId)
+      if (patch.style) useResumes.getState().setStyle(resume.id, patch.style)
+    } else {
+      useResumes.getState().updateContent(resume.id, (c) => applyChanges(c, [finalChange]).content)
+    }
     onApplied()
   }
   const id = `suggestion-${change.id}`
   return (
     <li className="card space-y-2 bg-ink-50 dark:bg-ink-800">
       <h4 className="text-sm font-semibold">{change.label}</h4>
-      <DiffView before={change.before} after={text} />
-      {change.status !== 'accepted' && !stale && (
+      <DiffView before={change.before || '(empty)'} after={change.target.kind === 'bullet-remove' ? '(removed)' : text} />
+      {change.status !== 'accepted' && !stale && change.target.kind !== 'format' && change.target.kind !== 'bullet-remove' && (
         <div>
           <label htmlFor={id} className="label">
             Edit before applying
@@ -90,7 +96,7 @@ export function ChatPanel({ resume }: { resume: Resume }) {
     setTurns(resume.id, () => [...history, { id: assistantId, role: 'assistant', content: '', changes: [] }])
     const messages: ChatMessage[] = [
       chatSystemPrompt(
-        { resumeJson: resumeForPrompt(resume.content), jobTitle: resume.target.title, company: resume.target.company, jobDescription: resume.target.description },
+        { resumeJson: resumeForPrompt(resume.content), formatJson: JSON.stringify(currentFormat(resume)), jobTitle: resume.target.title, company: resume.target.company, jobDescription: resume.target.description },
         phase,
       ),
       ...history.map((t) => ({ role: t.role, content: t.content })),
@@ -106,10 +112,12 @@ export function ChatPanel({ resume }: { resume: Resume }) {
         },
         { signal: abort.current.signal, temperature: 0.4 },
       )
-      // Clarifying turns never carry edits, even if the model ignored the instruction.
-      const parsed = phase === 'edit' ? parseEdits(full, resume.content) : []
+      // On the first turn only layout changes and explicit fixes are accepted; content rewrites wait for answers.
+      const parsed = parseEdits(full, resume, phase)
       const changes = await verifyChanges(parsed, resumeToText(resume.content), abort.current.signal)
-      setTurns(resume.id, (ts) => ts.map((t) => (t.id === assistantId ? { ...t, content: full, changes } : t)))
+      // Never leave the user with an empty or JSON-only reply.
+      const shown = visibleText(full) ? full : `${fallbackText(changes.length > 0)}`
+      setTurns(resume.id, (ts) => ts.map((t) => (t.id === assistantId ? { ...t, content: shown, changes } : t)))
     } catch (err) {
       setError(err)
       setTurns(resume.id, (ts) => ts.filter((t) => t.id !== assistantId || t.content.trim() !== ''))
@@ -142,7 +150,7 @@ export function ChatPanel({ resume }: { resume: Resume }) {
             <div key={t.id} className={t.role === 'user' ? 'text-right' : ''}>
               <div className={`inline-block max-w-full whitespace-pre-wrap rounded-2xl px-3 py-2 text-left text-sm ${t.role === 'user' ? 'bg-brand-600 text-white dark:bg-brand-500 dark:text-ink-950' : 'bg-ink-100 dark:bg-ink-800'}`}>
                 <span className="sr-only">{t.role === 'user' ? 'You: ' : 'Counselor: '}</span>
-                {t.role === 'assistant' ? visibleText(t.content) || (busy ? '…' : '') : t.content}
+                {t.role === 'assistant' ? visibleText(t.content) || (busy || isPreparingEdits(t.content) ? 'Preparing suggestions…' : '') : t.content}
               </div>
               {t.changes.length > 0 && (
                 <ul className="mt-2 space-y-2 text-left" aria-label="Suggested edits">

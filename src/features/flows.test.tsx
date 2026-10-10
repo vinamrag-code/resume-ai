@@ -316,7 +316,7 @@ describe('resume agent chat', () => {
     expect(await screen.findByText(/What APIs did you maintain/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Apply to resume' })).not.toBeInTheDocument()
     const system = llm.calls[0]![0]!.content
-    expect(system).toMatch(/Ask 2-3 clarifying questions only/)
+    expect(system).toMatch(/ask 2-3 clarifying questions only/i)
     expect(system).toContain('Acme') // resume + job context are included
     expect(system).toContain('GraphQL')
 

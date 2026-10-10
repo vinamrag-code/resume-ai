@@ -1,5 +1,5 @@
 import { useResumes } from '@/store/resumes'
-import type { Resume } from '@/types/resume'
+import type { HeaderAlign, Resume } from '@/types/resume'
 import { TEMPLATES } from './templates'
 
 export function DesignPanel({ resume }: { resume: Resume }) {
@@ -36,6 +36,23 @@ export function DesignPanel({ resume }: { resume: Resume }) {
           Spacing: {resume.style.spacing.toFixed(1)}x
         </label>
         <input id="spacing" type="range" min={0.6} max={1.6} step={0.1} value={resume.style.spacing} onChange={(e) => setStyle(resume.id, { spacing: Number(e.target.value) })} className="w-full accent-brand-600" />
+      </div>
+      <div>
+        <label htmlFor="header-align" className="label">
+          Header alignment (name and contact)
+        </label>
+        <select id="header-align" className="input max-w-xs" value={resume.style.headerAlign ?? 'auto'} onChange={(e) => setStyle(resume.id, { headerAlign: e.target.value as HeaderAlign })}>
+          <option value="auto">Follow template</option>
+          <option value="left">Left</option>
+          <option value="center">Center</option>
+          <option value="right">Right</option>
+        </select>
+      </div>
+      <div>
+        <label htmlFor="bullet-indent" className="label">
+          Bullet indent: {(resume.style.bulletIndent ?? 1.1).toFixed(1)}em
+        </label>
+        <input id="bullet-indent" type="range" min={0.5} max={3} step={0.1} value={resume.style.bulletIndent ?? 1.1} onChange={(e) => setStyle(resume.id, { bulletIndent: Number(e.target.value) })} className="w-full accent-brand-600" />
       </div>
     </div>
   )

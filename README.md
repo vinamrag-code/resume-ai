@@ -11,7 +11,7 @@ A free, open-source, **local-first** AI resume builder. Import a resume, analyse
 
 ## Features
 
-Import (PDF / DOCX / paste, LLM → zod-validated structure) · section editor with live preview, autosave and multiple resumes · 3 single-column ATS-safe templates with font and spacing controls · deterministic ATS score · tailoring with per-change Accept/Reject · resume agent chat · streamed cover letters (formal / friendly / concise) · Kanban tracker · PDF and DOCX export (links stay clickable) · JSON backup/restore · light/dark theme · first-run onboarding.
+Import (PDF / DOCX / paste, LLM → zod-validated structure) · section editor with live preview, autosave and multiple resumes · 3 single-column ATS-safe templates with font and spacing controls · deterministic ATS score · tailoring with per-change Accept/Reject · resume agent chat (edits content and layout) · streamed cover letters (formal / friendly / concise) · Kanban tracker · PDF and DOCX export (links stay clickable) · JSON backup/restore · light/dark theme · first-run onboarding.
 
 ## Setup
 
@@ -88,6 +88,10 @@ npm run lint       # ESLint
 npm run build      # typecheck + production build into dist/
 npm run build:server && npm start   # production server (static app + AI proxy)
 ```
+
+## What the Agent can change
+
+Content: summary, bullets (replace / add / remove), contact details, job titles, companies, dates, schools, degrees, project and certification fields, and skill order. Layout: template, font size, spacing, header alignment and bullet indent. Every suggestion is a diff you apply with one click (and can edit first). The visible reply never contains JSON; if a reply cannot be turned into a change, the Agent says so. Layout and explicit fixes can be applied from your first message; open-ended content rewrites start with clarifying questions. There is no per-line indentation or free positioning, and the Agent says so instead of pretending.
 
 ## How AI result quality is protected
 

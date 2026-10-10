@@ -55,9 +55,16 @@ export type ContactLink = z.infer<typeof LinkSchema>
 export const TEMPLATE_IDS = ['classic', 'modern', 'compact'] as const
 export type TemplateId = (typeof TEMPLATE_IDS)[number]
 
+export const HEADER_ALIGNS = ['auto', 'left', 'center', 'right'] as const
+export type HeaderAlign = (typeof HEADER_ALIGNS)[number]
+
 export const ResumeStyleSchema = z.object({
   fontSize: z.number().min(8).max(14),
   spacing: z.number().min(0.6).max(1.6),
+  /** Alignment of the name/contact header. "auto" follows the template. */
+  headerAlign: z.enum(HEADER_ALIGNS).default('auto'),
+  /** Bullet indentation in em. */
+  bulletIndent: z.number().min(0.5).max(3).default(1.1),
 })
 export type ResumeStyle = z.infer<typeof ResumeStyleSchema>
 

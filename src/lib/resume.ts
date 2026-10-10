@@ -1,7 +1,7 @@
 import { makeId } from '@/lib/id'
 import type { ParsedResume, Resume, ResumeContent } from '@/types/resume'
 
-export const DEFAULT_STYLE = { fontSize: 10.5, spacing: 1 } as const
+export const DEFAULT_STYLE = { fontSize: 10.5, spacing: 1, headerAlign: 'auto', bulletIndent: 1.1 } as const
 
 export function emptyContent(): ResumeContent {
   return {

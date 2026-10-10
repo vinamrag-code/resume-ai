@@ -11,7 +11,8 @@ export function buildResumeDocx(content: ResumeContent, style: ResumeStyle, temp
   const font = FONTS[templateId]
   const size = Math.round(style.fontSize * 2)
   const gap = Math.round(60 * style.spacing)
-  const centered = templateId === 'classic'
+  const headerAlign = !style.headerAlign || style.headerAlign === 'auto' ? (templateId === 'classic' ? 'center' : 'left') : style.headerAlign
+  const indentTwips = Math.round((style.bulletIndent ?? 1.1) * size * 10)
   const run = (text: string, o: { bold?: boolean; italics?: boolean; size?: number; allCaps?: boolean } = {}) =>
     new TextRun({ text, font, size: o.size ?? size, bold: o.bold, italics: o.italics, allCaps: o.allCaps })
 
@@ -42,7 +43,7 @@ export function buildResumeDocx(content: ResumeContent, style: ResumeStyle, temp
 
   const c = content
   const body: Paragraph[] = []
-  const align = centered ? AlignmentType.CENTER : AlignmentType.LEFT
+  const align = headerAlign === 'center' ? AlignmentType.CENTER : headerAlign === 'right' ? AlignmentType.RIGHT : AlignmentType.LEFT
   body.push(new Paragraph({ alignment: align, children: [run(c.contact.name || 'Your Name', { bold: true, size: size * 2 })] }))
   const contactParts = [c.contact.email && linkRun(c.contact.email), c.contact.phone && run(c.contact.phone), c.contact.location && run(c.contact.location)].filter((x) => !!x)
   if (contactParts.length) body.push(new Paragraph({ alignment: align, children: contactParts.flatMap((part, i) => (i ? [run(' | '), part] : [part])) }))
@@ -81,7 +82,7 @@ export function buildResumeDocx(content: ResumeContent, style: ResumeStyle, temp
       config: [
         {
           reference: 'bullets',
-          levels: [{ level: 0, format: LevelFormat.BULLET, text: '•', alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 360, hanging: 220 } } } }],
+          levels: [{ level: 0, format: LevelFormat.BULLET, text: '•', alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: indentTwips, hanging: Math.min(indentTwips - 40, 220) } } } }],
         },
       ],
     },

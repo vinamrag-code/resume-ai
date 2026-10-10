@@ -58,7 +58,7 @@ describe('hyperlinks in the resume preview (kept in PDF export)', () => {
 
 describe('hyperlinks in the DOCX export', () => {
   it('writes external hyperlink relationships', async () => {
-    const buf = await Packer.toBuffer(buildResumeDocx(withLinks(), { fontSize: 10.5, spacing: 1 }, 'classic'))
+    const buf = await Packer.toBuffer(buildResumeDocx(withLinks(), { fontSize: 10.5, spacing: 1, headerAlign: 'auto' as const, bulletIndent: 1.1 }, 'classic'))
     const zip = await JSZip.loadAsync(buf)
     const rels = await zip.file('word/_rels/document.xml.rels')!.async('string')
     for (const target of ['https://linkedin.com/in/ada', 'https://github.com/ada', 'mailto:ada@example.com', 'https://github.com/ada/engine-sim']) {
