@@ -2,7 +2,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { Readable } from 'node:stream'
 import { authEnabled } from './config'
 import type { Provider, ServerConfig } from './config'
-import { getUser } from './auth'
+import { createAdminCheck } from './adminCheck'
+import { bearerToken, getUser } from './auth'
 import { createModelSource } from './modelConfig'
 import type { ModelConfig } from './modelConfig'
 import { RateLimiter } from './rateLimit'
@@ -90,7 +91,8 @@ function sameOrigin(req: IncomingMessage): boolean {
  *   GET  /api/llm/status                       -> which providers have a key on the server
  *   POST /api/llm/{groq|openrouter}/chat/completions -> validated, rate-limited, key-injected passthrough (streaming supported)
  */
-export function createLlmHandler(cfg: ServerConfig, fetchImpl: FetchLike = fetch as FetchLike, limiter = new RateLimiter(cfg.perMinute, cfg.perDay), userLimiter = new RateLimiter(cfg.userPerMinute, cfg.userPerDay), deps: { verifyFetch?: (url: string) => Promise<Response>; models?: () => Promise<ModelConfig> } = {}) {
+export function createLlmHandler(cfg: ServerConfig, fetchImpl: FetchLike = fetch as FetchLike, limiter = new RateLimiter(cfg.perMinute, cfg.perDay), userLimiter = new RateLimiter(cfg.userPerMinute, cfg.userPerDay), deps: { verifyFetch?: (url: string) => Promise<Response>; models?: () => Promise<ModelConfig>; isAdmin?: (uid: string, token: string) => Promise<boolean> } = {}) {
+  const isAdmin = deps.isAdmin ?? createAdminCheck(cfg)
   const models = deps.models ?? createModelSource(cfg)
   const requireAuth = authEnabled(cfg)
   const timer = setInterval(() => {
@@ -149,7 +151,11 @@ export function createLlmHandler(cfg: ServerConfig, fetchImpl: FetchLike = fetch
       fail(res, 400, 'Body must be valid JSON.')
       return true
     }
-    const clean = sanitizeRequest(parsed, provider, cfg, (await models()).allowed[provider])
+    // Admins may use any allowed model; ordinary members only the admin's default for that provider.
+    const modelConfig = await models()
+    const memberLimited = requireAuth && user && !(await isAdmin(user.uid, bearerToken(req)))
+    const allowedModels = memberLimited ? [modelConfig.defaults[provider]] : modelConfig.allowed[provider]
+    const clean = sanitizeRequest(parsed, provider, cfg, allowedModels)
     if (!clean.ok) {
       fail(res, 400, clean.message)
       return true

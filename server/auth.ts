@@ -22,12 +22,18 @@ export function sameOrigin(req: IncomingMessage): boolean {
 
 type FetchLike = (url: string) => Promise<Response>
 
+/** The raw Firebase ID token from `Authorization: Bearer ...`, if any. */
+export function bearerToken(req: IncomingMessage): string {
+  const header = req.headers.authorization
+  const token = header?.startsWith('Bearer ') ? header.slice(7).trim() : ''
+  return token.length <= 4000 ? token : ''
+}
+
 /** The signed-in user for this request (Firebase ID token in `Authorization: Bearer ...`), or null. */
 export async function getUser(req: IncomingMessage, cfg: ServerConfig, fetchImpl?: FetchLike): Promise<FirebaseUser | null> {
   if (!authEnabled(cfg)) return null
-  const header = req.headers.authorization
-  const token = header?.startsWith('Bearer ') ? header.slice(7).trim() : ''
-  if (!token || token.length > 4000) return null
+  const token = bearerToken(req)
+  if (!token) return null
   try {
     const user = await verifyFirebaseIdToken(token, cfg.firebase.projectId, fetchImpl)
     // Email/password accounts must verify their address before using AI (Google accounts arrive verified).

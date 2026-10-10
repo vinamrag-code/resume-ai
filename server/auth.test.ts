@@ -113,3 +113,37 @@ describe('API with Firebase sign-in', () => {
     expect((await fetch(`${base}/api/sync`)).status).toBe(404)
   })
 })
+
+describe('members versus admins on the AI proxy', () => {
+  let close: (() => void) | null = null
+  afterEach(() => close?.())
+  const models = async () => ({ allowed: { groq: ['m/default', 'm/other'], openrouter: ['o/x:free'] }, defaults: { groq: 'm/default', openrouter: 'o/x:free' } })
+
+  async function start(adminUids: string[]) {
+    const cfg = loadConfig({ GROQ_API_KEY: 'gk', ...FIREBASE_ENV })
+    const upstream = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ choices: [{ message: { content: 'hi' } }] })))
+    const { createLlmHandler } = await import('./proxy')
+    const handle = createLlmHandler(cfg, upstream, undefined, undefined, { verifyFetch: jwks, models, isAdmin: async (uid) => adminUids.includes(uid) })
+    const server = createServer((req, res) => void handle(req, res).then((h) => !h && res.writeHead(404).end()))
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))
+    close = () => server.close()
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
+    const post = (token: string, model: string) =>
+      fetch(`${base}/api/llm/groq/chat/completions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ model, messages: [{ role: 'user', content: 'hi' }] }) })
+    return { post, upstream }
+  }
+
+  it('lets members use only the admin default, and admins any allowed model', async () => {
+    const { post, upstream } = await start(['uid-admin'])
+    const member = idToken({ sub: 'uid-member' })
+    const admin = idToken({ sub: 'uid-admin' })
+    expect((await post(member, 'm/default')).status).toBe(200)
+    const refused = await post(member, 'm/other')
+    expect(refused.status).toBe(400)
+    expect((await refused.json()).error.message).toContain('m/default')
+    expect((await post(admin, 'm/other')).status).toBe(200)
+    expect((await post(admin, 'm/default')).status).toBe(200)
+    expect((await post(admin, 'not/allowed')).status).toBe(400)
+    expect(upstream).toHaveBeenCalledTimes(3)
+  })
+})

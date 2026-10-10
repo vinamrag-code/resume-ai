@@ -215,7 +215,7 @@ describe('AI features need sign-in; manual editing does not', () => {
     expect(screen.getByRole('button', { name: 'Generate letter' })).toBeDisabled()
   })
 
-  it('does not gate anything when the server does not require sign-in, or when using local Ollama', () => {
+  it('does not gate anything when the server does not require sign-in, and a saved Ollama choice never bypasses sign-in', () => {
     const r = seed()
     const a = renderAt(<ChatPanel resume={r} />)
     expect(screen.getByLabelText(/message the resume counselor/i)).toBeEnabled()
@@ -223,7 +223,7 @@ describe('AI features need sign-in; manual editing does not', () => {
     signedOut()
     useSettings.setState({ provider: 'ollama' })
     renderAt(<ChatPanel resume={r} />)
-    expect(screen.getByLabelText(/message the resume counselor/i)).toBeEnabled()
+    expect(screen.getByLabelText(/message the resume counselor/i)).toBeDisabled()
   })
 
   it('turns a 401 from the proxy into a friendly sign-in prompt', async () => {

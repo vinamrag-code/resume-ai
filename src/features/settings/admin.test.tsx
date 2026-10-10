@@ -38,6 +38,38 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+describe('what a member can actually use', () => {
+  const bodies: { url: string; model: string }[] = []
+  beforeEach(() => {
+    bodies.length = 0
+    vi.stubGlobal('fetch', vi.fn(async (u: string, init?: RequestInit) => (bodies.push({ url: u, model: JSON.parse(init!.body as string).model }), new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] })))))
+  })
+  const chat = async () => (await import('@/lib/llm')).getLlm().chat([{ role: 'user', content: 'hi' }])
+
+  it("ignores a member's saved provider and model, using Auto mode with the admin default", async () => {
+    useSettings.setState({ provider: 'ollama', models: { ollama: 'llama3.1:8b', groq: 'openai/gpt-oss-120b' } })
+    await chat()
+    expect(bodies[0]).toEqual({ url: '/api/llm/groq/chat/completions', model: 'llama-3.3-70b-versatile' })
+  })
+
+  it("honours an admin's own choice", async () => {
+    useAuth.setState({ isAdmin: true })
+    useSettings.setState({ provider: 'groq', models: { groq: 'openai/gpt-oss-120b' } })
+    await chat()
+    expect(bodies[0]).toEqual({ url: '/api/llm/groq/chat/completions', model: 'openai/gpt-oss-120b' })
+  })
+
+  it('does not let a member skip sign-in gating by saving Ollama as the provider', async () => {
+    useAuth.setState({ user: null })
+    useSettings.setState({ provider: 'ollama' })
+    const { renderHook } = await import('@testing-library/react')
+    const { useAiAccess } = await import('@/lib/auth/useAiAccess')
+    expect(renderHook(() => useAiAccess()).result.current).toBe(false)
+    useAuth.setState({ isAdmin: true })
+    expect(renderHook(() => useAiAccess()).result.current).toBe(true)
+  })
+})
+
 describe('model resolution', () => {
   it('keeps an allowed choice, replaces a disallowed one with the admin default, and trusts the choice when the list is unknown', () => {
     expect(resolveModel('groq', 'openai/gpt-oss-120b')).toBe('openai/gpt-oss-120b')
@@ -87,19 +119,37 @@ describe('account roles', () => {
 })
 
 describe('Settings model picker and admin panel', () => {
-  it('shows ordinary users a dropdown of the allowed models, with the default marked, and no admin panel', async () => {
+  it('removes every model and provider control for members', () => {
     renderAt(<SettingsPage />)
-    const groq = screen.getByLabelText(/groq model/i) as HTMLSelectElement
-    expect(groq.tagName).toBe('SELECT')
+    expect(screen.queryByText('AI models')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Provider')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/groq model/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/openrouter model/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: /model/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Test connection' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Admin: AI models')).not.toBeInTheDocument()
+    expect(screen.getByText(/chosen by the site administrator/i)).toBeInTheDocument()
+  })
+
+  it('shows admins the model dropdown (default marked) and the admin panel', async () => {
+    useAuth.setState({ isAdmin: true })
+    renderAt(<SettingsPage />)
+    const groq = screen.getByRole('combobox', { name: /^Groq model/ }) as HTMLSelectElement
     expect([...groq.options].map((o) => o.value)).toEqual(MODELS.allowed.groq)
     expect(groq).toHaveValue('llama-3.3-70b-versatile') // nothing chosen yet: the admin default applies
     expect(screen.getByRole('option', { name: /llama-3.3-70b-versatile \(default\)/ })).toBeInTheDocument()
     await userEvent.selectOptions(groq, 'openai/gpt-oss-120b')
     expect(useSettings.getState().models.groq).toBe('openai/gpt-oss-120b')
-    expect(screen.queryByText('Admin: AI models')).not.toBeInTheDocument()
+    expect(screen.getByText('Admin: AI models')).toBeInTheDocument()
   })
 
-  it("follows the admin's default until the user picks a model, and drops a pick that is no longer allowed", () => {
+  it('keeps everything available when no sign-in is configured (a private or local install)', () => {
+    useAuth.setState({ required: false, isAdmin: false })
+    renderAt(<SettingsPage />)
+    expect(screen.getByLabelText('Provider')).toBeInTheDocument()
+  })
+
+  it("follows the admin's default until an admin picks a model, and drops a pick that is no longer allowed", () => {
     renderAt(<SettingsPage />)
     expect(useSettings.getState().models.groq).toBeUndefined()
     expect(resolveModel('groq', useSettings.getState().models.groq)).toBe('llama-3.3-70b-versatile')

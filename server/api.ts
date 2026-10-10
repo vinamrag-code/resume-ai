@@ -12,11 +12,13 @@ interface Deps {
   verifyFetch?: (url: string) => Promise<Response>
   /** Fetch used to read the admin's model list from Firestore (replaceable in tests). */
   modelsFetch?: (url: string) => Promise<Response>
+  /** Replaceable in tests: is this user an admin? */
+  isAdmin?: (uid: string, token: string) => Promise<boolean>
 }
 
 /** All /api routes (auth config and the AI proxy) as one handler. Returns true when the request was handled. */
 export function createApiHandler(cfg: ServerConfig, deps: Deps = {}): ApiHandler {
-  const handlers = [createAuthHandler(cfg), createLlmHandler(cfg, deps.llmFetch, undefined, undefined, { verifyFetch: deps.verifyFetch, models: createModelSource(cfg, deps.modelsFetch) })]
+  const handlers = [createAuthHandler(cfg), createLlmHandler(cfg, deps.llmFetch, undefined, undefined, { verifyFetch: deps.verifyFetch, models: createModelSource(cfg, deps.modelsFetch), isAdmin: deps.isAdmin })]
   return async (req, res) => {
     try {
       for (const h of handlers) if (await h(req, res)) return true

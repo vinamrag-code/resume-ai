@@ -6,6 +6,7 @@ import { GoogleSignInButton } from '@/components/GoogleSignInButton'
 import { useAuth } from '@/lib/auth/store'
 import { deleteCloudData, syncNow, useSyncStatus } from '@/lib/sync/engine'
 import { AdminModels } from '@/features/settings/AdminModels'
+import { useCanManageModels } from '@/lib/auth/useCanManageModels'
 import { createLlm, getServerModels, getServerProviders, PROVIDERS, resolveModel, subscribeServerProviders } from '@/lib/llm'
 import type { ProviderId } from '@/lib/llm'
 import type { ProviderChoice } from '@/lib/llm/providers'
@@ -31,6 +32,7 @@ export function SettingsPage() {
   const [confirmCloud, setConfirmCloud] = useState(false)
   const auth = useAuth()
   const sync = useSyncStatus()
+  const canManage = useCanManageModels()
   const fileRef = useRef<HTMLInputElement>(null)
 
   const test = async () => {
@@ -69,6 +71,7 @@ export function SettingsPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <h1 className="text-2xl font-semibold">Settings</h1>
 
+      {canManage ? (
       <section className="card space-y-3" aria-labelledby="s-ollama">
         <h2 id="s-ollama" className="text-base font-semibold">
           AI models
@@ -159,6 +162,14 @@ export function SettingsPage() {
           </details>
         )}
       </section>
+      ) : (
+        <section className="card space-y-2" aria-labelledby="s-ai">
+          <h2 id="s-ai" className="text-base font-semibold">
+            AI
+          </h2>
+          <p className="text-sm text-ink-600 dark:text-ink-300">AI features use the models chosen by the site administrator. Your resume text and job descriptions are sent through this site&apos;s server to its AI providers to generate answers; your API keys are never involved.</p>
+        </section>
+      )}
 
       {auth.required && (
         <section className="card space-y-3" aria-labelledby="s-account">

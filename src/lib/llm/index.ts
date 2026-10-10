@@ -1,4 +1,5 @@
-import { getIdToken } from '@/lib/auth/store'
+import { getIdToken, useAuth } from '@/lib/auth/store'
+import { canManageModels } from '@/lib/auth/useCanManageModels'
 import { useSettings } from '@/store/settings'
 import type { SettingsState } from '@/store/settings'
 import { FallbackClient } from './fallback'
@@ -62,5 +63,10 @@ export function createLlm(s: ClientSettings, role: LlmRole = 'primary'): LlmClie
 
 /** The app-wide LLM client, built from the current Settings. */
 export function getLlm(role: LlmRole = 'primary'): LlmClient {
-  return override ?? createLlm(useSettings.getState(), role)
+  if (override) return override
+  const settings = useSettings.getState()
+  // Members never choose a provider or model: they get Auto mode with the admin's default models,
+  // whatever an older version of the app may have saved in this browser.
+  if (!canManageModels(useAuth.getState())) return createLlm({ ...settings, provider: 'auto', models: {} }, role)
+  return createLlm(settings, role)
 }
