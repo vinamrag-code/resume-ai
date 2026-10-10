@@ -31,6 +31,7 @@ export class OpenAiCompatibleClient implements LlmClient {
     if (res.ok) return res
     const body = (await res.text().catch(() => '')).slice(0, 300)
     if (res.status === 503) throw new LlmError('auth', `${this.config.label} is not configured on the server.`)
+    if (res.status === 401 && !direct) throw new LlmError('signin', 'Sign in with Google to use AI features.')
     if (res.status === 401 || res.status === 403) throw new LlmError('auth', `${this.config.label} rejected the API key.`)
     if (res.status === 429) throw new LlmError('rate-limit', `${this.config.label} rate limit reached. Please wait a moment and try again.`)
     if (res.status === 404) throw new LlmError('model-missing', `Model "${this.config.model}" was not found on ${this.config.label}. Pick another model in Settings.`)

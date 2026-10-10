@@ -1,8 +1,8 @@
 import { createServer } from 'node:http'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, normalize, resolve } from 'node:path'
-import { loadConfig } from './config'
-import { createLlmHandler } from './proxy'
+import { authEnabled, loadConfig } from './config'
+import { createApiHandler } from './api'
 
 try {
   process.loadEnvFile?.('.env')
@@ -11,7 +11,7 @@ try {
 }
 
 const cfg = loadConfig()
-const handleLlm = createLlmHandler(cfg)
+const { handle: handleApi } = await createApiHandler(cfg)
 const root = resolve(cfg.staticDir)
 
 const TYPES: Record<string, string> = {
@@ -22,7 +22,7 @@ const TYPES: Record<string, string> = {
 const server = createServer(async (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff')
   res.setHeader('Referrer-Policy', 'no-referrer')
-  if (await handleLlm(req, res)) return
+  if (await handleApi(req, res)) return
   const path = normalize(decodeURIComponent((req.url ?? '/').split('?')[0] ?? '/'))
   let file = join(root, path)
   if (!file.startsWith(root)) {
@@ -41,5 +41,5 @@ const server = createServer(async (req, res) => {
 
 server.listen(cfg.port, () => {
   const on = (['groq', 'openrouter'] as const).filter((p) => cfg.keys[p])
-  console.log(`Resume AI server on http://localhost:${cfg.port}  (AI providers: ${on.join(', ') || 'none configured'})`)
+  console.log(`Resume AI server on http://localhost:${cfg.port}  (AI providers: ${on.join(', ') || 'none configured'}; sign-in: ${authEnabled(cfg) ? 'on' : 'off'}; storage: ${cfg.databaseUrl ? 'postgres' : 'files'})`)
 })

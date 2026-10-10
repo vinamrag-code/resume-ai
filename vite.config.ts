@@ -3,15 +3,15 @@ import react from '@vitejs/plugin-react'
 import type { Plugin } from 'vite'
 import { loadEnv } from 'vite'
 import { defineConfig } from 'vitest/config'
+import { createApiHandler } from './server/api'
 import { loadConfig } from './server/config'
-import { createLlmHandler } from './server/proxy'
 
 /** In development the same proxy handler used in production is mounted on the Vite server. */
 function llmProxy(env: Record<string, string>): Plugin {
   return {
     name: 'resume-ai-llm-proxy',
-    configureServer(server) {
-      const handle = createLlmHandler(loadConfig(env))
+    async configureServer(server) {
+      const { handle } = await createApiHandler(loadConfig(env))
       server.middlewares.use((req, res, next) => {
         handle(req, res).then((handled) => (handled ? undefined : next()), next)
       })

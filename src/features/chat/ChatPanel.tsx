@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { SignInNotice } from '@/components/SignInNotice'
 import { ErrorBanner, Spinner, TruthfulnessNote } from '@/components/ui'
+import { useAiAccess } from '@/lib/auth/useAiAccess'
 import { applyChanges, currentFormat, formatPatch, isStaleFor } from '@/lib/changes'
 import type { Change } from '@/lib/changes'
 import { getLlm } from '@/lib/llm'
@@ -74,6 +76,7 @@ export function ChatPanel({ resume }: { resume: Resume }) {
   const turns = useChats((s) => s.byResume[resume.id]) ?? NO_TURNS
   const setTurns = useChats((s) => s.set)
   const clear = useChats((s) => s.clear)
+  const aiAllowed = useAiAccess()
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
@@ -129,6 +132,7 @@ export function ChatPanel({ resume }: { resume: Resume }) {
   return (
     <div className="space-y-3">
       <TruthfulnessNote />
+      <SignInNotice feature="the Agent" />
       <section className="card flex max-h-[70vh] min-h-80 flex-col gap-3" aria-label="Resume agent chat">
         <div className="flex-1 space-y-3 overflow-y-auto" role="log" aria-live="polite">
           {turns.length === 0 && (
@@ -139,7 +143,7 @@ export function ChatPanel({ resume }: { resume: Resume }) {
               </p>
               <div className="flex flex-wrap gap-2">
                 {STARTERS.map((s) => (
-                  <button key={s} type="button" className="btn-secondary btn-sm" disabled={busy} onClick={() => void send(s)}>
+                  <button key={s} type="button" className="btn-secondary btn-sm" disabled={busy || !aiAllowed} onClick={() => void send(s)} title={aiAllowed ? undefined : 'Sign in to use the Agent'}>
                     {s}
                   </button>
                 ))}
@@ -179,13 +183,13 @@ export function ChatPanel({ resume }: { resume: Resume }) {
           <label htmlFor="chat-input" className="sr-only">
             Message the resume counselor
           </label>
-          <input id="chat-input" className="input" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask about a section or answer the questions…" disabled={busy} />
+          <input id="chat-input" className="input" value={input} onChange={(e) => setInput(e.target.value)} placeholder={aiAllowed ? 'Ask about a section or answer the questions…' : 'Sign in to chat with the Agent'} disabled={busy || !aiAllowed} />
           {busy ? (
             <button type="button" className="btn-secondary" onClick={() => abort.current?.abort()}>
               <Spinner label="Generating" /> Stop
             </button>
           ) : (
-            <button type="submit" className="btn-primary" disabled={!input.trim()}>
+            <button type="submit" className="btn-primary" disabled={!input.trim() || !aiAllowed}>
               Send
             </button>
           )}

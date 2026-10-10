@@ -2,6 +2,9 @@ import { useRef, useState } from 'react'
 import { ErrorBanner, Modal, Spinner } from '@/components/ui'
 import { OnboardingSteps } from '@/features/onboarding/OnboardingSteps'
 import { useSyncExternalStore } from 'react'
+import { GoogleSignInButton } from '@/components/GoogleSignInButton'
+import { useAuth } from '@/lib/auth/store'
+import { deleteCloudData, syncNow, useSyncStatus } from '@/lib/sync/engine'
 import { createLlm, getServerProviders, PROVIDERS, subscribeServerProviders } from '@/lib/llm'
 import type { ProviderId } from '@/lib/llm'
 import type { ProviderChoice } from '@/lib/llm/providers'
@@ -23,6 +26,9 @@ export function SettingsPage() {
   const [testing, setTesting] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const [confirmWipe, setConfirmWipe] = useState(false)
+  const [confirmCloud, setConfirmCloud] = useState(false)
+  const auth = useAuth()
+  const sync = useSyncStatus()
   const fileRef = useRef<HTMLInputElement>(null)
 
   const test = async () => {
@@ -141,6 +147,41 @@ export function SettingsPage() {
         )}
       </section>
 
+      {auth.required && (
+        <section className="card space-y-3" aria-labelledby="s-account">
+          <h2 id="s-account" className="text-base font-semibold">
+            Account and cloud sync
+          </h2>
+          {auth.user ? (
+            <>
+              <p className="text-sm">
+                Signed in as <strong>{auth.user.email}</strong>. Your resumes, jobs and cover letters are synced to your account so they follow you across devices.
+              </p>
+              <p className="text-sm text-ink-500 dark:text-ink-400" role="status">
+                {sync.state === 'syncing' ? 'Syncing…' : sync.state === 'error' ? `Sync problem: ${sync.error}` : sync.lastSynced ? `Last synced ${new Date(sync.lastSynced).toLocaleString()}` : 'Waiting for the first sync…'}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" className="btn-secondary" onClick={() => void syncNow()} disabled={sync.state === 'syncing'}>
+                  Sync now
+                </button>
+                <button type="button" className="btn-secondary" onClick={() => void auth.signOut()}>
+                  Sign out
+                </button>
+                <button type="button" className="btn-danger" onClick={() => setConfirmCloud(true)}>
+                  Delete my cloud data
+                </button>
+              </div>
+              <p className="text-xs text-ink-500 dark:text-ink-400">Signing out keeps the data already on this device. It stops syncing until you sign in again.</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-ink-600 dark:text-ink-300">Sign in with Google to use AI features and sync your data across devices. Editing and exporting work without an account.</p>
+              <GoogleSignInButton />
+            </>
+          )}
+        </section>
+      )}
+
       <section className="card space-y-3" aria-labelledby="s-theme">
         <h2 id="s-theme" className="text-base font-semibold">
           Appearance
@@ -177,6 +218,30 @@ export function SettingsPage() {
         <p className="text-xs text-ink-500">Importing replaces your current resumes, jobs and cover letters.</p>
         {message && (message.ok ? <p role="status" className="text-sm text-brand-700 dark:text-brand-300">{message.text}</p> : <ErrorBanner error={new Error(message.text)} onDismiss={() => setMessage(null)} />)}
       </section>
+
+      {confirmCloud && (
+        <Modal title="Delete cloud data?" onClose={() => setConfirmCloud(false)}>
+          <p className="text-sm">This removes your synced copy from the server and signs you out so it is not uploaded again. The data on this device stays.</p>
+          <div className="mt-4 flex justify-end gap-2">
+            <button type="button" className="btn-secondary" onClick={() => setConfirmCloud(false)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn-danger"
+              onClick={() =>
+                void deleteCloudData().then(async (ok) => {
+                  setConfirmCloud(false)
+                  if (ok) await auth.signOut()
+                  setMessage(ok ? { ok: true, text: 'Your cloud data was deleted.' } : { ok: false, text: 'Could not delete cloud data. Try again.' })
+                })
+              }
+            >
+              Delete cloud data
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {confirmWipe && (
         <Modal title="Delete all data?" onClose={() => setConfirmWipe(false)}>

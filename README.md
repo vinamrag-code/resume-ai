@@ -52,6 +52,7 @@ Open <http://localhost:5173>, go to **Profile -> Settings** and press **Test con
 
 Visitors never see your keys. The browser calls `/api/llm/...` on your own server, and `server/` adds the key and forwards the request:
 
+- `GET /api/auth/*` and `/api/sync` handle sign-in and cloud sync (above).
 - `GET /api/llm/status` tells the app which providers are configured (never the keys).
 - `POST /api/llm/{groq|openrouter}/chat/completions` is a validated, streaming passthrough.
 - **Protections:** a model allowlist (visitors cannot pick other or paid models), message-count / prompt-size / output-token caps, only known fields forwarded (no tools), same-origin only, and per-visitor rate limits (default 20/minute and 300/day, configurable; set `TRUST_PROXY=1` behind a platform proxy so limits are per visitor).
@@ -67,6 +68,17 @@ npm start              # reads PORT, GROQ_API_KEY, OPENROUTER_API_KEY, ...
 ```
 
 `render.yaml` is included for [Render](https://render.com): set `GROQ_API_KEY` and `OPENROUTER_API_KEY` in the dashboard. All server variables are listed in `.env.example`. Anyone who can open your site can use your quota within these limits, so keep the limits modest and set spending caps on your provider accounts.
+
+### Sign-in and cloud sync (Google)
+
+Optional, and recommended when other people can reach your server. Set `GOOGLE_CLIENT_ID` and `SESSION_SECRET` (see `.env.example`) and:
+
+- **AI features need sign-in** (Agent, Tailor, AI import parsing, cover letters). **Manual editing, ATS scoring, templates and export never do.** Without these two settings the app behaves as before, with no sign-in.
+- **Rate limits are per account** (default 30/minute, 500/day) instead of per IP.
+- **Cloud sync** keeps resumes, jobs and cover letters in the signed-in user's account so they follow them across devices. The app stays local-first: it works from browser storage, and syncs in the background while signed in (a few seconds after each change, when the tab regains focus, and every minute). Edits from different devices are merged by item (the newest edit wins) and deletions propagate instead of being resurrected. Different accounts on one browser are never mixed. Users can delete their cloud data and sign out in Settings.
+- **How sign-in works:** the browser shows Google's own button; the server verifies Google's signed ID token (signature, audience, issuer, expiry, verified email) and issues its own signed, HTTP-only, SameSite cookie. No passwords are stored. Create a "Web application" OAuth client in the [Google Cloud console](https://console.cloud.google.com/apis/credentials) and add your site URL (plus `http://localhost:5173` for development) as an **Authorised JavaScript origin**. The page loads Google's sign-in script from `accounts.google.com` only when a sign-in button is shown.
+- **Storage:** set `DATABASE_URL` for PostgreSQL (durable, works with several instances; `render.yaml` provisions one). Without it, data is saved as files under `DATA_DIR` (default `data/`), which only suits a single server with a persistent disk.
+- **Privacy:** synced resumes are stored on your server in plain JSON, so treat the database as sensitive personal data and tell your users. Cover only what you need, and add a privacy notice before inviting the public.
 
 ### How models are chosen (Auto mode, the default)
 

@@ -24,9 +24,10 @@ export function moveJob(jobs: Job[], id: string, status: JobStatus, index: numbe
   const target = columnOf(status, rest)
   target.splice(Math.max(0, Math.min(index, target.length)), 0, { ...moving, status })
   const result: Job[] = []
+  const now = Date.now()
   for (const st of JOB_STATUSES) {
     const col = st === status ? target : columnOf(st, rest)
-    col.forEach((j, i) => result.push({ ...j, order: i }))
+    col.forEach((j, i) => result.push(j.id === id ? { ...j, order: i, updatedAt: now } : { ...j, order: i }))
   }
   return result
 }
@@ -47,12 +48,13 @@ export const useJobs = create<JobState>()(
           status,
           id: makeId(),
           createdAt: Date.now(),
+          updatedAt: Date.now(),
           order,
         }
         set((s) => ({ jobs: [...s.jobs, job] }))
         return job
       },
-      update: (id, patch) => set((s) => ({ jobs: s.jobs.map((j) => (j.id === id ? { ...j, ...patch } : j)) })),
+      update: (id, patch) => set((s) => ({ jobs: s.jobs.map((j) => (j.id === id ? { ...j, ...patch, updatedAt: Date.now() } : j)) })),
       remove: (id) => set((s) => ({ jobs: s.jobs.filter((j) => j.id !== id) })),
       move: (id, status, index) => set((s) => ({ jobs: moveJob(s.jobs, id, status, index) })),
     }),

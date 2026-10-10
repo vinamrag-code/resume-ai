@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { SignInNotice } from '@/components/SignInNotice'
 import { ErrorBanner, Spinner, TruthfulnessNote } from '@/components/ui'
+import { useAiAccess } from '@/lib/auth/useAiAccess'
 import { extractText } from '@/lib/extract'
 import { useResumes } from '@/store/resumes'
 import { parseResumeText } from './parseResume'
@@ -10,6 +12,7 @@ type Phase = 'idle' | 'extracting' | 'parsing'
 export function ImportPage() {
   const navigate = useNavigate()
   const create = useResumes((s) => s.create)
+  const aiAllowed = useAiAccess()
   const [text, setText] = useState('')
   const [fileName, setFileName] = useState('')
   const [phase, setPhase] = useState<Phase>('idle')
@@ -59,6 +62,7 @@ export function ImportPage() {
         </p>
       </div>
       <TruthfulnessNote />
+      <SignInNotice feature="AI resume parsing" />
       <ErrorBanner error={error} onDismiss={() => setError(null)} />
 
       <div className="card space-y-4">
@@ -94,7 +98,7 @@ export function ImportPage() {
           />
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" className="btn-primary" disabled={busy || text.trim().length < 30} onClick={() => void onParse()}>
+          <button type="button" className="btn-primary" disabled={busy || !aiAllowed || text.trim().length < 30} onClick={() => void onParse()}>
             {phase === 'parsing' ? (
               <>
                 <Spinner label="Parsing" /> Parsing with AI...

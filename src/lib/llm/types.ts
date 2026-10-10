@@ -10,7 +10,7 @@ export interface ChatOptions {
   signal?: AbortSignal
 }
 
-export type LlmErrorKind = 'unreachable' | 'model-missing' | 'http' | 'aborted' | 'invalid-json' | 'auth' | 'rate-limit'
+export type LlmErrorKind = 'unreachable' | 'model-missing' | 'http' | 'aborted' | 'invalid-json' | 'auth' | 'signin' | 'rate-limit'
 
 export class LlmError extends Error {
   readonly kind: LlmErrorKind

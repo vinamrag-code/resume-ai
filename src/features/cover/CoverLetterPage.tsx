@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { SignInNotice } from '@/components/SignInNotice'
 import { EmptyState, ErrorBanner, Spinner, TruthfulnessNote } from '@/components/ui'
+import { useAiAccess } from '@/lib/auth/useAiAccess'
 import { AreaField, TextField } from '@/features/editor/controls'
 import { letterToDocxBlob } from '@/lib/export/coverLetterDocx'
 import { downloadBlob, printToPdf, safeFilename } from '@/lib/export/download'
@@ -17,6 +19,7 @@ const TONES: { id: CoverTone; label: string }[] = [
 ]
 
 export function CoverLetterPage() {
+  const aiAllowed = useAiAccess()
   const [params, setParams] = useSearchParams()
   const resumes = useResumes((s) => s.resumes)
   const jobs = useJobs((s) => s.jobs)
@@ -101,6 +104,7 @@ export function CoverLetterPage() {
         <p className="mt-1 text-sm text-ink-500 dark:text-ink-400">Generate a letter from a resume and a job description, edit it, then export.</p>
       </div>
       <TruthfulnessNote />
+      <SignInNotice feature="cover letters" />
       <ErrorBanner error={error} onDismiss={() => setError(null)} />
 
       {resumes.length === 0 ? (
@@ -138,7 +142,7 @@ export function CoverLetterPage() {
                   <Spinner label="Generating" /> Stop
                 </button>
               ) : (
-                <button type="button" className="btn-primary w-full" disabled={!jd.trim() || !resume} onClick={() => void generate()}>
+                <button type="button" className="btn-primary w-full" disabled={!jd.trim() || !resume || !aiAllowed} onClick={() => void generate()}>
                   Generate letter
                 </button>
               )}

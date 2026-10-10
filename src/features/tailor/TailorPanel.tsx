@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { SignInNotice } from '@/components/SignInNotice'
 import { EmptyState, ErrorBanner, Spinner, TruthfulnessNote } from '@/components/ui'
+import { useAiAccess } from '@/lib/auth/useAiAccess'
 import { scoreTone } from '@/features/ats/scoreTone'
 import { computeAtsScore } from '@/lib/ats/score'
 import { applyChanges, invertChange, isStale, setAllStatus, setStatus } from '@/lib/changes'
@@ -16,6 +18,7 @@ type Mode = 'edit' | 'copy'
 export function TailorPanel({ resume, similarity }: { resume: Resume; similarity?: number }) {
   const navigate = useNavigate()
   const [changes, setChanges] = useState<Change[] | null>(null)
+  const aiAllowed = useAiAccess()
   const [mode, setMode] = useState<Mode>('edit')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<unknown>(null)
@@ -100,6 +103,7 @@ export function TailorPanel({ resume, similarity }: { resume: Resume; similarity
   return (
     <div className="space-y-4">
       <TruthfulnessNote />
+      <SignInNotice feature="tailoring" />
       <div className="card space-y-3">
         <fieldset>
           <legend className="label">When I accept a change</legend>
@@ -113,7 +117,7 @@ export function TailorPanel({ resume, similarity }: { resume: Resume; similarity
           </div>
         </fieldset>
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" className="btn-primary" disabled={loading || !description.trim()} onClick={() => void generate()}>
+          <button type="button" className="btn-primary" disabled={loading || !aiAllowed || !description.trim()} onClick={() => void generate()}>
             {loading ? (
               <>
                 <Spinner label="Generating" /> Analysing job...

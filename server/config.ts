@@ -14,7 +14,21 @@ export interface ServerConfig {
   maxMessages: number
   maxChars: number
   maxTokens: number
+  /** Google OAuth client ID. When set, AI features and cloud sync require sign-in. */
+  googleClientId: string
+  /** Secret used to sign session cookies (at least 32 characters). */
+  sessionSecret: string
+  sessionDays: number
+  /** Per signed-in user limits (replace the per-IP limits for signed-in requests). */
+  userPerMinute: number
+  userPerDay: number
+  databaseUrl: string
+  dataDir: string
+  maxSyncBytes: number
 }
+
+/** Auth is on only when both the client ID and a strong session secret are configured. */
+export const authEnabled = (cfg: Pick<ServerConfig, 'googleClientId' | 'sessionSecret'>): boolean => !!cfg.googleClientId && cfg.sessionSecret.length >= 32
 
 const list = (v: string | undefined, fallback: string[]) => {
   const parsed = (v ?? '').split(',').map((s) => s.trim()).filter(Boolean)
@@ -47,5 +61,13 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     maxMessages: num(env.MAX_MESSAGES, 40),
     maxChars: num(env.MAX_PROMPT_CHARS, 80_000),
     maxTokens: num(env.MAX_OUTPUT_TOKENS, 4096),
+    googleClientId: env.GOOGLE_CLIENT_ID?.trim() ?? '',
+    sessionSecret: env.SESSION_SECRET?.trim() ?? '',
+    sessionDays: num(env.SESSION_DAYS, 7),
+    userPerMinute: num(env.USER_RATE_LIMIT_PER_MINUTE, 30),
+    userPerDay: num(env.USER_RATE_LIMIT_PER_DAY, 500),
+    databaseUrl: env.DATABASE_URL?.trim() ?? '',
+    dataDir: env.DATA_DIR ?? 'data',
+    maxSyncBytes: num(env.MAX_SYNC_BYTES, 5_000_000),
   }
 }

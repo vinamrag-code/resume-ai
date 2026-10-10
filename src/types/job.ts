@@ -24,6 +24,8 @@ export const JobSchema = z.object({
   resumeId: z.string().optional(),
   coverLetterId: z.string().optional(),
   createdAt: z.number(),
+  /** Last edit time, used to resolve cloud-sync conflicts. */
+  updatedAt: z.number().optional(),
   order: z.number(),
 })
 export type Job = z.infer<typeof JobSchema>
