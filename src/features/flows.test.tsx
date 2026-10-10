@@ -204,6 +204,21 @@ describe('target job tab', () => {
   })
 })
 
+describe('Edit with AI', () => {
+  it('sits beside the export buttons and opens the Agent chat', async () => {
+    const r = seedResume()
+    renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
+    const edit = screen.getByRole('button', { name: 'Edit with AI' })
+    expect(edit.parentElement).toContainElement(screen.getByRole('button', { name: 'Export PDF' }))
+    expect(edit.parentElement).toContainElement(screen.getByRole('button', { name: 'Export DOCX' }))
+    expect(screen.queryByRole('region', { name: 'Resume agent chat' })).not.toBeInTheDocument()
+    await userEvent.click(edit)
+    expect(screen.getByRole('region', { name: 'Resume agent chat' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Agent' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Target job' })).toHaveAttribute('aria-current', 'page')
+  })
+})
+
 describe('tailoring', () => {
   const reply = JSON.stringify({
     summary: 'Frontend-leaning engineer building reliable React and TypeScript applications.',

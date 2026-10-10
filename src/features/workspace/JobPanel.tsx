@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { AtsPanel } from '@/features/ats/AtsPanel'
 import type { ResumeScore } from '@/features/ats/useResumeScore'
 import { ChatPanel } from '@/features/chat/ChatPanel'
@@ -14,8 +13,7 @@ export const JOB_TABS = [
 export type JobTabId = (typeof JOB_TABS)[number]['id']
 
 /** One "Target job" tab: the job details are entered once, and ATS analysis, Tailor and Agent all use them. */
-export function JobPanel({ resume, scoring, initialTab = 'ats' }: { resume: Resume; scoring: ResumeScore; initialTab?: JobTabId }) {
-  const [tab, setTab] = useState<JobTabId>(initialTab)
+export function JobPanel({ resume, scoring, tab, onTabChange: setTab }: { resume: Resume; scoring: ResumeScore; tab: JobTabId; onTabChange: (t: JobTabId) => void }) {
   return (
     <div className="space-y-4">
       <TargetJobForm resume={resume} />

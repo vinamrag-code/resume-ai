@@ -9,6 +9,7 @@ import { useResumes } from '@/store/resumes'
 import type { Resume } from '@/types/resume'
 import { ExportBar } from './ExportBar'
 import { JobPanel } from './JobPanel'
+import type { JobTabId } from './JobPanel'
 
 const TABS = [
   { id: 'edit', label: 'Edit' },
@@ -35,6 +36,12 @@ function Workspace({ resume }: { resume: Resume }) {
   const rename = useResumes((s) => s.rename)
   const updateContent = useResumes((s) => s.updateContent)
   const [tab, setTab] = useState<TabId>('edit')
+  const [jobTab, setJobTab] = useState<JobTabId>('ats')
+  const editWithAi = () => {
+    setJobTab('agent')
+    setTab('job')
+    document.getElementById('resume-tools')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
     <div className="space-y-4">
@@ -58,7 +65,7 @@ function Workspace({ resume }: { resume: Resume }) {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="no-print min-w-0 space-y-4">
-          <nav aria-label="Resume tools" className="flex flex-wrap gap-1 rounded-xl bg-ink-100 p-1 dark:bg-ink-800">
+          <nav id="resume-tools" aria-label="Resume tools" className="flex flex-wrap gap-1 rounded-xl bg-ink-100 p-1 dark:bg-ink-800">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -73,10 +80,10 @@ function Workspace({ resume }: { resume: Resume }) {
           </nav>
           {tab === 'edit' && <ResumeEditor content={resume.content} onChange={(fn) => updateContent(resume.id, fn)} />}
           {tab === 'design' && <DesignPanel resume={resume} />}
-          {tab === 'job' && <JobPanel resume={resume} scoring={scoring} />}
+          {tab === 'job' && <JobPanel resume={resume} scoring={scoring} tab={jobTab} onTabChange={setJobTab} />}
         </div>
         <div className="min-w-0 space-y-3">
-          <ExportBar resume={resume} />
+          <ExportBar resume={resume} onEditWithAi={editWithAi} />
           <div className="overflow-x-auto">
             <ResumePreview resume={resume} />
           </div>
