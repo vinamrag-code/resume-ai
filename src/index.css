@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { color-scheme: light; }
+  html.dark { color-scheme: dark; }
+  body { @apply bg-ink-50 text-ink-900 antialiased dark:bg-ink-950 dark:text-ink-100; }
+  :focus-visible { @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white dark:ring-offset-ink-950; }
+}
+
+@layer components {
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-400 dark:text-ink-950; }
+  .btn-secondary { @apply btn border border-ink-200 bg-white text-ink-800 hover:bg-ink-100 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100 dark:hover:bg-ink-800; }
+  .btn-ghost { @apply btn text-ink-600 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-ink-800; }
+  .btn-danger { @apply btn border border-red-200 bg-white text-red-700 hover:bg-red-50 dark:border-red-900 dark:bg-ink-900 dark:text-red-400 dark:hover:bg-red-950; }
+  .btn-sm { @apply px-2.5 py-1 text-xs; }
+  .input { @apply w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 placeholder:text-ink-400 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100; }
+  .label { @apply mb-1 block text-xs font-medium text-ink-600 dark:text-ink-300; }
+  .card { @apply rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-800 dark:bg-ink-900; }
+  .chip { @apply inline-flex items-center rounded-full bg-ink-100 px-2 py-0.5 text-xs text-ink-700 dark:bg-ink-800 dark:text-ink-200; }
+}
+
+/* ---- Resume paper (screen) ---- */
+.resume-paper {
+  background: #fff;
+  color: #111;
+  width: 100%;
+  max-width: 8.5in;
+  min-height: 11in;
+  margin: 0 auto;
+  padding: 0.6in 0.65in;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.15), 0 8px 24px rgb(0 0 0 / 0.08);
+}
+.resume-paper ul { list-style: disc; padding-left: 1.1em; margin: 0; }
+.resume-paper h1, .resume-paper h2, .resume-paper h3, .resume-paper p { margin: 0; }
+
+/* ---- Print: only the element marked .print-area is printed ---- */
+@page { size: auto; margin: 0.4in; }
+@media print {
+  html, body { background: #fff !important; }
+  body * { visibility: hidden !important; }
+  .print-area, .print-area * { visibility: visible !important; }
+  .print-area { position: absolute !important; left: 0; top: 0; width: 100% !important; }
+  .resume-paper { box-shadow: none !important; max-width: none !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; }
+  .no-print { display: none !important; }
+}
