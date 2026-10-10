@@ -6,10 +6,11 @@ import { getLlm } from '@/lib/llm'
 import type { ChatMessage } from '@/lib/llm'
 import { chatSystemPrompt } from '@/lib/prompts'
 import { makeId } from '@/lib/id'
-import { resumeForPrompt } from '@/lib/resume'
+import { resumeForPrompt, resumeToText } from '@/lib/resume'
 import { useResumes } from '@/store/resumes'
 import type { Resume } from '@/types/resume'
 import { DiffView } from '@/features/tailor/DiffView'
+import { verifyChanges } from '@/features/tailor/verifyChanges'
 import { parseEdits, visibleText } from './chatLogic'
 import { useChats } from './chatStore'
 import type { ChatTurn } from './chatStore'
@@ -89,7 +90,8 @@ export function ChatPanel({ resume }: { resume: Resume }) {
         { signal: abort.current.signal, temperature: 0.4 },
       )
       // Clarifying turns never carry edits, even if the model ignored the instruction.
-      const changes = phase === 'edit' ? parseEdits(full, resume.content) : []
+      const parsed = phase === 'edit' ? parseEdits(full, resume.content) : []
+      const changes = await verifyChanges(parsed, resumeToText(resume.content), abort.current.signal)
       setTurns(resume.id, (ts) => ts.map((t) => (t.id === assistantId ? { ...t, content: full, changes } : t)))
     } catch (err) {
       setError(err)

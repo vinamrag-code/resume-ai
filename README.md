@@ -76,6 +76,16 @@ npm run build      # typecheck + production build into dist/
 npm run preview    # serve the production build (allow its origin in OLLAMA_ORIGINS)
 ```
 
+## How AI result quality is protected
+
+1. **Prompts** share one set of truthfulness rules and include good/bad rewrite examples (`src/lib/prompts`).
+2. **Structured output**: JSON is validated with zod and retried once with the error fed back.
+3. **Rule-based guards** flag numbers and names/tools in a rewrite that are not in your resume (`src/lib/ats/guards.ts`, `src/lib/changes.ts`); skill reordering can never add skills.
+4. **Quality filter** drops bullet rewrites that score worse on action verb / metric / length, unless they add a missing job keyword.
+5. **AI fact-check**: a second model pass lists claims in each rewrite that your resume does not support and attaches them as warnings (applied to Tailor and Chat suggestions; if the check fails it never blocks you).
+6. **Parse cross-check**: emails and phone numbers from the parsed resume must appear in the source text; invented ones are removed and missed ones recovered.
+7. **You decide**: every change is a diff you accept or reject, and accepted edits can be undone.
+
 ## Architecture
 
 - **UI**: React 19 + React Router, Tailwind CSS (class-based dark mode), feature folders.

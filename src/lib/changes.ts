@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { findNewTerms } from '@/lib/ats/guards'
 import { makeId } from '@/lib/id'
 import type { ResumeContent } from '@/types/resume'
 
@@ -97,9 +98,10 @@ export function buildChanges(content: ResumeContent, proposed: ProposedEdits, so
   const make = (target: ChangeTarget, after: string, reason: string, afterSkills?: string[]) => {
     const before = getText(content, target)
     if (before === undefined || norm(before) === norm(after)) return
-    const warnings = findNewNumbers(after, sourceText).map(
-      (n) => `"${n}" does not appear in your resume. Only keep it if it is true.`,
-    )
+    const warnings = [
+      ...findNewNumbers(after, sourceText).map((n) => `"${n}" does not appear in your resume. Only keep it if it is true.`),
+      ...findNewTerms(after, `${sourceText}\n${before}`).map((t) => `"${t}" is not mentioned in your resume. Only keep it if it is true.`),
+    ]
     changes.push({
       id: makeId(),
       target,

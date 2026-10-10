@@ -22,7 +22,14 @@ Return ONLY a JSON object:
   "skills": ["same skills as the resume, reordered so the most job-relevant come first"] or null,
   "skillsReason": "why"
 }
-"entry" and "bullet" are the zero-based indexes shown in the resume JSON. Only include bullets that genuinely benefit from a change (at most 8). Start bullets with a strong action verb, keep them to one line where possible, and mirror the job's terminology only where it honestly applies. Never add skills that are not already listed.`,
+"entry" and "bullet" are the zero-based indexes shown in the resume JSON. Only include bullets that genuinely benefit from a change (at most 8). Start bullets with a strong action verb, keep them to one line where possible, and mirror the job's terminology only where it honestly applies. Never add skills that are not already listed.
+
+EXAMPLES of the difference between acceptable and unacceptable edits (resume says: "Built dashboards in React used by the team"; job asks for React, TypeScript, AWS):
+- GOOD: "Built React dashboards used by the internal team" (same facts, tighter wording)
+- BAD: "Built React and TypeScript dashboards on AWS serving 10,000 users" (invents TypeScript, AWS and a number)
+- GOOD: reordering skills so React comes before Git
+- BAD: adding AWS to the skills list when the resume does not mention it
+If a bullet cannot be improved without inventing something, leave it out of the "bullets" array.`,
     },
     {
       role: 'user',
