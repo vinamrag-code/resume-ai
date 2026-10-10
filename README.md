@@ -3,9 +3,9 @@
 A free, open-source, **local-first** AI resume builder. Import a resume, analyse it against a job with a transparent ATS score, tailor it with reviewable diffs, chat with a resume counselor, write cover letters, and track applications. No backend, no accounts, no telemetry.
 
 - Your data lives in your browser (`localStorage`).
-- The AI is your own [Ollama](https://ollama.com) server, called straight from the browser (or, optionally, OpenRouter/Groq with your own key in `.env`).
+- AI answers come from Groq (primary) and OpenRouter (fallback + fact-checker) using your own free API keys from `.env`, called straight from the browser. Local [Ollama](https://ollama.com) is an optional advanced mode.
 - Semantic matching runs in the browser with `@huggingface/transformers` (`Xenova/all-MiniLM-L6-v2`, ~25 MB, downloaded once).
-- By default the only network calls are to your Ollama server and that one-time model download. A cloud provider is used only if you choose one.
+- Network calls go only to the AI provider(s) you configured and the one-time embedding-model download. With Ollama selected, nothing but that download leaves your computer.
 
 **Truthfulness is a hard rule.** Every prompt tells the model never to invent employers, titles, dates, degrees, metrics or skills. Tailoring may only reword and reprioritise existing facts. The app adds guards on top: edits are shown as diffs you accept or reject, numbers that do not appear in your resume get a warning, and skill re-ordering can never add a skill.
 
@@ -17,54 +17,47 @@ Import (PDF / DOCX / paste, LLM → zod-validated structure) · section editor w
 
 Requires Node 20+.
 
-### 1. Install Ollama and pull a model
+### 1. Get free API keys
 
-Install from <https://ollama.com/download>, then:
+Resume AI uses hosted models through your own free API keys, so there is nothing heavy to install:
 
-```
-ollama pull llama3.1:8b
-```
+- **Groq** (fast, answers first): <https://console.groq.com/keys>
+- **OpenRouter** (fallback and independent fact-checker): <https://openrouter.ai/keys>
 
-Any chat model works; set its name in Settings. Bigger models give better JSON and writing.
+One key is enough to start; both is best.
 
-### 2. Allow the browser to reach Ollama (`OLLAMA_ORIGINS`)
-
-Ollama rejects browser requests from unknown origins. Allow the app's origin (the Vite dev server uses `http://localhost:5173`) and restart Ollama.
-
-Windows (PowerShell):
+### 2. Add them to `.env`
 
 ```
-setx OLLAMA_ORIGINS "http://localhost:5173"
+copy .env.example .env      # PowerShell (macOS/Linux: cp .env.example .env)
 ```
 
-then quit and restart Ollama. macOS / Linux:
-
 ```
-OLLAMA_ORIGINS=http://localhost:5173 ollama serve
-```
-
-### Optional: cloud providers (OpenRouter, Groq)
-
-If your computer is too small for a good local model, you can use a hosted model with your own API key instead of Ollama:
-
-```
-copy .env.example .env      # PowerShell (macOS/Linux: cp)
+VITE_GROQ_API_KEY=your-key
+VITE_OPENROUTER_API_KEY=your-key
 ```
 
-Put your key in `.env` (`VITE_OPENROUTER_API_KEY` and/or `VITE_GROQ_API_KEY`), restart `npm run dev`, then choose the provider and model in **Settings** and press **Test connection**.
+`.env` is git-ignored. `VITE_*` values are bundled into the page, so use this only on your own computer and **never deploy a build that contains a real key**.
 
-- With a cloud provider, resume text and job descriptions are sent to that provider. Ollama remains the fully local option.
-- `VITE_*` values are bundled into the page. Use this only on your own computer; **never deploy a build that contains a real key**. `.env` is git-ignored.
-- Free OpenRouter models are rate-limited; if you see a rate-limit message, wait a minute or choose another model.
-
-### 3. Run the app
+### 3. Run
 
 ```
 npm install
 npm run dev
 ```
 
-Open <http://localhost:5173>, go to **Settings**, and press **Test connection**.
+Open <http://localhost:5173>, go to **Settings** and press **Test connection**.
+
+### How models are chosen (Auto mode, the default)
+
+- **Primary:** Groq (`openai/gpt-oss-120b`), the fastest. If it fails or is rate-limited, OpenRouter takes over automatically.
+- **Checker:** the AI fact-check of suggested edits goes to OpenRouter first, so a second, independent model reviews them (falling back to Groq).
+- Providers without a key are skipped; with one key it is used for everything. You can force a single provider and change model names in Settings.
+- Resume text and job descriptions are sent to these providers. For fully local AI, see below.
+
+### Optional, advanced: local AI with Ollama
+
+Install [Ollama](https://ollama.com/download), run `ollama pull llama3.1:8b`, allow the app's origin (Windows PowerShell: `setx OLLAMA_ORIGINS "http://localhost:5173"`, then restart Ollama; macOS/Linux: `OLLAMA_ORIGINS=http://localhost:5173 ollama serve`), and choose **Ollama (local, advanced)** in Settings. Then nothing leaves your computer except the one-time embedding-model download.
 
 ### Other scripts
 
@@ -73,7 +66,7 @@ npm test           # Vitest unit + component tests
 npm run typecheck  # tsc --noEmit (strict)
 npm run lint       # ESLint
 npm run build      # typecheck + production build into dist/
-npm run preview    # serve the production build (allow its origin in OLLAMA_ORIGINS)
+npm run preview    # serve the production build
 ```
 
 ## How AI result quality is protected
@@ -90,7 +83,7 @@ npm run preview    # serve the production build (allow its origin in OLLAMA_ORIG
 
 - **UI**: React 19 + React Router, Tailwind CSS (class-based dark mode), feature folders.
 - **State**: Zustand stores with `persist` (`resume-ai:*` keys in localStorage): resumes, jobs, cover letters, settings. Chat transcripts are memory-only.
-- **LLM**: `src/lib/llm` exposes a small `LlmClient` interface (`chat`, `stream`, `testConnection`). `OllamaClient` implements it with `/api/chat` (NDJSON streaming, `format: "json"`); `OpenAiCompatibleClient` covers OpenRouter and Groq (`/chat/completions`, SSE streaming). `getLlm()` builds it from Settings; `setLlmClient()` swaps the provider (used by tests). `generateJson()` validates with zod and retries once, feeding the validation error back.
+- **LLM**: `src/lib/llm` exposes a small `LlmClient` interface (`chat`, `stream`, `testConnection`). `OllamaClient` implements it with `/api/chat` (NDJSON streaming, `format: "json"`); `OpenAiCompatibleClient` covers OpenRouter and Groq (`/chat/completions`, SSE streaming); `FallbackClient` chains providers (Auto mode). `getLlm()` builds it from Settings; `setLlmClient()` swaps the provider (used by tests). `generateJson()` validates with zod and retries once, feeding the validation error back.
 - **Prompts**: `src/lib/prompts`, one file per task, all including the shared `TRUTHFULNESS_RULES`.
 - **ATS score** (`src/lib/ats`): pure and deterministic. Components: keyword coverage (frequency + tech-term extraction, light stemming), semantic similarity (embedding cosine, best-chunk matching), section completeness, bullet quality (action verb, quantified, length) and formatting checks. Weights are 30/20/15/20/15 and are renormalised when a component is unavailable (no job description, or embeddings not yet run). The LLM is never asked for a score.
 - **Changes** (`src/lib/changes.ts`): model output (indexes, not ids) is resolved against the real resume into `Change` objects (`before` always comes from the resume), shared by Tailoring and Chat. Stale changes (resume edited since) are skipped, never forced.

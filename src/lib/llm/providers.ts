@@ -1,5 +1,8 @@
 export type ProviderId = 'ollama' | 'openrouter' | 'groq'
 
+/** What the user picks in Settings: Auto uses Groq first with OpenRouter as fallback and checker. */
+export type ProviderChoice = ProviderId | 'auto'
+
 export interface ProviderInfo {
   id: ProviderId
   label: string
@@ -15,7 +18,7 @@ export interface ProviderInfo {
 }
 
 export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
-  ollama: { id: 'ollama', label: 'Ollama (local)', baseUrl: 'http://localhost:11434', defaultModel: 'llama3.1:8b', supportsJsonFormat: true, cloud: false },
+  ollama: { id: 'ollama', label: 'Ollama (local, advanced)', baseUrl: 'http://localhost:11434', defaultModel: 'llama3.1:8b', supportsJsonFormat: true, cloud: false },
   openrouter: {
     id: 'openrouter',
     label: 'OpenRouter (cloud)',
@@ -41,4 +44,9 @@ export function envApiKey(id: ProviderId): string {
   const env = import.meta.env as Record<string, string | undefined>
   const name = PROVIDERS[id].envKey
   return (name ? env[name] : undefined)?.trim() ?? ''
+}
+
+/** Cloud providers that have an API key in .env. */
+export function configuredCloudProviders(): ProviderId[] {
+  return (['groq', 'openrouter'] as const).filter((id) => envApiKey(id) !== '')
 }

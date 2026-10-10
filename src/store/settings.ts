@@ -1,47 +1,52 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { PROVIDERS } from '@/lib/llm/providers'
-import type { ProviderId } from '@/lib/llm/providers'
+import type { ProviderChoice, ProviderId } from '@/lib/llm/providers'
 
 export type ThemePref = 'system' | 'light' | 'dark'
 
-export interface SettingsState {
-  provider: ProviderId
-  ollamaUrl: string
-  /** Model for the active provider. */
-  model: string
-  /** Last model used with each provider, restored when switching back. */
-  models: Partial<Record<ProviderId, string>>
-  setProvider: (p: ProviderId) => void
-  setModel: (m: string) => void
-  theme: ThemePref
-  onboarded: boolean
-  update: (patch: Partial<Pick<SettingsState, 'provider' | 'ollamaUrl' | 'model' | 'theme' | 'onboarded'>>) => void
+export const DEFAULT_OLLAMA_URL = 'http://localhost:11434'
+
+export function defaultModels(): Record<ProviderId, string> {
+  return { ollama: PROVIDERS.ollama.defaultModel, openrouter: PROVIDERS.openrouter.defaultModel, groq: PROVIDERS.groq.defaultModel }
 }
 
-export const DEFAULT_OLLAMA_URL = 'http://localhost:11434'
-export const DEFAULT_MODEL = 'llama3.1:8b'
+export interface SettingsState {
+  /** "auto" = Groq first, OpenRouter as fallback and fact-checker. */
+  provider: ProviderChoice
+  ollamaUrl: string
+  models: Record<ProviderId, string>
+  theme: ThemePref
+  onboarded: boolean
+  setProvider: (p: ProviderChoice) => void
+  setModel: (id: ProviderId, model: string) => void
+  update: (patch: Partial<Pick<SettingsState, 'ollamaUrl' | 'theme' | 'onboarded'>>) => void
+  /** Used by backup restore. */
+  restore: (s: Pick<SettingsState, 'provider' | 'ollamaUrl' | 'theme'> & { models?: Partial<Record<ProviderId, string>> }) => void
+}
 
 export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
-      provider: 'ollama',
+      provider: 'auto',
       ollamaUrl: DEFAULT_OLLAMA_URL,
-      model: DEFAULT_MODEL,
-      models: {},
+      models: defaultModels(),
       theme: 'system',
       onboarded: false,
+      setProvider: (provider) => set({ provider }),
+      setModel: (id, model) => set((s) => ({ models: { ...s.models, [id]: model } })),
       update: (patch) => set(patch),
-      setModel: (model) => set((s) => ({ model, models: { ...s.models, [s.provider]: model } })),
-      setProvider: (provider) =>
-        set((s) => {
-          const models = { ...s.models, [s.provider]: s.model }
-          return { provider, models, model: models[provider] ?? (provider === 'ollama' ? DEFAULT_MODEL : PROVIDERS[provider].defaultModel) }
-        }),
+      restore: (s) => set((cur) => ({ provider: s.provider, ollamaUrl: s.ollamaUrl, theme: s.theme, models: { ...cur.models, ...s.models } })),
     }),
     {
       name: 'resume-ai:settings',
-      partialize: ({ provider, ollamaUrl, model, models, theme, onboarded }) => ({ provider, ollamaUrl, model, models, theme, onboarded }),
+      version: 2,
+      partialize: ({ provider, ollamaUrl, models, theme, onboarded }) => ({ provider, ollamaUrl, models, theme, onboarded }),
+      // v1 stored a single `model` and defaulted to Ollama; move everyone to Auto.
+      migrate: (old) => {
+        const o = (old ?? {}) as { ollamaUrl?: string; model?: string; theme?: ThemePref; onboarded?: boolean }
+        return { provider: 'auto', ollamaUrl: o.ollamaUrl ?? DEFAULT_OLLAMA_URL, models: { ...defaultModels(), ...(o.model ? { ollama: o.model } : {}) }, theme: o.theme ?? 'system', onboarded: false } as SettingsState
+      },
     },
   ),
 )

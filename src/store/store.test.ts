@@ -99,7 +99,8 @@ describe('backup', () => {
   })
 
   it('settings update', () => {
-    useSettings.getState().update({ model: 'mistral' })
-    expect(useSettings.getState().model).toBe('mistral')
+    useSettings.getState().setModel('groq', 'my-model')
+    useSettings.getState().setProvider('groq')
+    expect(useSettings.getState()).toMatchObject({ provider: 'groq', models: { groq: 'my-model' } })
   })
 })

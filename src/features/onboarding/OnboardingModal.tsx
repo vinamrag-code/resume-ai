@@ -12,7 +12,7 @@ export function OnboardingModal() {
   return (
     <Modal title="Welcome to Resume AI" onClose={done}>
       <p className="mb-3 text-sm text-ink-600 dark:text-ink-300">
-        Resume AI is free and private: your resumes stay in this browser and the AI runs on your own computer through Ollama. A quick one-time setup:
+        Resume AI is free: your resumes stay in this browser, and AI answers come from Groq and OpenRouter using your own free API keys. A quick one-time setup:
       </p>
       <OnboardingSteps />
       <p className="mt-3 rounded-lg bg-brand-50 p-2.5 text-xs text-brand-900 dark:bg-brand-900/30 dark:text-brand-100">

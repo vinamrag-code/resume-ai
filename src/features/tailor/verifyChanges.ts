@@ -15,7 +15,7 @@ export async function verifyChanges(changes: Change[], resumeText: string, signa
   if (changes.length === 0) return changes
   try {
     const items = changes.map((c, index) => ({ index, before: c.before, after: c.after }))
-    const { results } = await generateJson(getLlm(), verifyPrompt(resumeText, items), VerifySchema, { signal, temperature: 0 })
+    const { results } = await generateJson(getLlm('checker'), verifyPrompt(resumeText, items), VerifySchema, { signal, temperature: 0 })
     return changes.map((c, index) => {
       const claims = (results.find((r) => r.index === index)?.unsupported ?? []).filter((s) => s.trim())
       if (!claims.length) return c

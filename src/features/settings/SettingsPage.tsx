@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react'
 import { ErrorBanner, Modal, Spinner } from '@/components/ui'
 import { OnboardingSteps } from '@/features/onboarding/OnboardingSteps'
-import { createLlm, envApiKey, PROVIDERS } from '@/lib/llm'
+import { configuredCloudProviders, createLlm, envApiKey, PROVIDERS } from '@/lib/llm'
 import type { ProviderId } from '@/lib/llm'
+import type { ProviderChoice } from '@/lib/llm/providers'
 import type { ConnectionStatus } from '@/lib/llm'
 import { downloadBlob } from '@/lib/export/download'
 import { createBackup, restoreBackup } from '@/store/backup'
@@ -13,9 +14,9 @@ import { DEFAULT_OLLAMA_URL, useSettings } from '@/store/settings'
 import type { ThemePref } from '@/store/settings'
 
 export function SettingsPage() {
-  const { provider, ollamaUrl, model, theme, update, setProvider, setModel } = useSettings()
-  const info = PROVIDERS[provider]
-  const hasKey = provider === 'ollama' || envApiKey(provider) !== ''
+  const { provider, ollamaUrl, models, theme, update, setProvider, setModel } = useSettings()
+  const shown: ProviderId[] = provider === 'auto' ? ['groq', 'openrouter'] : [provider]
+  const configured = configuredCloudProviders()
   const [status, setStatus] = useState<ConnectionStatus | null>(null)
   const [testing, setTesting] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
@@ -25,7 +26,7 @@ export function SettingsPage() {
   const test = async () => {
     setTesting(true)
     setStatus(null)
-    setStatus(await createLlm({ provider, ollamaUrl, model }).testConnection())
+    setStatus(await createLlm({ provider, ollamaUrl, models }).testConnection())
     setTesting(false)
   }
 
@@ -60,32 +61,34 @@ export function SettingsPage() {
 
       <section className="card space-y-3" aria-labelledby="s-ollama">
         <h2 id="s-ollama" className="text-base font-semibold">
-          AI provider
+          AI models
         </h2>
+        <div>
+          <label htmlFor="provider" className="label">
+            Provider
+          </label>
+          <select id="provider" className="input max-w-md" value={provider} onChange={(e) => { setProvider(e.target.value as ProviderChoice); setStatus(null) }}>
+            <option value="auto">Auto (recommended): Groq, with OpenRouter as fallback and checker</option>
+            <option value="groq">Groq only</option>
+            <option value="openrouter">OpenRouter only</option>
+            <option value="ollama">Ollama (local, advanced)</option>
+          </select>
+          {provider === 'auto' && (
+            <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">
+              Groq answers first because it is fastest. If it fails or is rate-limited, OpenRouter takes over. OpenRouter also fact-checks suggestions so a second, independent model reviews them. Providers without a key are skipped.
+            </p>
+          )}
+        </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label htmlFor="provider" className="label">
-              Provider
-            </label>
-            <select id="provider" className="input" value={provider} onChange={(e) => { setProvider(e.target.value as ProviderId); setStatus(null) }}>
-              {Object.values(PROVIDERS).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="ollama-model" className="label">
-              Model
-            </label>
-            <input id="ollama-model" className="input" list="installed-models" value={model} onChange={(e) => setModel(e.target.value)} placeholder={info.defaultModel} />
-            <datalist id="installed-models">
-              {status?.models.map((m) => (
-                <option key={m} value={m} />
-              ))}
-            </datalist>
-          </div>
+          {shown.map((id) => (
+            <div key={id}>
+              <label htmlFor={`model-${id}`} className="label">
+                {PROVIDERS[id].label.replace(/ \(.*\)/, '')} model
+                {PROVIDERS[id].envKey && <span className="font-normal"> · key {envApiKey(id) ? 'found in .env ✓' : 'missing'}</span>}
+              </label>
+              <input id={`model-${id}`} className="input" value={models[id]} onChange={(e) => setModel(id, e.target.value)} placeholder={PROVIDERS[id].defaultModel} />
+            </div>
+          ))}
           {provider === 'ollama' && (
             <div className="sm:col-span-2">
               <label htmlFor="ollama-url" className="label">
@@ -95,16 +98,19 @@ export function SettingsPage() {
             </div>
           )}
         </div>
-        {info.cloud && (
+        {provider !== 'ollama' && (
           <div role="note" className="rounded-lg border border-spark-400 bg-spark-400/10 p-3 text-sm">
             <p>
-              <strong>Cloud provider.</strong> Your resume text and job descriptions are sent to {info.label.replace(/ \(.*\)/, '')} to generate answers.
+              <strong>Cloud models.</strong> Your resume text and job descriptions are sent to {provider === 'auto' ? 'Groq / OpenRouter' : PROVIDERS[provider].label.replace(/ \(.*\)/, '')} to generate answers.
             </p>
-            <p className="mt-1">
-              API key ({info.envKey}): <strong>{hasKey ? 'found in .env' : 'not found'}</strong>
-              {!hasKey && ' - copy .env.example to .env, add your key, then restart `npm run dev`.'}
-            </p>
-            <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">Keys in .env are bundled into the page, so use this only on your own computer and never deploy a build that contains your key.</p>
+            {configured.length === 0 && (
+              <p className="mt-1">
+                No API key found. Copy <code>.env.example</code> to <code>.env</code>, add a free key from{' '}
+                <a className="underline" href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">Groq</a> or{' '}
+                <a className="underline" href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer">OpenRouter</a>, then restart <code>npm run dev</code>.
+              </p>
+            )}
+            <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">Keys in .env are bundled into the page, so use this only on your own computer and never deploy a build that contains a key.</p>
           </div>
         )}
         <div className="flex flex-wrap items-center gap-3">
@@ -117,7 +123,7 @@ export function SettingsPage() {
               'Test connection'
             )}
           </button>
-          <button type="button" className="btn-ghost" onClick={() => { update({ ollamaUrl: DEFAULT_OLLAMA_URL }); setModel(info.defaultModel) }}>
+          <button type="button" className="btn-ghost" onClick={() => { update({ ollamaUrl: DEFAULT_OLLAMA_URL }); (Object.keys(PROVIDERS) as ProviderId[]).forEach((id) => setModel(id, PROVIDERS[id].defaultModel)) }}>
             Reset to defaults
           </button>
         </div>
@@ -128,7 +134,7 @@ export function SettingsPage() {
           </div>
         )}
         <details>
-          <summary className="cursor-pointer text-sm font-medium">Ollama setup instructions</summary>
+          <summary className="cursor-pointer text-sm font-medium">Setup instructions</summary>
           <div className="mt-3">
             <OnboardingSteps />
           </div>

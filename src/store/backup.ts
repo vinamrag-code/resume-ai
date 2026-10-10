@@ -11,9 +11,9 @@ export const BackupSchema = z.object({
   version: z.literal(1),
   exportedAt: z.string(),
   settings: z.object({
-    provider: z.enum(['ollama', 'openrouter', 'groq']).default('ollama'),
+    provider: z.enum(['auto', 'ollama', 'openrouter', 'groq']).default('auto'),
     ollamaUrl: z.string(),
-    model: z.string(),
+    models: z.record(z.string(), z.string()).default({}),
     theme: z.enum(['system', 'light', 'dark']),
   }),
   resumes: z.array(ResumeSchema),
@@ -23,12 +23,12 @@ export const BackupSchema = z.object({
 export type Backup = z.infer<typeof BackupSchema>
 
 export function createBackup(): Backup {
-  const { provider, ollamaUrl, model, theme } = useSettings.getState()
+  const { provider, ollamaUrl, models, theme } = useSettings.getState()
   return {
     app: 'resume-ai',
     version: 1,
     exportedAt: new Date().toISOString(),
-    settings: { provider, ollamaUrl, model, theme },
+    settings: { provider, ollamaUrl, models, theme },
     resumes: useResumes.getState().resumes,
     jobs: useJobs.getState().jobs,
     letters: useCoverLetters.getState().letters,
@@ -53,6 +53,6 @@ export function restoreBackup(raw: string): ImportResult {
   useResumes.setState({ resumes: b.resumes })
   useJobs.setState({ jobs: b.jobs })
   useCoverLetters.setState({ letters: b.letters })
-  useSettings.getState().update(b.settings)
+  useSettings.getState().restore(b.settings)
   return { ok: true, counts: { resumes: b.resumes.length, jobs: b.jobs.length, letters: b.letters.length } }
 }
