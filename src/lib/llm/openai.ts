@@ -4,7 +4,8 @@ import type { ChatMessage, ChatOptions, ConnectionStatus, LlmClient } from './ty
 export interface OpenAiConfig {
   baseUrl: string
   model: string
-  apiKey: string
+  /** Direct API key. Leave empty when `baseUrl` is the server proxy, which adds the key itself. */
+  apiKey?: string
   label: string
   supportsJsonFormat: boolean
 }
@@ -16,14 +17,12 @@ export class OpenAiCompatibleClient implements LlmClient {
   constructor(private readonly config: OpenAiConfig) {}
 
   private async request(path: string, init: RequestInit): Promise<Response> {
-    if (!this.config.apiKey) {
-      throw new LlmError('auth', `No ${this.config.label} API key found. Add it to the .env file (see .env.example) and restart the dev server.`)
-    }
+    const direct = !!this.config.apiKey
     let res: Response
     try {
       res = await fetch(`${this.config.baseUrl.replace(/\/+$/, '')}${path}`, {
         ...init,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.config.apiKey}`, ...init.headers },
+        headers: { 'Content-Type': 'application/json', ...(direct ? { Authorization: `Bearer ${this.config.apiKey}` } : {}), ...init.headers },
       })
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') throw new LlmError('aborted', 'Request cancelled.')
@@ -31,9 +30,11 @@ export class OpenAiCompatibleClient implements LlmClient {
     }
     if (res.ok) return res
     const body = (await res.text().catch(() => '')).slice(0, 300)
-    if (res.status === 401 || res.status === 403) throw new LlmError('auth', `${this.config.label} rejected the API key. Check it in your .env file.`)
-    if (res.status === 429) throw new LlmError('rate-limit', `${this.config.label} rate limit reached (free models are limited). Wait a minute or pick another model.`)
+    if (res.status === 503) throw new LlmError('auth', `${this.config.label} is not configured on the server.`)
+    if (res.status === 401 || res.status === 403) throw new LlmError('auth', `${this.config.label} rejected the API key.`)
+    if (res.status === 429) throw new LlmError('rate-limit', `${this.config.label} rate limit reached. Please wait a moment and try again.`)
     if (res.status === 404) throw new LlmError('model-missing', `Model "${this.config.model}" was not found on ${this.config.label}. Pick another model in Settings.`)
+    if (res.status === 400 && /not allowed/i.test(body)) throw new LlmError('model-missing', `Model "${this.config.model}" is not allowed on this server. Use the default model in Settings.`)
     throw new LlmError('http', `${this.config.label} returned ${res.status}${body ? `: ${body}` : ''}`)
   }
 

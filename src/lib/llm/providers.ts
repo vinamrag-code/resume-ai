@@ -6,11 +6,9 @@ export type ProviderChoice = ProviderId | 'auto'
 export interface ProviderInfo {
   id: ProviderId
   label: string
-  /** Base URL for OpenAI-compatible providers (Ollama's is configurable in Settings). */
+  /** Base URL: the server proxy path for cloud providers (keys stay on the server), or the Ollama default. */
   baseUrl: string
   defaultModel: string
-  /** Name of the `.env` variable holding the API key (none for Ollama). */
-  envKey?: string
   /** True if the provider honours `response_format: json_object`. */
   supportsJsonFormat: boolean
   /** Prompts and resume text leave this computer when the provider is used. */
@@ -22,31 +20,49 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
   openrouter: {
     id: 'openrouter',
     label: 'OpenRouter (cloud)',
-    baseUrl: 'https://openrouter.ai/api/v1',
+    baseUrl: '/api/llm/openrouter',
     defaultModel: 'nvidia/nemotron-3-super-120b-a12b:free',
-    envKey: 'VITE_OPENROUTER_API_KEY',
     supportsJsonFormat: false,
     cloud: true,
   },
   groq: {
     id: 'groq',
     label: 'Groq (cloud)',
-    baseUrl: 'https://api.groq.com/openai/v1',
+    baseUrl: '/api/llm/groq',
     defaultModel: 'openai/gpt-oss-120b',
-    envKey: 'VITE_GROQ_API_KEY',
     supportsJsonFormat: true,
     cloud: true,
   },
 }
 
-/** API keys come from `.env` (Vite exposes VITE_* vars to the browser bundle). */
-export function envApiKey(id: ProviderId): string {
-  const env = import.meta.env as Record<string, string | undefined>
-  const name = PROVIDERS[id].envKey
-  return (name ? env[name] : undefined)?.trim() ?? ''
+export type CloudProvider = 'groq' | 'openrouter'
+export const CLOUD_PROVIDERS: CloudProvider[] = ['groq', 'openrouter']
+
+/** Which cloud providers have a key on the server. `null` until the status request finishes. */
+let serverProviders: Set<CloudProvider> | null = null
+const listeners = new Set<() => void>()
+
+export function getServerProviders(): Set<CloudProvider> | null {
+  return serverProviders
+}
+export function setServerProviders(p: Set<CloudProvider> | null): void {
+  serverProviders = p
+  listeners.forEach((l) => l())
+}
+export function subscribeServerProviders(l: () => void): () => void {
+  listeners.add(l)
+  return () => void listeners.delete(l)
 }
 
-/** Cloud providers that have an API key in .env. */
-export function configuredCloudProviders(): ProviderId[] {
-  return (['groq', 'openrouter'] as const).filter((id) => envApiKey(id) !== '')
+/** Ask the server which providers it has keys for (the keys themselves are never sent). */
+export async function loadServerProviders(): Promise<Set<CloudProvider>> {
+  try {
+    const res = await fetch('/api/llm/status')
+    const data = (await res.json()) as { providers?: Partial<Record<CloudProvider, boolean>> }
+    setServerProviders(new Set(CLOUD_PROVIDERS.filter((id) => data.providers?.[id])))
+  } catch {
+    setServerProviders(new Set())
+  }
+  return serverProviders ?? new Set()
 }
+

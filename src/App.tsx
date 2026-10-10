@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { Route, Routes } from 'react-router-dom'
+import { loadServerProviders } from '@/lib/llm'
 import { Layout } from '@/components/Layout'
 import { CoverLetterPage } from '@/features/cover/CoverLetterPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
@@ -10,6 +12,9 @@ import { EmptyState } from '@/components/ui'
 import { Link } from 'react-router-dom'
 
 export function App() {
+  useEffect(() => {
+    void loadServerProviders()
+  }, [])
   return (
     <>
       {/* <OnboardingModal /> is intentionally not mounted: hosted users share the owner's API key. */}

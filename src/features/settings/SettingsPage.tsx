@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
 import { ErrorBanner, Modal, Spinner } from '@/components/ui'
 import { OnboardingSteps } from '@/features/onboarding/OnboardingSteps'
-import { configuredCloudProviders, createLlm, envApiKey, PROVIDERS } from '@/lib/llm'
+import { useSyncExternalStore } from 'react'
+import { createLlm, getServerProviders, PROVIDERS, subscribeServerProviders } from '@/lib/llm'
 import type { ProviderId } from '@/lib/llm'
 import type { ProviderChoice } from '@/lib/llm/providers'
 import type { ConnectionStatus } from '@/lib/llm'
@@ -16,7 +17,8 @@ import type { ThemePref } from '@/store/settings'
 export function SettingsPage() {
   const { provider, ollamaUrl, models, theme, update, setProvider, setModel } = useSettings()
   const shown: ProviderId[] = provider === 'auto' ? ['groq', 'openrouter'] : [provider]
-  const configured = configuredCloudProviders()
+  const server = useSyncExternalStore(subscribeServerProviders, getServerProviders)
+  const keyState = (id: ProviderId) => (server === null ? 'checking…' : server.has(id as 'groq' | 'openrouter') ? 'available on server ✓' : 'not configured on server')
   const [status, setStatus] = useState<ConnectionStatus | null>(null)
   const [testing, setTesting] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
@@ -84,7 +86,7 @@ export function SettingsPage() {
             <div key={id}>
               <label htmlFor={`model-${id}`} className="label">
                 {PROVIDERS[id].label.replace(/ \(.*\)/, '')} model
-                {PROVIDERS[id].envKey && <span className="font-normal"> · key {envApiKey(id) ? 'found in .env ✓' : 'missing'}</span>}
+                {PROVIDERS[id].cloud && <span className="font-normal"> · {keyState(id)}</span>}
               </label>
               <input id={`model-${id}`} className="input" value={models[id]} onChange={(e) => setModel(id, e.target.value)} placeholder={PROVIDERS[id].defaultModel} />
             </div>
@@ -103,14 +105,10 @@ export function SettingsPage() {
             <p>
               <strong>Cloud models.</strong> Your resume text and job descriptions are sent to {provider === 'auto' ? 'Groq / OpenRouter' : PROVIDERS[provider].label.replace(/ \(.*\)/, '')} to generate answers.
             </p>
-            {configured.length === 0 && (
-              <p className="mt-1">
-                No API key found. Copy <code>.env.example</code> to <code>.env</code>, add a free key from{' '}
-                <a className="underline" href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">Groq</a> or{' '}
-                <a className="underline" href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer">OpenRouter</a>, then restart <code>npm run dev</code>.
-              </p>
+            {server !== null && server.size === 0 && (
+              <p className="mt-1">No AI provider is configured on this server. The site owner needs to set <code>GROQ_API_KEY</code> and/or <code>OPENROUTER_API_KEY</code> in the server environment.</p>
             )}
-            <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">Keys in .env are bundled into the page, so use this only on your own computer and never deploy a build that contains a key.</p>
+            <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">API keys stay on the server and are never sent to your browser.</p>
           </div>
         )}
         <div className="flex flex-wrap items-center gap-3">
@@ -133,12 +131,14 @@ export function SettingsPage() {
             {status.models.length > 0 && <p className="mt-1 text-xs">Installed: {status.models.join(', ')}</p>}
           </div>
         )}
-        <details>
-          <summary className="cursor-pointer text-sm font-medium">Setup instructions</summary>
-          <div className="mt-3">
-            <OnboardingSteps />
-          </div>
-        </details>
+        {provider === 'ollama' && (
+          <details>
+            <summary className="cursor-pointer text-sm font-medium">Ollama setup instructions</summary>
+            <div className="mt-3">
+              <OnboardingSteps />
+            </div>
+          </details>
+        )}
       </section>
 
       <section className="card space-y-3" aria-labelledby="s-theme">

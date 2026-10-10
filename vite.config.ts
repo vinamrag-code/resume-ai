@@ -1,16 +1,37 @@
 import { fileURLToPath, URL } from 'node:url'
 import react from '@vitejs/plugin-react'
+import type { Plugin } from 'vite'
+import { loadEnv } from 'vite'
 import { defineConfig } from 'vitest/config'
+import { loadConfig } from './server/config'
+import { createLlmHandler } from './server/proxy'
 
-export default defineConfig({
-  plugins: [react()],
-  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
-  build: { chunkSizeWarningLimit: 1500 },
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: ['./src/test/setup.ts'],
-    css: false,
-    testTimeout: 30000,
-  },
+/** In development the same proxy handler used in production is mounted on the Vite server. */
+function llmProxy(env: Record<string, string>): Plugin {
+  return {
+    name: 'resume-ai-llm-proxy',
+    configureServer(server) {
+      const handle = createLlmHandler(loadConfig(env))
+      server.middlewares.use((req, res, next) => {
+        handle(req, res).then((handled) => (handled ? undefined : next()), next)
+      })
+    },
+  }
+}
+
+export default defineConfig(({ mode }) => {
+  // Load ALL variables (not just VITE_*) for the server-side proxy only; they are never exposed to the client bundle.
+  const env = loadEnv(mode, process.cwd(), '')
+  return {
+    plugins: [react(), llmProxy(env)],
+    resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+    build: { chunkSizeWarningLimit: 1500 },
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      setupFiles: ['./src/test/setup.ts'],
+      css: false,
+      testTimeout: 30000,
+    },
+  }
 })

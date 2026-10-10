@@ -3,7 +3,7 @@
 A free, open-source, **local-first** AI resume builder. Import a resume, analyse it against a job with a transparent ATS score, tailor it with reviewable diffs, chat with a resume counselor, write cover letters, and track applications. No backend, no accounts, no telemetry.
 
 - Your data lives in your browser (`localStorage`).
-- AI answers come from Groq (primary) and OpenRouter (fallback + fact-checker) using your own free API keys from `.env`, called straight from the browser. Local [Ollama](https://ollama.com) is an optional advanced mode.
+- AI answers come from Groq (primary) and OpenRouter (fallback + fact-checker) through a small server-side proxy that holds your API keys. Local [Ollama](https://ollama.com) is an optional advanced mode.
 - Semantic matching runs in the browser with `@huggingface/transformers` (`Xenova/all-MiniLM-L6-v2`, ~25 MB, downloaded once).
 - Network calls go only to the AI provider(s) you configured and the one-time embedding-model download. With Ollama selected, nothing but that download leaves your computer.
 
@@ -19,7 +19,7 @@ Requires Node 20+.
 
 ### 1. Get free API keys
 
-Resume AI uses hosted models through your own free API keys, so there is nothing heavy to install:
+Resume AI uses hosted models through the keys you configure **on the server**:
 
 - **Groq** (fast, answers first): <https://console.groq.com/keys>
 - **OpenRouter** (fallback and independent fact-checker): <https://openrouter.ai/keys>
@@ -33,11 +33,11 @@ copy .env.example .env      # PowerShell (macOS/Linux: cp .env.example .env)
 ```
 
 ```
-VITE_GROQ_API_KEY=your-key
-VITE_OPENROUTER_API_KEY=your-key
+GROQ_API_KEY=your-key
+OPENROUTER_API_KEY=your-key
 ```
 
-`.env` is git-ignored. `VITE_*` values are bundled into the page, so use this only on your own computer and **never deploy a build that contains a real key**.
+`.env` is git-ignored. The keys are read only by the server-side proxy (below) and are **never bundled into the browser build or sent to visitors**.
 
 ### 3. Run
 
@@ -46,14 +46,34 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:5173>, go to **Settings** and press **Test connection**.
+Open <http://localhost:5173>, go to **Profile -> Settings** and press **Test connection**. In development the proxy runs inside the Vite dev server, using the same code as production.
+
+### The AI proxy (hosting for other people)
+
+Visitors never see your keys. The browser calls `/api/llm/...` on your own server, and `server/` adds the key and forwards the request:
+
+- `GET /api/llm/status` tells the app which providers are configured (never the keys).
+- `POST /api/llm/{groq|openrouter}/chat/completions` is a validated, streaming passthrough.
+- **Protections:** a model allowlist (visitors cannot pick other or paid models), message-count / prompt-size / output-token caps, only known fields forwarded (no tools), same-origin only, and per-visitor rate limits (default 20/minute and 300/day, configurable; set `TRUST_PROXY=1` behind a platform proxy so limits are per visitor).
+- Limits are per server process (in memory), so run a single instance, or add a shared store such as Redis if you scale out.
+
+To host (one Node service serves the app and the proxy):
+
+```
+npm ci
+npm run build          # client -> dist/
+npm run build:server   # proxy + static server -> server-dist/index.mjs
+npm start              # reads PORT, GROQ_API_KEY, OPENROUTER_API_KEY, ...
+```
+
+`render.yaml` is included for [Render](https://render.com): set `GROQ_API_KEY` and `OPENROUTER_API_KEY` in the dashboard. All server variables are listed in `.env.example`. Anyone who can open your site can use your quota within these limits, so keep the limits modest and set spending caps on your provider accounts.
 
 ### How models are chosen (Auto mode, the default)
 
 - **Primary:** Groq (`openai/gpt-oss-120b`), the fastest. If it fails or is rate-limited, OpenRouter takes over automatically.
 - **Checker:** the AI fact-check of suggested edits goes to OpenRouter first, so a second, independent model reviews them (falling back to Groq).
-- Providers without a key are skipped; with one key it is used for everything. You can force a single provider and change model names in Settings.
-- Resume text and job descriptions are sent to these providers. For fully local AI, see below.
+- Providers without a key on the server are skipped; with one key it is used for everything.
+- Resume text and job descriptions are sent through your server to these providers. For fully local AI, see below.
 
 ### Optional, advanced: local AI with Ollama
 
@@ -66,7 +86,7 @@ npm test           # Vitest unit + component tests
 npm run typecheck  # tsc --noEmit (strict)
 npm run lint       # ESLint
 npm run build      # typecheck + production build into dist/
-npm run preview    # serve the production build
+npm run build:server && npm start   # production server (static app + AI proxy)
 ```
 
 ## How AI result quality is protected
@@ -92,6 +112,7 @@ npm run preview    # serve the production build
 ## Project structure
 
 ```
+server/            AI proxy + static server (config, rate limit, proxy, tests)
 src/
   components/      Layout, shared UI primitives
   features/

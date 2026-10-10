@@ -3,10 +3,11 @@ import { FallbackClient } from './fallback'
 import { LlmError } from './types'
 import type { LlmClient } from './types'
 import { defaultModels } from '@/store/settings'
-import { createLlm } from './index'
+import { createLlm, setServerProviders } from './index'
 import { OpenAiCompatibleClient } from './openai'
 
 const cfg = { baseUrl: 'https://api.example.com/v1/', model: 'm1', apiKey: 'sk-test', label: 'Example', supportsJsonFormat: true }
+const proxyCfg = { baseUrl: '/api/llm/groq', model: 'm1', label: 'Groq', supportsJsonFormat: true }
 const msgs = [{ role: 'user' as const, content: 'hi' }]
 
 afterEach(() => vi.unstubAllGlobals())
@@ -43,14 +44,22 @@ describe('OpenAiCompatibleClient', () => {
   })
 
   it('maps missing key, 401, 429 and network failure to friendly errors', async () => {
-    await expect(new OpenAiCompatibleClient({ ...cfg, apiKey: '' }).chat(msgs)).rejects.toMatchObject({ kind: 'auth', message: expect.stringContaining('.env') })
-    for (const [status, kind] of [[401, 'auth'], [429, 'rate-limit'], [404, 'model-missing']] as const) {
+    for (const [status, kind] of [[401, 'auth'], [503, 'auth'], [429, 'rate-limit'], [404, 'model-missing']] as const) {
       vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => new Response('x', { status })))
       await expect(new OpenAiCompatibleClient(cfg).chat(msgs)).rejects.toMatchObject({ kind })
     }
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
     await expect(new OpenAiCompatibleClient(cfg).chat(msgs)).rejects.toMatchObject({ kind: 'unreachable' })
     expect((await new OpenAiCompatibleClient(cfg).testConnection()).ok).toBe(false)
+  })
+
+  it('proxy mode sends no Authorization header (the server adds the key)', async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ choices: [{ message: { content: 'hi' } }] })))
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await new OpenAiCompatibleClient(proxyCfg).chat(msgs)).toBe('hi')
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('/api/llm/groq/chat/completions')
+    expect(init.headers as Record<string, string>).not.toHaveProperty('Authorization')
   })
 
   it('createLlm picks the client for the provider', () => {
@@ -91,7 +100,7 @@ describe('FallbackClient', () => {
     expect(b.used).toBe(0)
   })
   it('gives a helpful error when no provider is configured', async () => {
-    await expect(new FallbackClient([]).chat(msgs)).rejects.toMatchObject({ kind: 'auth', message: expect.stringContaining('.env') })
+    await expect(new FallbackClient([]).chat(msgs)).rejects.toMatchObject({ kind: 'auth', message: expect.stringContaining('GROQ_API_KEY') })
     expect((await new FallbackClient([]).testConnection()).ok).toBe(false)
   })
   it('does not switch providers once text was streamed', async () => {
@@ -103,27 +112,34 @@ describe('FallbackClient', () => {
 })
 
 describe('Auto mode ordering', () => {
-  afterEach(() => vi.unstubAllEnvs())
+  afterEach(() => setServerProviders(null))
   const settings = { provider: 'auto' as const, ollamaUrl: '', models: defaultModels() }
-  const urls = async (role: 'primary' | 'checker') => {
+  const ok = () => new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }))
+  const firstUrl = async (role: 'primary' | 'checker') => {
     const seen: string[] = []
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u: string) => { seen.push(u); return new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] })) }))
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u: string) => { seen.push(u); return ok() }))
     await createLlm(settings, role).chat(msgs)
     return seen[0]
   }
   it('primary is Groq; the checker is OpenRouter (an independent model)', async () => {
-    vi.stubEnv('VITE_GROQ_API_KEY', 'g'); vi.stubEnv('VITE_OPENROUTER_API_KEY', 'o')
-    expect(await urls('primary')).toContain('groq.com')
-    expect(await urls('checker')).toContain('openrouter.ai')
+    setServerProviders(new Set(['groq', 'openrouter']))
+    expect(await firstUrl('primary')).toContain('/api/llm/groq')
+    expect(await firstUrl('checker')).toContain('/api/llm/openrouter')
   })
-  it('uses whichever single key exists for every role', async () => {
-    vi.stubEnv('VITE_GROQ_API_KEY', ''); vi.stubEnv('VITE_OPENROUTER_API_KEY', 'o')
-    expect(await urls('primary')).toContain('openrouter.ai')
-    expect(await urls('checker')).toContain('openrouter.ai')
+  it('uses whichever single provider the server has for every role', async () => {
+    setServerProviders(new Set(['openrouter']))
+    expect(await firstUrl('primary')).toContain('/api/llm/openrouter')
+    expect(await firstUrl('checker')).toContain('/api/llm/openrouter')
+  })
+  it('before the status is known, tries Groq first and falls through on 503', async () => {
+    const seen: string[] = []
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u: string) => { seen.push(u); return u.includes('groq') ? new Response('x', { status: 503 }) : ok() }))
+    expect(await createLlm(settings).chat(msgs)).toBe('ok')
+    expect(seen.map((u) => u.split('/')[3])).toEqual(['groq', 'openrouter'])
   })
   it('falls back to OpenRouter when Groq is rate limited', async () => {
-    vi.stubEnv('VITE_GROQ_API_KEY', 'g'); vi.stubEnv('VITE_OPENROUTER_API_KEY', 'o')
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u: string) => u.includes('groq') ? new Response('x', { status: 429 }) : new Response(JSON.stringify({ choices: [{ message: { content: 'from-openrouter' } }] }))))
+    setServerProviders(new Set(['groq', 'openrouter']))
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u: string) => (u.includes('groq') ? new Response('x', { status: 429 }) : new Response(JSON.stringify({ choices: [{ message: { content: 'from-openrouter' } }] })))))
     expect(await createLlm(settings).chat(msgs)).toBe('from-openrouter')
   })
 })

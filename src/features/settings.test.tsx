@@ -2,6 +2,7 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '@/App'
+import { setServerProviders } from '@/lib/llm'
 import { useResumes } from '@/store/resumes'
 import { useSettings } from '@/store/settings'
 import { sampleContent } from '@/test/fixtures'
@@ -65,16 +66,26 @@ describe('onboarding', () => {
 })
 
 describe('provider choice', () => {
-  it('defaults to Auto with both cloud models, a privacy notice and missing-key help', async () => {
-    vi.stubEnv('VITE_GROQ_API_KEY', '')
-    vi.stubEnv('VITE_OPENROUTER_API_KEY', '')
+  afterEach(() => setServerProviders(null))
+
+  it('defaults to Auto with both cloud models, a privacy notice, and shows server availability', async () => {
+    setServerProviders(new Set(['groq']))
     useSettings.setState({ provider: 'auto' })
     renderAt(<SettingsPage />)
     expect(screen.getByLabelText('Provider')).toHaveValue('auto')
     expect(screen.getByLabelText(/groq model/i)).toHaveValue('openai/gpt-oss-120b')
     expect(screen.getByLabelText(/openrouter model/i)).toHaveValue('nvidia/nemotron-3-super-120b-a12b:free')
+    expect(screen.getByText(/Groq model/)).toHaveTextContent('available on server ✓')
+    expect(screen.getByText(/OpenRouter model/)).toHaveTextContent('not configured on server')
     expect(screen.getByRole('note')).toHaveTextContent(/sent to Groq \/ OpenRouter/)
-    expect(screen.getByRole('note')).toHaveTextContent(/No API key found/)
+    expect(screen.getByRole('note')).toHaveTextContent(/never sent to your browser/)
+  })
+
+  it('tells visitors when the server has no provider configured', () => {
+    setServerProviders(new Set())
+    useSettings.setState({ provider: 'auto' })
+    renderAt(<SettingsPage />)
+    expect(screen.getByRole('note')).toHaveTextContent('GROQ_API_KEY')
   })
 
   it('shows only the chosen provider, and Ollama as an advanced option', async () => {
@@ -84,5 +95,6 @@ describe('provider choice', () => {
     expect(screen.getByLabelText(/ollama base url/i)).toBeInTheDocument()
     expect(screen.queryByLabelText(/groq model/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('note')).not.toBeInTheDocument()
+    expect(screen.getByText('Ollama setup instructions')).toBeInTheDocument()
   })
 })
