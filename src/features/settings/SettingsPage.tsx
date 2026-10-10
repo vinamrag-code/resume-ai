@@ -139,9 +139,6 @@ export function SettingsPage() {
             <OnboardingSteps />
           </div>
         </details>
-        <button type="button" className="btn-ghost btn-sm" onClick={() => update({ onboarded: false })}>
-          Show welcome guide again
-        </button>
       </section>
 
       <section className="card space-y-3" aria-labelledby="s-theme">

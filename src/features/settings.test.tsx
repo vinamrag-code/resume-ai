@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '@/App'
@@ -53,19 +53,14 @@ describe('settings', () => {
 })
 
 describe('onboarding', () => {
-  it('shows on first run with Ollama setup steps and can be dismissed', async () => {
+  it('does not show the API-key modal on first run (hosted users share the owner key)', () => {
     useSettings.setState({ onboarded: false })
     render(
       <MemoryRouter>
         <App />
       </MemoryRouter>,
     )
-    const dialog = await screen.findByRole('dialog', { name: /welcome/i })
-    expect(dialog).toHaveTextContent('VITE_GROQ_API_KEY')
-    expect(dialog).toHaveTextContent(/optional, advanced/i)
-    await userEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-    expect(useSettings.getState().onboarded).toBe(true)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
 

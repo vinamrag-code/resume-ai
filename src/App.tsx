@@ -3,7 +3,6 @@ import { Layout } from '@/components/Layout'
 import { CoverLetterPage } from '@/features/cover/CoverLetterPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { ImportPage } from '@/features/import/ImportPage'
-import { OnboardingModal } from '@/features/onboarding/OnboardingModal'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { TrackerPage } from '@/features/tracker/TrackerPage'
 import { WorkspacePage } from '@/features/workspace/WorkspacePage'
@@ -13,6 +12,7 @@ import { Link } from 'react-router-dom'
 export function App() {
   return (
     <>
+      {/* <OnboardingModal /> is intentionally not mounted: hosted users share the owner's API key. */}
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<DashboardPage />} />
@@ -31,7 +31,6 @@ export function App() {
           />
         </Route>
       </Routes>
-      <OnboardingModal />
     </>
   )
 }
