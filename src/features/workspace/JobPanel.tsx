@@ -1,6 +1,6 @@
+import { useState } from 'react'
 import { AtsPanel } from '@/features/ats/AtsPanel'
 import type { ResumeScore } from '@/features/ats/useResumeScore'
-import { ChatPanel } from '@/features/chat/ChatPanel'
 import { TailorPanel } from '@/features/tailor/TailorPanel'
 import type { Resume } from '@/types/resume'
 import { TargetJobForm } from './TargetJobForm'
@@ -8,12 +8,12 @@ import { TargetJobForm } from './TargetJobForm'
 export const JOB_TABS = [
   { id: 'ats', label: 'ATS analysis' },
   { id: 'tailor', label: 'Tailor' },
-  { id: 'agent', label: 'Agent' },
 ] as const
 export type JobTabId = (typeof JOB_TABS)[number]['id']
 
-/** One "Target job" tab: the job details are entered once, and ATS analysis, Tailor and Agent all use them. */
-export function JobPanel({ resume, scoring, tab, onTabChange: setTab }: { resume: Resume; scoring: ResumeScore; tab: JobTabId; onTabChange: (t: JobTabId) => void }) {
+/** The "Target job" tab: job details are entered once and used by ATS analysis and Tailor (and by the Agent tab). */
+export function JobPanel({ resume, scoring }: { resume: Resume; scoring: ResumeScore }) {
+  const [tab, setTab] = useState<JobTabId>('ats')
   return (
     <div className="space-y-4">
       <TargetJobForm resume={resume} />
@@ -32,7 +32,6 @@ export function JobPanel({ resume, scoring, tab, onTabChange: setTab }: { resume
       </nav>
       {tab === 'ats' && <AtsPanel resume={resume} scoring={scoring} />}
       {tab === 'tailor' && <TailorPanel resume={resume} similarity={scoring.similarity} />}
-      {tab === 'agent' && <ChatPanel resume={resume} />}
     </div>
   )
 }

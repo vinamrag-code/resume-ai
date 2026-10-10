@@ -187,7 +187,7 @@ describe('ATS panel', () => {
 })
 
 describe('target job tab', () => {
-  it('groups ATS analysis, Tailor and Agent under one Target job tab with a single job form', async () => {
+  it('groups ATS analysis and Tailor under one Target job tab with a single job form', async () => {
     const r = seedResume()
     renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
     expect(screen.queryByRole('button', { name: 'Tailor' })).not.toBeInTheDocument()
@@ -196,7 +196,7 @@ describe('target job tab', () => {
     expect(screen.queryByText(/ATS score/)).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Target job' }))
     expect(screen.getAllByLabelText('Job description')).toHaveLength(1)
-    for (const name of ['Tailor', 'Agent', 'ATS analysis']) {
+    for (const name of ['Tailor', 'ATS analysis']) {
       await userEvent.click(screen.getByRole('button', { name }))
       expect(screen.getAllByLabelText('Job description')).toHaveLength(1)
     }
@@ -215,7 +215,14 @@ describe('Edit with AI', () => {
     await userEvent.click(edit)
     expect(screen.getByRole('region', { name: 'Resume agent chat' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Agent' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('button', { name: 'Target job' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Target job' })).not.toHaveAttribute('aria-current')
+  })
+
+  it('has Agent as its own tab in the same row as Edit, Design and Target job', () => {
+    const r = seedResume()
+    renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
+    const row = screen.getByRole('navigation', { name: 'Resume tools' })
+    expect([...row.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Edit', 'Design', 'Target job', 'Agent'])
   })
 })
 

@@ -127,7 +127,7 @@ export function ChatPanel({ resume }: { resume: Resume }) {
             <div className="space-y-2 text-sm">
               <p>
                 I&apos;m your resume counselor. Tell me which section to work on and I&apos;ll ask a couple of questions first, then suggest edits you can apply with one click.
-                {resume.target.description.trim() ? ' I can see your target job.' : ' Add a target job above for sharper advice.'}
+                {resume.target.description.trim() ? ' I can see your target job.' : ' Add a target job in the Target job tab for sharper advice.'}
               </p>
               <div className="flex flex-wrap gap-2">
                 {STARTERS.map((s) => (

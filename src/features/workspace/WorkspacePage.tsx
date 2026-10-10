@@ -8,13 +8,14 @@ import { ResumePreview } from '@/features/templates/ResumePreview'
 import { useResumes } from '@/store/resumes'
 import type { Resume } from '@/types/resume'
 import { ExportBar } from './ExportBar'
+import { ChatPanel } from '@/features/chat/ChatPanel'
 import { JobPanel } from './JobPanel'
-import type { JobTabId } from './JobPanel'
 
 const TABS = [
   { id: 'edit', label: 'Edit' },
   { id: 'design', label: 'Design' },
   { id: 'job', label: 'Target job' },
+  { id: 'agent', label: 'Agent' },
 ] as const
 type TabId = (typeof TABS)[number]['id']
 
@@ -36,10 +37,8 @@ function Workspace({ resume }: { resume: Resume }) {
   const rename = useResumes((s) => s.rename)
   const updateContent = useResumes((s) => s.updateContent)
   const [tab, setTab] = useState<TabId>('edit')
-  const [jobTab, setJobTab] = useState<JobTabId>('ats')
   const editWithAi = () => {
-    setJobTab('agent')
-    setTab('job')
+    setTab('agent')
     document.getElementById('resume-tools')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
   }
 
@@ -80,7 +79,8 @@ function Workspace({ resume }: { resume: Resume }) {
           </nav>
           {tab === 'edit' && <ResumeEditor content={resume.content} onChange={(fn) => updateContent(resume.id, fn)} />}
           {tab === 'design' && <DesignPanel resume={resume} />}
-          {tab === 'job' && <JobPanel resume={resume} scoring={scoring} tab={jobTab} onTabChange={setJobTab} />}
+          {tab === 'job' && <JobPanel resume={resume} scoring={scoring} />}
+          {tab === 'agent' && <ChatPanel resume={resume} />}
         </div>
         <div className="min-w-0 space-y-3">
           <ExportBar resume={resume} onEditWithAi={editWithAi} />
