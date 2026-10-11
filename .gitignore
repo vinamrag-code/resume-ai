@@ -9,3 +9,4 @@ coverage
 server-dist
 data
 *-debug.log
+*.tsbuildinfo
