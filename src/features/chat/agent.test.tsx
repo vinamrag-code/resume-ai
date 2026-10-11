@@ -129,3 +129,71 @@ describe('agent chat: formatting requests', () => {
     expect(useResumes.getState().resumes[0]!.content.contact.phone).toBe('+1 555 0100')
   })
 })
+
+describe('agent memory', () => {
+  const seed = () => useResumes.getState().create('Base', sampleContent())
+  const send = async (text: string) => {
+    await userEvent.type(screen.getByLabelText(/message the resume counselor/i), text)
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }))
+  }
+  const sent = (llm: ReturnType<typeof mockLlm>, call: number) => llm.calls[call]!.filter((m) => m.role !== 'system').map((m) => `${m.role}: ${m.content}`)
+
+  it('sends every earlier prompt and reply with each new message', async () => {
+    const r = seed()
+    const llm = mockLlm(['Which section?', 'Got it, the summary.', 'Done.'])
+    renderAt(<ChatPanel resume={r} />)
+    await send('I want help')
+    await screen.findByText('Which section?')
+    await send('the summary')
+    await screen.findByText('Got it, the summary.')
+    await send('make it shorter')
+    await screen.findByText('Done.')
+    expect(sent(llm, 2)).toEqual(['user: I want help', 'assistant: Which section?', 'user: the summary', 'assistant: Got it, the summary.', 'user: make it shorter'])
+  })
+
+  it('still remembers after a reload (saved history), and stays in the follow-up phase', async () => {
+    const r = seed()
+    mockLlm(['Which section?'])
+    const view = renderAt(<ChatPanel resume={r} />)
+    await send('help me')
+    await screen.findByText('Which section?')
+    view.unmount()
+    const second = mockLlm(['Thanks, noted.'])
+    renderAt(<ChatPanel resume={r} />)
+    await send('the summary please')
+    await screen.findByText('Thanks, noted.')
+    expect(sent(second, 0)).toEqual(['user: help me', 'assistant: Which section?', 'user: the summary please'])
+    expect(second.calls[0]![0]!.content).toMatch(/the user has had a chance to answer/i) // not the first-message phase again
+  })
+
+  it('lets a different model continue the same conversation (model change mid-chat)', async () => {
+    const r = seed()
+    mockLlm(['First model answer.'])
+    renderAt(<ChatPanel resume={r} />)
+    await send('hello agent')
+    await screen.findByText('First model answer.')
+    const other = mockLlm(['Second model answer.']) // e.g. the admin switched the default, or Auto fell back
+    await send('and what about my skills?')
+    await screen.findByText('Second model answer.')
+    expect(sent(other, 0)).toEqual(['user: hello agent', 'assistant: First model answer.', 'user: and what about my skills?'])
+  })
+
+  it('tells the model which suggestions were applied, without replaying raw edit JSON', async () => {
+    const r = seed()
+    const edits = '{"fields":[{"section":"contact","field":"phone","value":"555-0199"}]}'
+    mockLlm([`Updated.<edits>${edits}</edits>`])
+    renderAt(<ChatPanel resume={r} />)
+    await send('change my phone to 555-0199')
+    await userEvent.click(await screen.findByRole('button', { name: 'Apply to resume' }))
+    const next = mockLlm(['Anything else?'])
+    await send('thanks')
+    await screen.findByText('Anything else?')
+    const system = next.calls[0]![0]!.content
+    expect(system).toContain('CONVERSATION MEMORY')
+    expect(system).toMatch(/already applied.*Contact phone/)
+    const history = sent(next, 0).join('\n')
+    expect(history).toContain('Contact phone (APPLIED by the user)')
+    expect(history).not.toContain('<edits>')
+    expect(history).not.toContain('"fields"')
+  })
+})

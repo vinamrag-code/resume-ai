@@ -14,6 +14,7 @@ import type { Resume } from '@/types/resume'
 import { DiffView } from '@/features/tailor/DiffView'
 import { verifyChanges } from '@/features/tailor/verifyChanges'
 import { fallbackText, isPreparingEdits, parseEdits, visibleText } from './chatLogic'
+import { appliedSummary, buildHistory } from './history'
 import { selectTurns, useChats } from '@/store/chats'
 import type { ChatTurn } from '@/types/chat'
 
@@ -97,13 +98,19 @@ export function ChatPanel({ resume }: { resume: Resume }) {
     const history: ChatTurn[] = [...turns, { id: makeId(), role: 'user', content, changes: [] }]
     const phase = turns.some((t) => t.role === 'assistant') ? 'edit' : 'clarify'
     setTurns(resume.id, () => [...history, { id: assistantId, role: 'assistant', content: '', changes: [] }])
-    const messages: ChatMessage[] = [
-      chatSystemPrompt(
-        { resumeJson: resumeForPrompt(resume.content), formatJson: JSON.stringify(currentFormat(resume)), jobTitle: resume.target.title, company: resume.target.company, jobDescription: resume.target.description },
-        phase,
-      ),
-      ...history.map((t) => ({ role: t.role, content: t.content })),
-    ]
+    // The model gets a clean, plain-text copy of the conversation (not provider-specific), so any model can
+    // continue it, including after a fallback or after the admin switches the default model.
+    const memory = buildHistory(history)
+    const applied = appliedSummary(turns)
+    const system = chatSystemPrompt(
+      { resumeJson: resumeForPrompt(resume.content), formatJson: JSON.stringify(currentFormat(resume)), jobTitle: resume.target.title, company: resume.target.company, jobDescription: resume.target.description },
+      phase,
+    )
+    const notes = [
+      memory.truncated ? 'Earlier messages in this conversation were left out to save space; the resume above is always current.' : '',
+      applied ? `Edits the user has already applied in this conversation (do not suggest them again): ${applied}.` : '',
+    ].filter(Boolean)
+    const messages: ChatMessage[] = [notes.length ? { ...system, content: `${system.content}\n\nCONVERSATION MEMORY:\n${notes.join('\n')}` } : system, ...memory.messages]
     abort.current = new AbortController()
     let full = ''
     try {

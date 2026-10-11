@@ -176,6 +176,7 @@ src/
 - **Tailoring** has two modes. "Edit this resume" (default) writes each accepted change into the resume immediately, with per-change Undo. "Save as a new tailored copy" leaves the original untouched and also creates a "Saved" job in the tracker linked to the copy. The ATS score is shown before, now, and projected if everything is accepted.
 - **Clarify-then-edit** in the agent is enforced in code: edit blocks on the first assistant turn are ignored.
 - **Drag and drop** uses native HTML5 events; each card also has a status menu for keyboard use.
+- **Agent memory.** Every request carries the whole conversation (earlier prompts and replies), so the Agent remembers what you said, including after a reload. It is sent as plain text, so a different model can pick it up mid-conversation (an admin switching the default, or Auto falling back to OpenRouter). Raw edit JSON is replaced by a note of what was suggested and which edits you applied, so the model never re-suggests them. Very long chats drop the oldest messages first (about 24,000 characters are sent); the resume itself is always current.
 - **Agent chat history** is saved per resume (up to the newest 60 messages) in the browser, synced to the account like other data, included in backups, and deleted with its resume or with "Clear conversation".
 - Backups replace existing data on import.
 
