@@ -1,7 +1,9 @@
 name: CI
 
 # Each run is titled with its branch and commit message (or PR title), so the list shows what is being processed.
-run-name: ${{ github.event_name == 'pull_request' && format('PR #{0}: {1}', github.event.number, github.event.pull_request.title) || format('{0}: {1}', github.ref_name, github.event.head_commit.message) }}
+# A block scalar, because the expression contains ' #' and ': ', which a plain YAML value would cut off.
+run-name: >-
+  ${{ github.event_name == 'pull_request' && format('PR #{0}: {1}', github.event.number, github.event.pull_request.title) || format('{0}: {1}', github.ref_name, github.event.head_commit.message) }}
 
 # Runs on every push to dev/main and on every pull request into them.
 on:
