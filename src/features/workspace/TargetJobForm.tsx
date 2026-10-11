@@ -47,7 +47,7 @@ export function TargetJobForm({ resume }: { resume: Resume }) {
           </div>
         </div>
         <AreaField label="Job description" rows={6} value={t.description} onChange={(v) => setTarget(resume.id, { description: v })} />
-        <Link to={`/bank?tab=build&from=${resume.id}`} className="inline-block text-xs font-medium text-brand-700 hover:underline dark:text-brand-300">
+        <Link to={`/build?from=${resume.id}`} className="inline-block text-xs font-medium text-brand-700 hover:underline dark:text-brand-300">
           Build a new resume for this job from my experience bank
         </Link>
       </div>

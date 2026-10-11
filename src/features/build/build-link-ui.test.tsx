@@ -11,7 +11,7 @@ import { useResumes } from '@/store/resumes'
 import { sampleContent } from '@/test/fixtures'
 import { mockLlm, renderAt } from '@/test/helpers'
 import type { ResumeContent } from '@/types/resume'
-import { BankList } from './BankList'
+import { BankList } from '@/features/bank/BankList'
 import { BuildPanel } from './BuildPanel'
 
 const embedder: Embedder = { embed: async (texts) => texts.map((t) => (/cook|kitchen|bistro/i.test(t) ? [0.01, 0.01, 1] : /react|frontend|web/i.test(t) ? [1, 0.01, 0.01] : [0.01, 1, 0.01])) }

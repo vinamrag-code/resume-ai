@@ -119,7 +119,12 @@ export function BuildPanel({ embedderFactory = createTransformersEmbedder, initi
     }
   }
 
-  if (!items.length) return <p className="text-sm text-ink-500">Add some experience first (the “My experience” tab), then come back to build a resume from it.</p>
+  if (!items.length)
+    return (
+      <p className="text-sm text-ink-500">
+        Your experience bank is empty. <Link to="/bank" className="underline">Add your projects and achievements there</Link> first, then come back to build a resume from them.
+      </p>
+    )
 
   const canFind = job.description.trim().length > 20 && !busy
   return (

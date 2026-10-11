@@ -7,7 +7,7 @@ import type { ThemePref } from '@/store/settings'
 
 /** `match` decides which paths highlight an item (an open resume and the import page belong to "Resumes"). */
 const NAV = [
-  { to: '/', label: 'Resumes', match: (p: string) => p === '/' || p.startsWith('/resume') || p.startsWith('/import') },
+  { to: '/', label: 'Resumes', match: (p: string) => p === '/' || p.startsWith('/resume') || p.startsWith('/import') || p.startsWith('/build') },
   { to: '/bank', label: 'Experience bank', match: (p: string) => p.startsWith('/bank') },
   { to: '/tracker', label: 'Tracker', match: (p: string) => p.startsWith('/tracker') },
   { to: '/cover', label: 'Cover letters', match: (p: string) => p.startsWith('/cover') },

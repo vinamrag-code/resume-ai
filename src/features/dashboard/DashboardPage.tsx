@@ -89,9 +89,12 @@ export function DashboardPage() {
           <h1 className="text-2xl font-semibold">Your resumes</h1>
           <p className="mt-1 text-sm text-ink-500 dark:text-ink-400">Analyse, tailor and export. Everything is saved automatically in this browser.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link to="/import" className="btn-primary">
             Import resume
+          </Link>
+          <Link to="/build" className="btn-secondary">
+            Build from experience bank
           </Link>
           <button type="button" className="btn-secondary" onClick={scratch}>
             New from scratch

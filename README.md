@@ -132,7 +132,7 @@ Content: summary, bullets (replace / add / remove), contact details, job titles,
 
 ## Experience bank (retrieval)
 
-Store each job, project and achievement once (**Experience bank**, or import them from your resumes). For a job, **Build a resume for a job** ranks every stored item against the job description and builds a new resume from the best ones.
+Store each job, project and achievement once on the **Experience bank** page (storage only; or import them from your resumes). Building happens on the **Resumes** page: **Build from experience bank** (also linked from a resume's Target job section) ranks every stored item against the job description and builds a new resume from the best ones.
 
 - **Retrieval, not generation.** The in-browser embedding model (the same MiniLM used for the ATS score, so no AI quota is used) scores each item against each requirement in the job description; keyword coverage is blended in so exact terms like "Kubernetes" still count. If the model can't be downloaded, keywords alone are used and the page says so.
 - **Bullet selection.** Inside each chosen item the most relevant bullets are kept (you choose how many), in their original order.
