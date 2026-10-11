@@ -66,6 +66,7 @@ export function EntryList<T>({
   makeEmpty,
   renderTitle,
   render,
+  extraActions,
 }: {
   title: string
   noun: string
@@ -74,14 +75,19 @@ export function EntryList<T>({
   makeEmpty: () => T
   renderTitle: (item: T, index: number) => string
   render: (item: T, update: (next: T) => void) => ReactNode
+  /** Extra buttons next to "Add ...". */
+  extraActions?: ReactNode
 }) {
   return (
     <Section
       title={title}
       action={
-        <button type="button" className="btn-secondary btn-sm" onClick={() => onChange([...items, makeEmpty()])}>
-          Add {noun}
-        </button>
+        <div className="flex flex-wrap justify-end gap-2">
+          {extraActions}
+          <button type="button" className="btn-secondary btn-sm" onClick={() => onChange([...items, makeEmpty()])}>
+            Add {noun}
+          </button>
+        </div>
       }
     >
       {items.length === 0 && <p className="text-sm text-ink-500 dark:text-ink-400">No {title.toLowerCase()} yet.</p>}

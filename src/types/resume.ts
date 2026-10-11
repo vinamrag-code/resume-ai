@@ -11,6 +11,8 @@ export const ExperienceSchema = z.object({
   start: str,
   end: str,
   bullets: z.array(str),
+  /** The experience-bank item this entry came from (keeps the two linked). */
+  bankId: str.optional(),
 })
 export const EducationSchema = z.object({
   id: str,
@@ -26,6 +28,7 @@ export const ProjectSchema = z.object({
   name: str,
   link: str,
   bullets: z.array(str),
+  bankId: str.optional(),
 })
 export const CertificationSchema = z.object({ id: str, name: str, issuer: str, date: str })
 

@@ -1,8 +1,8 @@
 import { extractKeywords, matchKeywords } from '@/lib/ats/keywords'
-import { makeId } from '@/lib/id'
+import { entryFromItem } from './link'
 import { emptyContent } from '@/lib/resume'
 import type { BankItem } from '@/types/bank'
-import type { ResumeContent } from '@/types/resume'
+import type { Experience, Project, ResumeContent } from '@/types/resume'
 import type { BankDraft } from '@/store/bank'
 
 export interface Pick {
@@ -44,14 +44,14 @@ export function assembleContent(base: ResumeContent | undefined, picks: Pick[], 
 
   const experience = [...work]
     .sort((a, b) => dateValue(b.item.end || b.item.start) - dateValue(a.item.end || a.item.start) || dateValue(b.item.start) - dateValue(a.item.start))
-    .map((p) => ({ id: makeId(), company: p.item.org, title: p.item.title, location: p.item.location, start: p.item.start, end: p.item.end, bullets: [...p.bullets] }))
-  const projectEntries = projects.map((p) => ({ id: makeId(), name: p.item.title, link: p.item.link, bullets: [...p.bullets] }))
+    .map((p) => entryFromItem(p.item, p.bullets).entry as Experience)
+  const projectEntries = projects.map((p) => entryFromItem(p.item, p.bullets).entry as Project)
 
   for (const a of achievements) {
     const key = norm(a.item.org)
     const host = key ? [...experience.filter((e) => norm(e.company) === key), ...projectEntries.filter((e) => norm(e.name) === key)][0] : undefined
     if (host) host.bullets.push(...a.bullets)
-    else projectEntries.push({ id: makeId(), name: a.item.title, link: a.item.link, bullets: [...a.bullets] })
+    else projectEntries.push(entryFromItem(a.item, a.bullets).entry as Project)
   }
   out.experience = experience
   out.projects = projectEntries

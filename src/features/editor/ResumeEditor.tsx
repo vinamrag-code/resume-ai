@@ -1,6 +1,9 @@
 import { useState } from 'react'
+import { BankLinkBar } from '@/features/bank/BankLinkBar'
+import { BankPicker } from '@/features/bank/BankPicker'
 import { makeId } from '@/lib/id'
-import type { ResumeContent } from '@/types/resume'
+import { useBank } from '@/store/bank'
+import type { Experience, Project, ResumeContent } from '@/types/resume'
 import { AreaField, BulletsEditor, EntryList, Section, TextField } from './controls'
 
 interface Props {
@@ -10,6 +13,14 @@ interface Props {
 
 export function ResumeEditor({ content: c, onChange }: Props) {
   const set = <K extends keyof ResumeContent>(key: K, value: ResumeContent[K]) => onChange((d) => ({ ...d, [key]: value }))
+  const [picker, setPicker] = useState<'experience' | 'projects' | null>(null)
+  const hasBank = useBank((s) => s.items.length > 0)
+  const fromBank = (section: 'experience' | 'projects') =>
+    hasBank && (
+      <button type="button" className="btn-secondary btn-sm" onClick={() => setPicker(section)}>
+        Add from experience bank
+      </button>
+    )
   const setContact = (patch: Partial<ResumeContent['contact']>) => onChange((d) => ({ ...d, contact: { ...d.contact, ...patch } }))
 
   return (
@@ -43,6 +54,7 @@ export function ResumeEditor({ content: c, onChange }: Props) {
 
       <EntryList
         title="Experience"
+        extraActions={fromBank('experience')}
         noun="role"
         items={c.experience}
         onChange={(v) => set('experience', v)}
@@ -60,12 +72,14 @@ export function ResumeEditor({ content: c, onChange }: Props) {
               </div>
             </div>
             <BulletsEditor label="Bullet" bullets={e.bullets} onChange={(bullets) => up({ ...e, bullets })} />
+            <BankLinkBar entry={e} onChange={up} />
           </>
         )}
       />
 
       <EntryList
         title="Projects"
+        extraActions={fromBank('projects')}
         noun="project"
         items={c.projects}
         onChange={(v) => set('projects', v)}
@@ -78,6 +92,7 @@ export function ResumeEditor({ content: c, onChange }: Props) {
               <TextField label="Link" value={p.link} onChange={(v) => up({ ...p, link: v })} />
             </div>
             <BulletsEditor label="Bullet" bullets={p.bullets} onChange={(bullets) => up({ ...p, bullets })} />
+            <BankLinkBar entry={p} onChange={up} />
           </>
         )}
       />
@@ -124,6 +139,14 @@ export function ResumeEditor({ content: c, onChange }: Props) {
           </div>
         )}
       />
+      {picker && (
+        <BankPicker
+          section={picker}
+          usedIds={[...c.experience, ...c.projects].flatMap((e) => (e.bankId ? [e.bankId] : []))}
+          onClose={() => setPicker(null)}
+          onAdd={(entry) => onChange((d) => (picker === 'experience' ? { ...d, experience: [...d.experience, entry as Experience] } : { ...d, projects: [...d.projects, entry as Project] }))}
+        />
+      )}
     </div>
   )
 }

@@ -1,10 +1,14 @@
 import { useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ErrorBanner, ProgressBar, TruthfulnessNote } from '@/components/ui'
 import { AreaField, TextField } from '@/features/editor/controls'
 import { JobUrlImport } from '@/features/workspace/JobUrlImport'
+import { SignInNotice } from '@/components/SignInNotice'
+import { useAiAccess } from '@/lib/auth/useAiAccess'
 import { createTransformersEmbedder } from '@/lib/ats/embeddings'
 import type { Embedder, EmbedProgress } from '@/lib/ats/embeddings'
+import { buildWithAi } from '@/lib/bank/aiBuild'
+import type { AiBuildReport } from '@/lib/bank/aiBuild'
 import { assembleContent } from '@/lib/bank/assemble'
 import { pickBullets, rankItems } from '@/lib/bank/retrieve'
 import type { RankedItem } from '@/lib/bank/retrieve'
@@ -35,6 +39,9 @@ export function BuildPanel({ embedderFactory = createTransformersEmbedder, initi
   const [error, setError] = useState<unknown>(null)
   const files = useRef(new Map<string, number>())
   const embedder = useRef<Embedder | undefined>(undefined)
+  const aiAllowed = useAiAccess()
+  const [aiBusy, setAiBusy] = useState(false)
+  const [result, setResult] = useState<{ id: string; name: string; report: AiBuildReport } | null>(null)
 
   const base = resumes.find((r) => r.id === baseId)
   const patchJob = (p: Partial<TargetJob>) => {
@@ -68,17 +75,47 @@ export function BuildPanel({ embedderFactory = createTransformersEmbedder, initi
 
   const chosen = useMemo(() => (ranked ?? []).filter((r) => picked.has(r.item.id)), [ranked, picked])
 
+  const resumeName = () => [job.title, job.company].filter((x) => x.trim()).join(' at ') || 'Resume from my bank'
+  const finish = (content: ReturnType<typeof assembleContent>) => {
+    const r = useResumes.getState().create(resumeName(), content)
+    useResumes.getState().setTarget(r.id, job)
+    return r
+  }
+
+  /** Without AI: the chosen items and their best bullets, word for word. */
   const create = async () => {
     setError(null)
+    setResult(null)
     try {
       const picks = await Promise.all(chosen.map(async (r) => ({ item: r.item, bullets: await pickBullets(r.item, job.description, perItem, keywordOnly ? undefined : embedder.current) })))
-      const content = assembleContent(base?.content, picks, `${job.title}\n${job.description}`)
-      const name = [job.title, job.company].filter((x) => x.trim()).join(' at ') || 'Resume from my bank'
-      const r = useResumes.getState().create(name, content)
-      useResumes.getState().setTarget(r.id, job)
+      const r = finish(assembleContent(base?.content, picks, `${job.title}\n${job.description}`))
       navigate(`/resume/${r.id}`)
     } catch (e) {
       setError(e)
+    }
+  }
+
+  /** With AI: only the chosen items are sent; every rewritten bullet is checked against its source. */
+  const createWithAi = async () => {
+    setError(null)
+    setResult(null)
+    setAiBusy(true)
+    try {
+      const { content, report } = await buildWithAi({
+        base: base?.content,
+        items: chosen.map((r) => r.item),
+        jobTitle: job.title,
+        company: job.company,
+        jobDescription: job.description,
+        perItem,
+        embedder: keywordOnly ? undefined : embedder.current,
+      })
+      const r = finish(content)
+      setResult({ id: r.id, name: r.name, report })
+    } catch (e) {
+      setError(e)
+    } finally {
+      setAiBusy(false)
     }
   }
 
@@ -167,12 +204,35 @@ export function BuildPanel({ embedderFactory = createTransformersEmbedder, initi
               )
             })}
           </ul>
-          <div className="flex items-center gap-3">
-            <button type="button" className="btn-primary" disabled={!chosen.length} onClick={() => void create()}>
+          <SignInNotice feature="AI resume building" />
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" className="btn-primary" disabled={!chosen.length || aiBusy} onClick={() => void create()}>
               Create resume from {chosen.length} item{chosen.length === 1 ? '' : 's'}
             </button>
-            <span className="text-xs text-ink-500">Opens as a new resume. Use Tailor or the Agent afterwards to polish the wording.</span>
+            <button type="button" className="btn-secondary" disabled={!chosen.length || aiBusy || !aiAllowed} onClick={() => void createWithAi()}>
+              {aiBusy ? 'AI is writing...' : 'Ask AI to build it'}
+            </button>
+            <span className="text-xs text-ink-500">Instant: your text as written. AI: rewords the bullets and writes a summary from the same items, never adding facts.</span>
           </div>
+          {result && (
+            <div role="status" className="card space-y-1.5 border-green-300 bg-green-50 text-sm dark:border-green-800 dark:bg-green-900/20">
+              <p className="font-medium">
+                Created “{result.name}”. <Link to={`/resume/${result.id}`} className="underline">Open it</Link>
+              </p>
+              <p className="text-xs">
+                {result.report.reworded} bullet{result.report.reworded === 1 ? '' : 's'} reworded by AI
+                {result.report.keptOriginal > 0 && `, ${result.report.keptOriginal} kept as you wrote them`}
+                {result.report.summary === 'ai' ? '; summary written by AI.' : '; your current summary was kept.'} Review it before you use it.
+              </p>
+              {result.report.notes.length > 0 && (
+                <ul className="list-disc pl-5 text-xs text-ink-600 dark:text-ink-300">
+                  {result.report.notes.map((n, i) => (
+                    <li key={i}>{n}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </section>
       )}
     </div>

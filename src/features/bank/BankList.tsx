@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { EmptyState } from '@/components/ui'
 import { bankDraftsFromResume } from '@/lib/bank/assemble'
+import { linkEntries } from '@/lib/bank/link'
 import { useBank } from '@/store/bank'
 import { useResumes } from '@/store/resumes'
 import { BANK_KINDS, BANK_KIND_LABELS } from '@/types/bank'
@@ -11,6 +13,7 @@ const dates = (i: BankItem) => [i.start, i.end].filter(Boolean).join(' - ')
 
 function Row({ item, onEdit }: { item: BankItem; onEdit: () => void }) {
   const remove = useBank((s) => s.remove)
+  const usedIn = useResumes((s) => s.resumes).filter((r) => [...r.content.experience, ...r.content.projects].some((e) => e.bankId === item.id))
   const [confirming, setConfirming] = useState(false)
   return (
     <li className="card flex flex-col gap-2">
@@ -42,6 +45,19 @@ function Row({ item, onEdit }: { item: BankItem; onEdit: () => void }) {
           <li key={i}>{b}</li>
         ))}
       </ul>
+      {usedIn.length > 0 && (
+        <p className="text-xs text-ink-500">
+          Used in {usedIn.length} resume{usedIn.length === 1 ? '' : 's'}:{' '}
+          {usedIn.map((r, i) => (
+            <span key={r.id}>
+              {i > 0 && ', '}
+              <Link to={`/resume/${r.id}`} className="underline hover:text-ink-800 dark:hover:text-ink-200">
+                {r.name}
+              </Link>
+            </span>
+          ))}
+        </p>
+      )}
       {item.skills.length > 0 && <p className="text-xs text-ink-500">Skills: {item.skills.join(', ')}</p>}
     </li>
   )
@@ -62,6 +78,12 @@ export function BankList() {
       return fresh
     })
     useBank.getState().addMany(drafts)
+    // Tie each resume's entries to the bank items they came from.
+    const all = useBank.getState().items
+    for (const r of resumes) {
+      const { content, linked } = linkEntries(r.content, all)
+      if (linked) useResumes.getState().setContent(r.id, content)
+    }
     setNote(drafts.length ? `Added ${drafts.length} item${drafts.length === 1 ? '' : 's'} from your resumes.` : 'Everything in your resumes is already in the bank.')
   }
 
