@@ -20,7 +20,6 @@ permissions:
 
 jobs:
   checks:
-    name: Lint, types, tests and build (${{ github.head_ref || github.ref_name }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

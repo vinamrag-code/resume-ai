@@ -24,7 +24,6 @@ permissions:
 
 jobs:
   rules:
-    name: Security rules (emulator) (${{ github.head_ref || github.ref_name }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
