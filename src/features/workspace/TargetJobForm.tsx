@@ -22,7 +22,7 @@ export function TargetJobForm({ resume }: { resume: Resume }) {
               ...(!t.title.trim() && job.title ? { title: job.title } : {}),
               ...(!t.company.trim() && job.company ? { company: job.company } : {}),
               ...(job.location ? { location: job.location } : {}),
-              ...(job.workType !== 'unspecified' ? { workType: job.workType } : {}),
+              ...(job.workType && job.workType !== 'unspecified' ? { workType: job.workType } : {}),
             })
           }
         />
