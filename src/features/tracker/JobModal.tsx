@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Modal } from '@/components/ui'
 import { AreaField, TextField } from '@/features/editor/controls'
+import { JobUrlImport } from '@/features/workspace/JobUrlImport'
 import { useCoverLetters } from '@/store/coverLetters'
 import { useJobs } from '@/store/jobs'
 import { useResumes } from '@/store/resumes'
@@ -45,6 +46,13 @@ export function JobModal({ job, onClose }: { job?: Job; onClose: () => void }) {
           if (valid) save()
         }}
       >
+        <JobUrlImport
+          initialUrl={draft.url}
+          existingDescription={draft.description}
+          onImport={(job, url) =>
+            setDraft((d) => ({ ...d, url, description: job.description, title: d.title.trim() ? d.title : job.title, company: d.company.trim() ? d.company : job.company }))
+          }
+        />
         <div className="grid gap-3 sm:grid-cols-2">
           <TextField label="Job title" value={draft.title} onChange={(v) => set('title', v)} />
           <TextField label="Company" value={draft.company} onChange={(v) => set('company', v)} />

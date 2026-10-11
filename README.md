@@ -11,7 +11,7 @@ A free, open-source, **local-first** AI resume builder. Import a resume, analyse
 
 ## Features
 
-Import (PDF / DOCX / paste, LLM → zod-validated structure) · section editor with live preview, autosave and multiple resumes · 3 single-column ATS-safe templates with font and spacing controls · deterministic ATS score · tailoring with per-change Accept/Reject · resume agent chat (edits content and layout) · streamed cover letters (formal / friendly / concise) · Kanban tracker · PDF and DOCX export (links stay clickable) · JSON backup/restore · light/dark theme · first-run onboarding.
+Import (PDF / DOCX / paste, LLM → zod-validated structure) · section editor with live preview, autosave and multiple resumes · 3 single-column ATS-safe templates with font and spacing controls · deterministic ATS score · tailoring with per-change Accept/Reject · resume agent chat (edits content and layout) · streamed cover letters (formal / friendly / concise) · job link import (paste a posting URL, the description is filled in) · Kanban tracker · PDF and DOCX export (links stay clickable) · JSON backup/restore · light/dark theme · first-run onboarding.
 
 ## Setup
 
@@ -182,6 +182,7 @@ src/
 
 ## Known limitations
 
+- Job link import reads the page on the server (public pages only; private/internal addresses are blocked). Sites that need JavaScript or a login, such as LinkedIn and Indeed, can't be read automatically: paste the description instead.
 - Scanned/image-only PDFs are not supported (no OCR); paste the text instead.
 - Quality depends on the local model; small models may produce weak parses or need a retry.
 - In-browser embeddings need a one-time internet connection for the model download; Safari older than 26 may need a non-asyncify ONNX runtime that is not bundled.

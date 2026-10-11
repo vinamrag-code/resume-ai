@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { createAuthHandler } from './auth'
 import type { ServerConfig } from './config'
+import { createJobImportHandler } from './jobImport'
 import { createModelSource } from './modelConfig'
 import { createLlmHandler } from './proxy'
 
@@ -14,11 +15,13 @@ interface Deps {
   modelsFetch?: (url: string) => Promise<Response>
   /** Replaceable in tests: is this user an admin? */
   isAdmin?: (uid: string, token: string) => Promise<boolean>
+  /** Replaceable in tests: download a job page. */
+  fetchPage?: (url: string) => Promise<import('./safeFetch').PageResult>
 }
 
 /** All /api routes (auth config and the AI proxy) as one handler. Returns true when the request was handled. */
 export function createApiHandler(cfg: ServerConfig, deps: Deps = {}): ApiHandler {
-  const handlers = [createAuthHandler(cfg), createLlmHandler(cfg, deps.llmFetch, undefined, undefined, { verifyFetch: deps.verifyFetch, models: createModelSource(cfg, deps.modelsFetch), isAdmin: deps.isAdmin })]
+  const handlers = [createAuthHandler(cfg), createJobImportHandler(cfg, { verifyFetch: deps.verifyFetch, fetchPage: deps.fetchPage }), createLlmHandler(cfg, deps.llmFetch, undefined, undefined, { verifyFetch: deps.verifyFetch, models: createModelSource(cfg, deps.modelsFetch), isAdmin: deps.isAdmin })]
   return async (req, res) => {
     try {
       for (const h of handlers) if (await h(req, res)) return true
