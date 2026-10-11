@@ -3,6 +3,7 @@ import type { Resume } from '@/types/resume'
 import { AreaField, TextField } from '@/features/editor/controls'
 import { WORK_TYPES, WORK_TYPE_LABELS } from '@/types/resume'
 import type { WorkType } from '@/types/resume'
+import { Link } from 'react-router-dom'
 import { JobUrlImport } from './JobUrlImport'
 
 /** Job context shared by ATS analysis, tailoring and the resume agent. */
@@ -46,6 +47,9 @@ export function TargetJobForm({ resume }: { resume: Resume }) {
           </div>
         </div>
         <AreaField label="Job description" rows={6} value={t.description} onChange={(v) => setTarget(resume.id, { description: v })} />
+        <Link to={`/bank?tab=build&from=${resume.id}`} className="inline-block text-xs font-medium text-brand-700 hover:underline dark:text-brand-300">
+          Build a new resume for this job from my experience bank
+        </Link>
       </div>
     </details>
   )

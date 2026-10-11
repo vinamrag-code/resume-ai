@@ -1,3 +1,5 @@
+import { BankItemSchema } from '@/types/bank'
+import type { BankItem } from '@/types/bank'
 import { ChatSchema } from '@/types/chat'
 import type { Chat } from '@/types/chat'
 import { CoverLetterSchema, JobSchema } from '@/types/job'
@@ -5,8 +7,8 @@ import type { CoverLetter, Job } from '@/types/job'
 import { ResumeSchema } from '@/types/resume'
 import type { Resume } from '@/types/resume'
 
-export type Kind = 'resume' | 'job' | 'letter' | 'chat'
-export type LocalItem = Resume | Job | CoverLetter | Chat
+export type Kind = 'resume' | 'job' | 'letter' | 'chat' | 'bank'
+export type LocalItem = Resume | Job | CoverLetter | Chat | BankItem
 
 /** What is stored in Firestore for one item (users/{uid}/items/{id}). */
 export interface RemoteItem {
@@ -24,6 +26,7 @@ export interface LocalDoc {
   jobs: Job[]
   letters: CoverLetter[]
   chats: Chat[]
+  bank: BankItem[]
 }
 
 export const stampOf = (i: { createdAt: number; updatedAt?: number }): number => i.updatedAt ?? i.createdAt
@@ -37,7 +40,7 @@ export const tombstone = (id: string, kind: Kind, at: number): RemoteItem => ({ 
 export function fromRemote(r: RemoteItem): LocalItem | null {
   try {
     const raw: unknown = JSON.parse(r.json)
-    const schema = r.kind === 'resume' ? ResumeSchema : r.kind === 'job' ? JobSchema : r.kind === 'letter' ? CoverLetterSchema : ChatSchema
+    const schema = r.kind === 'resume' ? ResumeSchema : r.kind === 'job' ? JobSchema : r.kind === 'letter' ? CoverLetterSchema : r.kind === 'bank' ? BankItemSchema : ChatSchema
     const parsed = schema.safeParse(raw)
     return parsed.success && parsed.data.id === r.id ? (parsed.data as LocalItem) : null
   } catch {
@@ -50,6 +53,7 @@ const entries = (d: LocalDoc): { kind: Kind; item: LocalItem }[] => [
   ...d.jobs.map((item) => ({ kind: 'job' as const, item })),
   ...d.letters.map((item) => ({ kind: 'letter' as const, item })),
   ...d.chats.map((item) => ({ kind: 'chat' as const, item })),
+  ...d.bank.map((item) => ({ kind: 'bank' as const, item })),
 ]
 
 export interface Plan {
@@ -117,5 +121,5 @@ export function applyLocal(local: LocalDoc, plan: Plan): LocalDoc {
     return [...kept, ...added]
   }
   const byNewest = <T extends { createdAt: number }>(xs: T[]) => [...xs].sort((a, b) => b.createdAt - a.createdAt)
-  return { resumes: byNewest(merge(local.resumes, 'resume')), jobs: merge(local.jobs, 'job'), letters: byNewest(merge(local.letters, 'letter')), chats: byNewest(merge(local.chats, 'chat')) }
+  return { resumes: byNewest(merge(local.resumes, 'resume')), jobs: merge(local.jobs, 'job'), letters: byNewest(merge(local.letters, 'letter')), chats: byNewest(merge(local.chats, 'chat')), bank: byNewest(merge(local.bank, 'bank')) }
 }

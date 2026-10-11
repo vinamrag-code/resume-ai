@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth/store'
 import { loadServerProviders } from '@/lib/llm'
 import { startFirestoreSync } from '@/lib/sync/engine'
 import { Layout } from '@/components/Layout'
+import { BankPage } from '@/features/bank/BankPage'
 import { AuthGate } from '@/features/auth/AuthGate'
 import { CoverLetterPage } from '@/features/cover/CoverLetterPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
@@ -43,6 +44,7 @@ export function App() {
           <Route index element={<DashboardPage />} />
           <Route path="import" element={<ImportPage />} />
           <Route path="resume/:id" element={<WorkspacePage />} />
+          <Route path="bank" element={<BankPage />} />
           <Route path="cover" element={<CoverLetterPage />} />
           <Route path="tracker" element={<TrackerPage />} />
           <Route path="settings" element={<SettingsPage />} />

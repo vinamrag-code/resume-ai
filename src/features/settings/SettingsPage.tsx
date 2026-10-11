@@ -13,6 +13,7 @@ import type { ProviderChoice } from '@/lib/llm/providers'
 import type { ConnectionStatus } from '@/lib/llm'
 import { downloadBlob } from '@/lib/export/download'
 import { createBackup, restoreBackup } from '@/store/backup'
+import { useBank } from '@/store/bank'
 import { useChats } from '@/store/chats'
 import { useCoverLetters } from '@/store/coverLetters'
 import { useJobs } from '@/store/jobs'
@@ -65,8 +66,9 @@ export function SettingsPage() {
     useJobs.setState({ jobs: [] })
     useCoverLetters.setState({ letters: [] })
     useChats.setState({ chats: [] })
+    useBank.setState({ items: [] })
     setConfirmWipe(false)
-    setMessage({ ok: true, text: 'All resumes, jobs and letters were deleted from this browser.' })
+    setMessage({ ok: true, text: 'All resumes, jobs, letters and your experience bank were deleted from this browser.' })
   }
 
   return (

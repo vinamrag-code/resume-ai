@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { newResume } from '@/lib/resume'
+import { useBank } from '@/store/bank'
 import { useChats } from '@/store/chats'
 import { useCoverLetters } from '@/store/coverLetters'
 import { useJobs } from '@/store/jobs'
@@ -13,7 +14,7 @@ import type { LocalDoc, RemoteItem } from './items'
 
 const resume = (name: string, createdAt: number, updatedAt = createdAt) => ({ ...newResume(name, sampleContent()), id: name, createdAt, updatedAt })
 const job = (id: string, createdAt: number, updatedAt?: number): Job => ({ id, title: id, company: 'C', url: '', date: '2026-01-01', status: 'saved', notes: '', description: '', createdAt, updatedAt, order: 0 })
-const doc = (p: Partial<LocalDoc> = {}): LocalDoc => ({ resumes: [], jobs: [], letters: [], chats: [], ...p })
+const doc = (p: Partial<LocalDoc> = {}): LocalDoc => ({ resumes: [], jobs: [], letters: [], chats: [], bank: [], ...p })
 const remoteMap = (...items: RemoteItem[]) => new Map(items.map((i) => [i.id, i]))
 
 describe('planSync', () => {
@@ -93,6 +94,7 @@ const settle = () => new Promise((r) => setTimeout(r, 30))
 describe('sync engine', () => {
   let stop: (() => void) | null = null
   beforeEach(() => {
+    useBank.setState({ items: [] })
     clearLocalData()
     useSyncMeta.setState({ account: null, known: {} })
     useSyncStatus.setState({ state: 'off', lastSynced: null, error: null })
@@ -180,6 +182,26 @@ describe('sync engine', () => {
     useChats.getState().clear('r1')
     await settle()
     expect(cloud.items.get('c-r1')).toMatchObject({ deleted: true })
+  })
+
+  it('syncs the experience bank, restores it on another device and propagates deletions', async () => {
+    const cloud = fakeRemote()
+    const item = useBank.getState().add({ kind: 'project', title: 'Habit tracker', org: '', location: '', start: '', end: '', link: '', bullets: ['Built it'], skills: ['React'] })
+    start(cloud)
+    await settle()
+    const stored = [...cloud.items.values()].filter((i) => i.kind === 'bank')
+    expect(stored).toHaveLength(1)
+    expect(JSON.parse(stored[0]!.json)).toMatchObject({ title: 'Habit tracker', skills: ['React'] })
+    stop!()
+    clearLocalData()
+    expect(useBank.getState().items).toEqual([])
+    useSyncMeta.setState({ account: null, known: {} })
+    start(cloud)
+    await settle()
+    expect(useBank.getState().items[0]).toMatchObject({ id: item.id, title: 'Habit tracker', bullets: ['Built it'] })
+    useBank.getState().remove(item.id)
+    await settle()
+    expect(cloud.items.get(item.id)).toMatchObject({ deleted: true })
   })
 
   it('syncs jobs and letters as well', async () => {

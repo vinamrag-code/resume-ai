@@ -56,7 +56,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('Firestore security rules'
   })
 
   it('accepts all four item kinds and nothing else', async () => {
-    for (const kind of ['resume', 'job', 'letter', 'chat']) await assertSucceeds(path(ada(), 'ada', `k-${kind}`).set(item({ kind })))
+    for (const kind of ['resume', 'job', 'letter', 'chat', 'bank']) await assertSucceeds(path(ada(), 'ada', `k-${kind}`).set(item({ kind })))
     await assertFails(path(ada(), 'ada', 'k-other').set(item({ kind: 'note' })))
   })
 

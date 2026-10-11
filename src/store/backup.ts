@@ -1,7 +1,9 @@
 import { z } from 'zod'
+import { BankItemSchema } from '@/types/bank'
 import { ChatSchema } from '@/types/chat'
 import { CoverLetterSchema, JobSchema } from '@/types/job'
 import { ResumeSchema } from '@/types/resume'
+import { useBank } from './bank'
 import { useChats } from './chats'
 import { useCoverLetters } from './coverLetters'
 import { useJobs } from './jobs'
@@ -23,6 +25,8 @@ export const BackupSchema = z.object({
   letters: z.array(CoverLetterSchema),
   /** Agent conversations (added later, so older backups may not have them). */
   chats: z.array(ChatSchema).default([]),
+  /** Experience bank (added later, so older backups may not have it). */
+  bank: z.array(BankItemSchema).default([]),
 })
 export type Backup = z.infer<typeof BackupSchema>
 
@@ -37,6 +41,7 @@ export function createBackup(): Backup {
     jobs: useJobs.getState().jobs,
     letters: useCoverLetters.getState().letters,
     chats: useChats.getState().chats,
+    bank: useBank.getState().items,
   }
 }
 
@@ -59,6 +64,7 @@ export function restoreBackup(raw: string): ImportResult {
   useJobs.setState({ jobs: b.jobs })
   useCoverLetters.setState({ letters: b.letters })
   useChats.setState({ chats: b.chats })
+  useBank.setState({ items: b.bank })
   useSettings.getState().restore(b.settings)
   return { ok: true, counts: { resumes: b.resumes.length, jobs: b.jobs.length, letters: b.letters.length } }
 }

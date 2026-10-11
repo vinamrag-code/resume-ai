@@ -42,7 +42,7 @@ service cloud.firestore {
         && id.matches('^[A-Za-z0-9_-]{1,64}$')
         && request.resource.data.keys().hasOnly(['kind', 'json', 'updatedAt', 'deleted'])
         && request.resource.data.keys().hasAll(['kind', 'json', 'updatedAt', 'deleted'])
-        && request.resource.data.kind in ['resume', 'job', 'letter', 'chat']
+        && request.resource.data.kind in ['resume', 'job', 'letter', 'chat', 'bank']
         && request.resource.data.json is string
         && request.resource.data.json.size() < 700000
         && request.resource.data.updatedAt is number

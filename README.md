@@ -11,7 +11,7 @@ A free, open-source, **local-first** AI resume builder. Import a resume, analyse
 
 ## Features
 
-Import (PDF / DOCX / paste, LLM → zod-validated structure) · section editor with live preview, autosave and multiple resumes · 3 single-column ATS-safe templates with font and spacing controls · deterministic ATS score · tailoring with per-change Accept/Reject · resume agent chat (edits content and layout) · streamed cover letters (formal / friendly / concise) · job link import (paste a posting URL, the description is filled in) · Kanban tracker · PDF and DOCX export (links stay clickable) · JSON backup/restore · light/dark theme · first-run onboarding.
+Import (PDF / DOCX / paste, LLM → zod-validated structure) · section editor with live preview, autosave and multiple resumes · 3 single-column ATS-safe templates with font and spacing controls · deterministic ATS score · tailoring with per-change Accept/Reject · resume agent chat (edits content and layout) · streamed cover letters (formal / friendly / concise) · job link import (paste a posting URL, the description is filled in) · experience bank (store projects, jobs and achievements once; embeddings pick the best ones for each job and a resume is built from them) · Kanban tracker · PDF and DOCX export (links stay clickable) · JSON backup/restore · light/dark theme · first-run onboarding.
 
 ## Setup
 
@@ -129,6 +129,15 @@ npm run build:server && npm start   # production server (static app + AI proxy)
 ## What the Agent can change
 
 Content: summary, bullets (replace / add / remove), contact details, job titles, companies, dates, schools, degrees, project and certification fields, and skill order. Layout: template, font size, spacing, header alignment and bullet indent. Every suggestion is a diff you apply with one click (and can edit first). The visible reply never contains JSON; if a reply cannot be turned into a change, the Agent says so. Layout and explicit fixes can be applied from your first message; open-ended content rewrites start with clarifying questions. There is no per-line indentation or free positioning, and the Agent says so instead of pretending.
+
+## Experience bank (retrieval)
+
+Store each job, project and achievement once (**Experience bank**, or import them from your resumes). For a job, **Build a resume for a job** ranks every stored item against the job description and builds a new resume from the best ones.
+
+- **Retrieval, not generation.** The in-browser embedding model (the same MiniLM used for the ATS score, so no AI quota is used) scores each item against each requirement in the job description; keyword coverage is blended in so exact terms like "Kubernetes" still count. If the model can't be downloaded, keywords alone are used and the page says so.
+- **Bullet selection.** Inside each chosen item the most relevant bullets are kept (you choose how many), in their original order.
+- **No invented content.** The resume is assembled from your own text: work becomes Experience (newest first), projects become Projects, an achievement joins the job or project it names (otherwise it becomes its own Projects entry), and skills come from your resume plus the chosen items. Contact details, education and certifications come from the base resume you pick. Use Tailor or the Agent afterwards if you want the wording polished.
+- Bank items sync with your account (kind `bank`; republish `firestore.rules`) and are included in backups.
 
 ## How AI result quality is protected
 
