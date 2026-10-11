@@ -4,12 +4,13 @@ name: Firestore rules
 # or by hand from the Actions tab ("Run workflow").
 on:
   push:
-    branches: [dev, main]
+    branches: [main]
     paths:
       - firestore.rules
       - firestore-rules/**
       - firebase.json
   pull_request:
+    branches: [main]
     paths:
       - firestore.rules
       - firestore-rules/**
