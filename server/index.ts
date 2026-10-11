@@ -22,6 +22,11 @@ const TYPES: Record<string, string> = {
 const server = createServer(async (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff')
   res.setHeader('Referrer-Policy', 'no-referrer')
+  // Tiny response for uptime pings / cron jobs (the home page is a few hundred KB).
+  if ((req.url ?? '').split('?')[0] === '/healthz') {
+    res.writeHead(200, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' }).end('ok')
+    return
+  }
   if (await handleApi(req, res)) return
   const path = normalize(decodeURIComponent((req.url ?? '/').split('?')[0] ?? '/'))
   let file = join(root, path)
