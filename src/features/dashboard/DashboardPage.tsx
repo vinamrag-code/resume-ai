@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { EmptyState, Modal } from '@/components/ui'
+import { useChats } from '@/store/chats'
 import { useResumes } from '@/store/resumes'
 import type { Resume } from '@/types/resume'
 
@@ -63,7 +64,10 @@ function ResumeCard({ r, base }: { r: Resume; base?: Resume }) {
             <button type="button" className="btn-secondary" onClick={() => setConfirming(false)}>
               Cancel
             </button>
-            <button type="button" className="btn-danger" onClick={() => remove(r.id)}>
+            <button type="button" className="btn-danger" onClick={() => {
+                remove(r.id)
+                useChats.getState().clear(r.id) // its Agent conversation goes with it
+              }}>
               Delete
             </button>
           </div>

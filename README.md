@@ -76,7 +76,7 @@ Optional, and recommended when other people can reach your server. Uses **Fireba
 - **No free access.** When the four `FIREBASE_*` settings are present, visitors see only a landing page with **Log in** and **Sign up** (animated modal; sign-up asks for full name, email, password and confirm password, with validation and a strength hint). Nothing in the app is reachable until they sign in. Google sign-in is offered too, and password reset is built in. Without the `FIREBASE_*` settings the app is open (handy for local development).
 - **Email verification.** Email/password accounts must click the link we email before the app, cloud sync or AI work (a verify page checks in the background and offers resend). The server and the Firestore rules both enforce it; Google accounts arrive verified.
 - **Rate limits are per account** (default 30/minute, 500/day) instead of per IP. The server verifies the user's Firebase ID token (signature, audience, issuer, expiry) on every AI request.
-- **Cloud sync** stores each resume, job and cover letter as its own Firestore document under `users/{uid}/items/{id}`. The app stays local-first: it works from browser storage and syncs in the background while signed in (live updates plus a short debounce after edits; Firestore also queues edits made offline). The newer edit of each item wins and deletions propagate. Different accounts on one browser are never mixed. Users can delete their cloud data (and sign out) in Settings.
+- **Cloud sync** stores each resume, job, cover letter and Agent conversation as its own Firestore document under `users/{uid}/items/{id}`. The app stays local-first: it works from browser storage and syncs in the background while signed in (live updates plus a short debounce after edits; Firestore also queues edits made offline). The newer edit of each item wins and deletions propagate. Different accounts on one browser are never mixed. Users can delete their cloud data (and sign out) in Settings.
 - **Security rules** (`firestore.rules`) let a signed-in user read and write only their own items, with a fixed shape and size limit. They must be published in the Firebase console (see below); until then, sync reports a permission error and everything else keeps working.
 
 Setup:
@@ -143,7 +143,7 @@ Content: summary, bullets (replace / add / remove), contact details, job titles,
 ## Architecture
 
 - **UI**: React 19 + React Router, Tailwind CSS (class-based dark mode), feature folders.
-- **State**: Zustand stores with `persist` (`resume-ai:*` keys in localStorage): resumes, jobs, cover letters, settings. Chat transcripts are memory-only.
+- **State**: Zustand stores with `persist` (`resume-ai:*` keys in localStorage): resumes, jobs, cover letters, settings. Agent conversations are saved per resume (`resume-ai:chats`) and synced like the rest.
 - **LLM**: `src/lib/llm` exposes a small `LlmClient` interface (`chat`, `stream`, `testConnection`). `OllamaClient` implements it with `/api/chat` (NDJSON streaming, `format: "json"`); `OpenAiCompatibleClient` covers OpenRouter and Groq (`/chat/completions`, SSE streaming); `FallbackClient` chains providers (Auto mode). `getLlm()` builds it from Settings; `setLlmClient()` swaps the provider (used by tests). `generateJson()` validates with zod and retries once, feeding the validation error back.
 - **Prompts**: `src/lib/prompts`, one file per task, all including the shared `TRUTHFULNESS_RULES`.
 - **ATS score** (`src/lib/ats`): pure and deterministic. Components: keyword coverage (frequency + tech-term extraction, light stemming), semantic similarity (embedding cosine, best-chunk matching), section completeness, bullet quality (action verb, quantified, length) and formatting checks. Weights are 30/20/15/20/15 and are renormalised when a component is unavailable (no job description, or embeddings not yet run). The LLM is never asked for a score.
@@ -176,7 +176,7 @@ src/
 - **Tailoring** has two modes. "Edit this resume" (default) writes each accepted change into the resume immediately, with per-change Undo. "Save as a new tailored copy" leaves the original untouched and also creates a "Saved" job in the tracker linked to the copy. The ATS score is shown before, now, and projected if everything is accepted.
 - **Clarify-then-edit** in the agent is enforced in code: edit blocks on the first assistant turn are ignored.
 - **Drag and drop** uses native HTML5 events; each card also has a status menu for keyboard use.
-- **Chat history** is not persisted or included in backups.
+- **Agent chat history** is saved per resume (up to the newest 60 messages) in the browser, synced to the account like other data, included in backups, and deleted with its resume or with "Clear conversation".
 - Backups replace existing data on import.
 
 ## Known limitations

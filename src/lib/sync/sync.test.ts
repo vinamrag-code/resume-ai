@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { newResume } from '@/lib/resume'
+import { useChats } from '@/store/chats'
 import { useCoverLetters } from '@/store/coverLetters'
 import { useJobs } from '@/store/jobs'
 import { useResumes } from '@/store/resumes'
@@ -12,7 +13,7 @@ import type { LocalDoc, RemoteItem } from './items'
 
 const resume = (name: string, createdAt: number, updatedAt = createdAt) => ({ ...newResume(name, sampleContent()), id: name, createdAt, updatedAt })
 const job = (id: string, createdAt: number, updatedAt?: number): Job => ({ id, title: id, company: 'C', url: '', date: '2026-01-01', status: 'saved', notes: '', description: '', createdAt, updatedAt, order: 0 })
-const doc = (p: Partial<LocalDoc> = {}): LocalDoc => ({ resumes: [], jobs: [], letters: [], ...p })
+const doc = (p: Partial<LocalDoc> = {}): LocalDoc => ({ resumes: [], jobs: [], letters: [], chats: [], ...p })
 const remoteMap = (...items: RemoteItem[]) => new Map(items.map((i) => [i.id, i]))
 
 describe('planSync', () => {
@@ -158,6 +159,27 @@ describe('sync engine', () => {
     expect(useResumes.getState().resumes).toEqual([])
     expect(bobCloud.items.size).toBe(0)
     expect(JSON.stringify([...bobCloud.items.values()])).not.toContain('Ada private')
+  })
+
+  it('syncs Agent conversations too, and restores them on another device', async () => {
+    const cloud = fakeRemote()
+    useChats.getState().setTurns('r1', () => [{ id: 't1', role: 'user', content: 'Review my summary', changes: [] }])
+    start(cloud)
+    await settle()
+    const stored = [...cloud.items.values()].filter((i) => i.kind === 'chat')
+    expect(stored).toHaveLength(1)
+    expect(stored[0]!.id).toBe('c-r1')
+    expect(JSON.parse(stored[0]!.json).turns[0].content).toBe('Review my summary')
+    stop!()
+    clearLocalData()
+    useSyncMeta.setState({ account: null, known: {} })
+    start(cloud)
+    await settle()
+    expect(useChats.getState().chats[0]).toMatchObject({ resumeId: 'r1', turns: [{ content: 'Review my summary' }] })
+    // Clearing the conversation propagates as a deletion.
+    useChats.getState().clear('r1')
+    await settle()
+    expect(cloud.items.get('c-r1')).toMatchObject({ deleted: true })
   })
 
   it('syncs jobs and letters as well', async () => {

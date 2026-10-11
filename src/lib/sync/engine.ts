@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { useChats } from '@/store/chats'
 import { useCoverLetters } from '@/store/coverLetters'
 import { useJobs } from '@/store/jobs'
 import { useResumes } from '@/store/resumes'
@@ -38,7 +39,7 @@ export const useSyncStatus = create<SyncStatus>()(() => ({ state: 'off', lastSyn
 const setStatus = (p: Partial<SyncStatus>) => useSyncStatus.setState(p)
 
 export function collectLocal(): LocalDoc {
-  return { resumes: useResumes.getState().resumes, jobs: useJobs.getState().jobs, letters: useCoverLetters.getState().letters }
+  return { resumes: useResumes.getState().resumes, jobs: useJobs.getState().jobs, letters: useCoverLetters.getState().letters, chats: useChats.getState().chats }
 }
 
 let applying = false
@@ -48,12 +49,13 @@ function writeLocal(doc: LocalDoc): void {
     useResumes.setState({ resumes: doc.resumes })
     useJobs.setState({ jobs: doc.jobs })
     useCoverLetters.setState({ letters: doc.letters })
+    useChats.setState({ chats: doc.chats })
   } finally {
     applying = false
   }
 }
 export function clearLocalData(): void {
-  writeLocal({ resumes: [], jobs: [], letters: [] })
+  writeLocal({ resumes: [], jobs: [], letters: [], chats: [] })
 }
 
 let active: { remote: Remote; reconcile: () => Promise<void>; stop: () => void } | null = null
@@ -145,7 +147,7 @@ export function startSync(remote: Remote, account: string, debounceMs = 1200): (
     },
     (e) => setStatus({ state: 'error', error: e.message }),
   )
-  const unsubs = [useResumes.subscribe(schedule), useJobs.subscribe(schedule), useCoverLetters.subscribe(schedule)]
+  const unsubs = [useResumes.subscribe(schedule), useJobs.subscribe(schedule), useCoverLetters.subscribe(schedule), useChats.subscribe(schedule)]
   const stop = () => {
     stopped = true
     clearTimeout(timer)

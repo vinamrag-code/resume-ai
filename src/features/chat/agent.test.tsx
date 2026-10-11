@@ -8,7 +8,7 @@ import { useResumes } from '@/store/resumes'
 import { sampleContent } from '@/test/fixtures'
 import { mockLlm, renderAt } from '@/test/helpers'
 import { ChatPanel } from './ChatPanel'
-import { useChats } from './chatStore'
+import { useChats } from '@/store/chats'
 import { parseEdits, splitReply, visibleText } from './chatLogic'
 
 const content = sampleContent()
@@ -17,7 +17,7 @@ const build = (edits: Record<string, unknown>) => buildChanges(content, Proposed
 
 beforeEach(() => {
   useResumes.setState({ resumes: [] })
-  useChats.setState({ byResume: {} })
+  useChats.setState({ chats: [] })
 })
 afterEach(() => setLlmClient(null))
 

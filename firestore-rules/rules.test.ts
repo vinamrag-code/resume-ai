@@ -55,6 +55,11 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('Firestore security rules'
     await assertSucceeds(unverified().doc('config/models').get()) // the model list stays public
   })
 
+  it('accepts all four item kinds and nothing else', async () => {
+    for (const kind of ['resume', 'job', 'letter', 'chat']) await assertSucceeds(path(ada(), 'ada', `k-${kind}`).set(item({ kind })))
+    await assertFails(path(ada(), 'ada', 'k-other').set(item({ kind: 'note' })))
+  })
+
   it('rejects documents with the wrong shape', async () => {
     await assertFails(path(ada()).set(item({ extra: 1 })))
     await assertFails(path(ada()).set({ kind: 'resume', json: '{}', updatedAt: 1 })) // missing "deleted"

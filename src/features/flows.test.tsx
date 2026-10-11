@@ -13,7 +13,7 @@ import { useResumeScore } from './ats/useResumeScore'
 import type { Embedder } from '@/lib/ats/embeddings'
 import type { Resume } from '@/types/resume'
 import { ChatPanel } from './chat/ChatPanel'
-import { useChats } from './chat/chatStore'
+import { useChats } from '@/store/chats'
 import { CoverLetterPage } from './cover/CoverLetterPage'
 import { ImportPage } from './import/ImportPage'
 import { TailorPanel } from './tailor/TailorPanel'
@@ -24,7 +24,7 @@ beforeEach(() => {
   useResumes.setState({ resumes: [] })
   useJobs.setState({ jobs: [] })
   useCoverLetters.setState({ letters: [] })
-  useChats.setState({ byResume: {} })
+  useChats.setState({ chats: [] })
 })
 afterEach(() => setLlmClient(null))
 
@@ -359,6 +359,37 @@ describe('resume agent chat', () => {
     renderAt(<ChatPanel resume={r} />)
     await userEvent.click(screen.getByRole('button', { name: 'Review my summary' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not reach ollama/i)
+  })
+})
+
+describe('agent chat history is saved', () => {
+  it('shows the earlier conversation after the panel is closed and reopened, and can clear it', async () => {
+    const r = seedResume()
+    mockLlm(['1. Which APIs did you maintain?\n2. Who used them?'])
+    const first = renderAt(<ChatPanel resume={r} />)
+    await userEvent.type(screen.getByLabelText(/message the resume counselor/i), 'Improve my experience')
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }))
+    expect(await screen.findByText(/Which APIs did you maintain/)).toBeInTheDocument()
+    first.unmount()
+    // A fresh mount (like a page reload) reads the saved conversation back.
+    renderAt(<ChatPanel resume={r} />)
+    expect(screen.getByText('Improve my experience')).toBeInTheDocument()
+    expect(screen.getByText(/Which APIs did you maintain/)).toBeInTheDocument()
+    expect(localStorage.getItem('resume-ai:chats')).toContain('Improve my experience')
+    await userEvent.click(screen.getByRole('button', { name: 'Clear conversation' }))
+    expect(screen.queryByText('Improve my experience')).not.toBeInTheDocument()
+    expect(localStorage.getItem('resume-ai:chats')).not.toContain('Improve my experience')
+  })
+
+  it('keeps conversations separate per resume', async () => {
+    const a = seedResume()
+    const b = useResumes.getState().create('Other', sampleContent())
+    useChats.getState().setTurns(a.id, () => [{ id: '1', role: 'user', content: 'About resume A', changes: [] }])
+    const view = renderAt(<ChatPanel resume={a} />)
+    expect(screen.getByText('About resume A')).toBeInTheDocument()
+    view.unmount()
+    renderAt(<ChatPanel resume={b} />)
+    expect(screen.queryByText('About resume A')).not.toBeInTheDocument()
   })
 })
 

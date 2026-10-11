@@ -14,8 +14,8 @@ import type { Resume } from '@/types/resume'
 import { DiffView } from '@/features/tailor/DiffView'
 import { verifyChanges } from '@/features/tailor/verifyChanges'
 import { fallbackText, isPreparingEdits, parseEdits, visibleText } from './chatLogic'
-import { useChats } from './chatStore'
-import type { ChatTurn } from './chatStore'
+import { selectTurns, useChats } from '@/store/chats'
+import type { ChatTurn } from '@/types/chat'
 
 const NO_TURNS: ChatTurn[] = []
 const STARTERS = ['Help me improve my experience section', 'Review my summary', 'Make my skills fit the target job', 'Strengthen my project bullets']
@@ -73,8 +73,8 @@ function Suggestion({ change, resume, onApplied }: { change: Change; resume: Res
 }
 
 export function ChatPanel({ resume }: { resume: Resume }) {
-  const turns = useChats((s) => s.byResume[resume.id]) ?? NO_TURNS
-  const setTurns = useChats((s) => s.set)
+  const turns = useChats((s) => selectTurns(s.chats, resume.id)) ?? NO_TURNS
+  const setTurns = useChats((s) => s.setTurns)
   const clear = useChats((s) => s.clear)
   const aiAllowed = useAiAccess()
   const [input, setInput] = useState('')
@@ -196,7 +196,7 @@ export function ChatPanel({ resume }: { resume: Resume }) {
         </form>
         {turns.length > 0 && !busy && (
           <button type="button" className="btn-ghost btn-sm self-start" onClick={() => clear(resume.id)}>
-            New conversation
+            Clear conversation
           </button>
         )}
       </section>
