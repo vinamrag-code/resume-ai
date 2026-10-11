@@ -28,7 +28,7 @@ beforeEach(() => {
 })
 afterEach(() => setLlmClient(null))
 
-const seedResume = (target = { title: 'Frontend Engineer', company: 'Acme', description: SAMPLE_JD }) => {
+const seedResume = (target: Partial<Resume['target']> = { title: 'Frontend Engineer', company: 'Acme', description: SAMPLE_JD }) => {
   const r = useResumes.getState().create('Base', sampleContent())
   useResumes.getState().setTarget(r.id, target)
   return useResumes.getState().resumes.find((x) => x.id === r.id)!

@@ -1,9 +1,11 @@
 import { getIdToken } from '@/lib/auth/store'
+import type { WorkType } from '@/types/resume'
 
 export interface ImportedJob {
   title: string
   company: string
   location: string
+  workType: WorkType
   description: string
 }
 

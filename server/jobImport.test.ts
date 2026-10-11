@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { loadConfig } from './config'
 import { createJobImportHandler } from './jobImport'
-import { extractJob, htmlToText } from './jobExtract'
+import { detectWorkType, extractJob, htmlToText } from './jobExtract'
 import { RateLimiter } from './rateLimit'
 import { FetchError, checkUrl, fetchPage, isPrivateIp } from './safeFetch'
 import type { PageResult } from './safeFetch'
@@ -62,6 +62,29 @@ describe('extractJob', () => {
 
   it('turns markup into clean text', () => {
     expect(htmlToText('<h2>About</h2><p>A &amp; B&nbsp;C</p><script>evil()</script><ul><li>One</li><li>Two</li></ul>')).toBe('About\n\nA & B C\n\n- One\n- Two')
+  })
+})
+
+describe('work type', () => {
+  it.each([
+    ['Frontend Engineer (Remote)', '', 'remote'],
+    ['Engineer', 'Hybrid - Pune', 'hybrid'],
+    ['Engineer', 'On-site, Delhi', 'onsite'],
+    ['Engineer', 'Pune, India', 'unspecified'],
+  ])('headline %s / %s', (title, loc, expected) => {
+    expect(detectWorkType(`${title} ${loc}`, '')).toBe(expected)
+  })
+  it('reads clear phrases in the description but ignores technical uses of the words', () => {
+    expect(detectWorkType('', 'This is a hybrid work model, three days in the office.')).toBe('hybrid')
+    expect(detectWorkType('', 'You can work from home most days.')).toBe('remote')
+    expect(detectWorkType('', 'Candidates must be able to work on-site.')).toBe('onsite')
+    expect(detectWorkType('', 'Experience with hybrid cloud and remote servers is a plus.')).toBe('unspecified')
+  })
+  it('uses the JobPosting remote flag and the page title', () => {
+    const ld = (extra: object) => `<script type="application/ld+json">${JSON.stringify({ '@type': 'JobPosting', title: 'Engineer', description: LONG, ...extra })}</script>`
+    expect(extractJob(ld({ jobLocationType: 'TELECOMMUTE' }))?.workType).toBe('remote')
+    expect(extractJob(ld({}))?.workType).toBe('unspecified')
+    expect(extractJob(`<title>Designer at Acme - Remote | Careers</title><main>${LONG}</main>`)?.workType).toBe('remote')
   })
 })
 

@@ -1,9 +1,13 @@
 /** Pulls a job posting out of a web page's HTML. Pure functions: no network, easy to test. */
 
+export type WorkType = 'remote' | 'hybrid' | 'onsite' | 'unspecified'
+
 export interface ImportedJob {
   title: string
   company: string
   location: string
+  /** 'remote' | 'hybrid' | 'onsite' | 'unspecified' */
+  workType: WorkType
   description: string
 }
 
@@ -36,6 +40,22 @@ export function htmlToText(html: string): string {
     .replace(/ *\n */g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
+}
+
+
+/**
+ * Remote / hybrid / on-site. The title and location are trusted ("Engineer - Remote"); inside a long description only
+ * phrases that are clearly about the work arrangement count, so "hybrid cloud" or "remote servers" do not.
+ */
+export function detectWorkType(headline: string, description: string): WorkType {
+  const strong = (t: string): WorkType | null =>
+    /\bhybrid\b/i.test(t) ? 'hybrid' : /\b(remote|work from home|wfh|telecommut\w*)\b/i.test(t) ? 'remote' : /\bon-?site\b|\bin[- ]office\b|\bwork from office\b/i.test(t) ? 'onsite' : null
+  const fromHeadline = strong(headline)
+  if (fromHeadline) return fromHeadline
+  if (/\bhybrid\s+(work|working|model|role|position|mode|setup|schedule|arrangement|opportunity)\b|\b(role|position|job)\s+is\s+(a\s+)?hybrid\b|\(hybrid\)/i.test(description)) return 'hybrid'
+  if (/\b(fully\s+|100%\s+)?remote\s+(work|working|role|position|job|opportunity|first)\b|\bwork(ing)?\s+(from\s+home|remotely)\b|\bwfh\b|\(remote\)|\bremote[- ]first\b|\b(role|position|job)\s+is\s+(a\s+)?(fully\s+)?remote\b/i.test(description)) return 'remote'
+  if (/\bon-?site\b|\bwork from office\b|\bin-office\b|\bwork(ing)?\s+from\s+the\s+office\b/i.test(description)) return 'onsite'
+  return 'unspecified'
 }
 
 const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '')
@@ -76,11 +96,13 @@ function fromJsonLd(html: string): ImportedJob | null {
   const posting = found.find((p) => str(p.description))
   if (!posting) return null
   const org = posting.hiringOrganization
+  const remote = String(posting.jobLocationType ?? '').toUpperCase() === 'TELECOMMUTE'
   return {
     title: decodeEntities(str(posting.title)),
     company: decodeEntities(typeof org === 'object' && org ? str((org as Record<string, unknown>).name) : str(org)),
     location: decodeEntities(locationOf(posting.jobLocation)),
     // Descriptions are usually HTML, sometimes (double-)escaped HTML.
+    workType: remote ? 'remote' : 'unspecified',
     description: htmlToText(decodeEntities(str(posting.description)).includes('<') ? decodeEntities(str(posting.description)) : str(posting.description)),
   }
 }
@@ -144,11 +166,12 @@ function descriptionContainer(html: string): string | null {
 
 function fromPage(html: string): ImportedJob {
   const pageTitle = decodeEntities((html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? '').trim())
-  const { title, company, location } = splitTitle(meta(html, 'og:title') || pageTitle)
+  const rawTitle = meta(html, 'og:title') || pageTitle
+  const { title, company, location } = splitTitle(rawTitle)
   const known = descriptionContainer(html)
   const body = html.match(/<(main|article)\b[\s\S]*<\/\1\s*>/i)?.[0] ?? html.match(/<body\b[\s\S]*<\/body\s*>/i)?.[0] ?? html
   const cleaned = body.replace(/<(nav|header|footer|aside|form)\b[\s\S]*?<\/\1\s*>/gi, ' ')
-  return { title, company: meta(html, 'og:site_name') && !company ? meta(html, 'og:site_name') : company, location, description: known ?? htmlToText(cleaned) }
+  return { title, company: meta(html, 'og:site_name') && !company ? meta(html, 'og:site_name') : company, location, workType: detectWorkType(rawTitle, ''), description: known ?? htmlToText(cleaned) }
 }
 
 /** Best effort: structured data (JobPosting) first, otherwise the readable text of the page. */
@@ -158,5 +181,6 @@ export function extractJob(html: string): ImportedJob | null {
   const description = result.description.slice(0, MAX_DESCRIPTION).trim()
   // Pages that need JavaScript or a login (LinkedIn, Indeed...) come back nearly empty.
   if (description.length < 200 && !structured) return null
-  return { ...result, title: result.title || structured?.title || '', description }
+  const workType = result.workType !== 'unspecified' ? result.workType : detectWorkType(`${result.title} ${result.location}`, description)
+  return { ...result, title: result.title || structured?.title || '', workType, description }
 }

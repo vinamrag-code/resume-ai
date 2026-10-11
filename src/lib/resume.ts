@@ -22,7 +22,7 @@ export function newResume(name: string, content: ResumeContent = emptyContent())
     name,
     templateId: 'classic',
     style: { ...DEFAULT_STYLE },
-    target: { title: '', company: '', description: '' },
+    target: { title: '', company: '', description: '', location: '', workType: 'unspecified' },
     createdAt: now,
     updatedAt: now,
     content,

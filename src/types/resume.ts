@@ -68,10 +68,17 @@ export const ResumeStyleSchema = z.object({
 })
 export type ResumeStyle = z.infer<typeof ResumeStyleSchema>
 
+export const WORK_TYPES = ['unspecified', 'remote', 'hybrid', 'onsite'] as const
+export type WorkType = (typeof WORK_TYPES)[number]
+export const WORK_TYPE_LABELS: Record<WorkType, string> = { unspecified: 'Not mentioned', remote: 'Remote', hybrid: 'Hybrid', onsite: 'On-site' }
+
 export const TargetJobSchema = z.object({
   title: str,
   company: str,
   description: str,
+  /** Where the job is (optional). Older saved resumes do not have these two fields. */
+  location: str.default(''),
+  workType: z.enum(WORK_TYPES).catch('unspecified').default('unspecified'),
 })
 export type TargetJob = z.infer<typeof TargetJobSchema>
 
