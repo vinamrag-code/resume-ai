@@ -10,3 +10,4 @@ server-dist
 data
 *-debug.log
 *.tsbuildinfo
+PROGRESS.md
