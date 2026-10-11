@@ -96,21 +96,59 @@ function meta(html: string, key: string): string {
   return ''
 }
 
-/** Split "Software Engineer - Acme" / "Software Engineer at Acme | Careers" style page titles. */
-function splitTitle(raw: string): { title: string; company: string } {
+/** Split "Software Engineer - Acme" / "Software Engineer at Acme — Pune, India | LinkedIn Jobs" style page titles. */
+function splitTitle(raw: string): { title: string; company: string; location: string } {
   const t = raw.replace(/\s+/g, ' ').trim()
-  const at = t.match(/^(.+?)\s+(?:at|@)\s+([^|\-–—]+)/i)
-  if (at) return { title: at[1]!.trim(), company: at[2]!.trim() }
+  const at = t.match(/^(.+?)\s+(?:at|@)\s+([^|\-–—]+?)(?:\s+[–—]\s+([^|]+?))?(?:\s+\||$)/i)
+  if (at) return { title: at[1]!.trim(), company: at[2]!.trim(), location: (at[3] ?? '').trim() }
   const parts = t.split(/\s+[|\-–—]\s+/).map((p) => p.trim()).filter(Boolean)
-  return { title: parts[0] ?? '', company: parts.length > 1 ? (parts[parts.length - 1] ?? '') : '' }
+  return { title: parts[0] ?? '', company: parts.length > 1 ? (parts[parts.length - 1] ?? '') : '', location: '' }
+}
+
+/** Where well-known job sites and many applicant-tracking pages put the posting text itself. */
+const DESCRIPTION_MARKERS = [
+  /class\s*=\s*["'][^"']*show-more-less-html__markup/i, // LinkedIn
+  /id\s*=\s*["']jobDescriptionText["']/i, // Indeed
+  /class\s*=\s*["'][^"']*jobsearch-JobComponent-description/i,
+  /class\s*=\s*["'][^"']*JobDetails_jobDescription/i, // Glassdoor
+  /itemprop\s*=\s*["']description["']/i,
+  /id\s*=\s*["'](?:job-?description|job_description|jobDescription|content)["']/i,
+  /class\s*=\s*["'][^"']*(?:job-?description|job_description|jobDescription|posting-description|job-details__description)[^"']*["']/i,
+]
+
+/** Inner HTML of the first element whose opening tag matches `marker`, balancing nested tags of the same name. */
+function elementInner(html: string, marker: RegExp): string | null {
+  for (const open of html.matchAll(/<(div|section|article|span|td|main)\b[^>]*>/gi)) {
+    if (!marker.test(open[0])) continue
+    const tag = open[1]!.toLowerCase()
+    const start = (open.index ?? 0) + open[0].length
+    const re = new RegExp(`<(/?)${tag}\\b[^>]*>`, 'gi')
+    re.lastIndex = start
+    let depth = 1
+    for (let m = re.exec(html); m; m = re.exec(html)) {
+      depth += m[1] ? -1 : 1
+      if (depth === 0) return html.slice(start, m.index)
+    }
+    return html.slice(start)
+  }
+  return null
+}
+
+function descriptionContainer(html: string): string | null {
+  for (const marker of DESCRIPTION_MARKERS) {
+    const inner = elementInner(html, marker)
+    if (inner && htmlToText(inner).length >= 120) return htmlToText(inner)
+  }
+  return null
 }
 
 function fromPage(html: string): ImportedJob {
   const pageTitle = decodeEntities((html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? '').trim())
-  const { title, company } = splitTitle(meta(html, 'og:title') || pageTitle)
+  const { title, company, location } = splitTitle(meta(html, 'og:title') || pageTitle)
+  const known = descriptionContainer(html)
   const body = html.match(/<(main|article)\b[\s\S]*<\/\1\s*>/i)?.[0] ?? html.match(/<body\b[\s\S]*<\/body\s*>/i)?.[0] ?? html
   const cleaned = body.replace(/<(nav|header|footer|aside|form)\b[\s\S]*?<\/\1\s*>/gi, ' ')
-  return { title, company: meta(html, 'og:site_name') && !company ? meta(html, 'og:site_name') : company, location: '', description: htmlToText(cleaned) }
+  return { title, company: meta(html, 'og:site_name') && !company ? meta(html, 'og:site_name') : company, location, description: known ?? htmlToText(cleaned) }
 }
 
 /** Best effort: structured data (JobPosting) first, otherwise the readable text of the page. */

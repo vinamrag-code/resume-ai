@@ -41,6 +41,21 @@ describe('extractJob', () => {
     expect(job.description).not.toMatch(/var x|Home Jobs|\(c\)/)
   })
 
+  it('keeps only the posting on a LinkedIn-style page (no sign-in boxes or similar jobs)', () => {
+    const html = `<html><head><title>DRUPAL INTERN at etelligens Technologies — Sadar, Uttar Pradesh, India | LinkedIn Jobs</title></head><body>
+      <nav>Join or sign in to find your next job</nav>
+      <section class="core-section-container my-3 description"><div class="description__text description__text--rich"><section class="show-more-less-html">
+        <div class="show-more-less-html__markup show-more-less-html__markup--clamp-after-20
+            relative overflow-hidden"><strong>Key Responsibilities<br><br></strong><ul><li>Assist in Drupal development and maintenance of our client websites using Drupal 9 and 10 every single day</li><li><div>nested</div> Fix bugs and test</li></ul><strong>Required Skills</strong><ul><li>PHP, HTML/CSS and JavaScript, plus a basic understanding of the Drupal content management system</li><li>Good debugging skills and eagerness to learn</li></ul></div>
+        <button>Show more</button></section></div></section>
+      <section>Sign in to tailor your resume</section><section>Similar jobs: Web Developer, Pineswift Technologies</section></body></html>`
+    const job = extractJob(html)!
+    expect(job).toMatchObject({ title: 'DRUPAL INTERN', company: 'etelligens Technologies', location: 'Sadar, Uttar Pradesh, India' })
+    expect(job.description).toContain('- Assist in Drupal development')
+    expect(job.description).toContain('Required Skills')
+    expect(job.description).not.toMatch(/sign in|Similar jobs|Show more|Join/i)
+  })
+
   it('returns null for pages with almost no text (login walls, JavaScript apps)', () => {
     expect(extractJob('<html><head><title>Sign in</title></head><body><div id="root"></div></body></html>')).toBeNull()
   })
