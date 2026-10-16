@@ -111,7 +111,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
   load: () => {
     loading ??= (async () => {
       try {
-        const res = await fetch('/api/auth/config')
+        const res = await fetch(`${import.meta.env.BASE_URL}api/auth/config`)
         const cfg = (await res.json()) as { required?: boolean; firebase?: FirebaseWebConfig | null }
         if (!res.ok || !cfg.required || !cfg.firebase) return set({ loaded: true, required: false })
         set({ required: true, firebase: cfg.firebase })
