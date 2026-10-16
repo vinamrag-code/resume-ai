@@ -3,9 +3,9 @@
 A free, open-source, **local-first** AI resume builder. Import a resume, analyse it against a job with a transparent ATS score, tailor it with reviewable diffs, chat with a resume counselor, write cover letters, and track applications. No backend, no accounts, no telemetry.
 
 - Your data lives in your browser (`localStorage`).
-- AI answers come from Groq (primary) and OpenRouter (fallback + fact-checker) through a small server-side proxy that holds your API keys. Local [Ollama](https://ollama.com) is an optional advanced mode.
+- AI answers come from Groq (primary) and OpenRouter (fallback + fact-checker) through a small server-side proxy that holds your API keys.
 - Semantic matching runs in the browser with `@huggingface/transformers` (`Xenova/all-MiniLM-L6-v2`, ~25 MB, downloaded once).
-- Network calls go only to the AI provider(s) you configured and the one-time embedding-model download. With Ollama selected, nothing but that download leaves your computer.
+- Network calls go only to the AI provider(s) you configured and the one-time embedding-model download.
 
 **Truthfulness is a hard rule.** Every prompt tells the model never to invent employers, titles, dates, degrees, metrics or skills. Tailoring may only reword and reprioritise existing facts. The app adds guards on top: edits are shown as diffs you accept or reject, numbers that do not appear in your resume get a warning, and skill re-ordering can never add a skill.
 
@@ -110,11 +110,7 @@ docker run --rm -v "$PWD":/work -w /work resume-ai-rules firebase emulators:exec
 - **Primary:** Groq (`openai/gpt-oss-120b`), the fastest. If it fails or is rate-limited, OpenRouter takes over automatically.
 - **Checker:** the AI fact-check of suggested edits goes to OpenRouter first, so a second, independent model reviews them (falling back to Groq).
 - Providers without a key on the server are skipped; with one key it is used for everything.
-- Resume text and job descriptions are sent through your server to these providers. For fully local AI, see below.
-
-### Optional, advanced: local AI with Ollama
-
-Install [Ollama](https://ollama.com/download), run `ollama pull llama3.1:8b`, allow the app's origin (Windows PowerShell: `setx OLLAMA_ORIGINS "http://localhost:5173"`, then restart Ollama; macOS/Linux: `OLLAMA_ORIGINS=http://localhost:5173 ollama serve`), and choose **Ollama (local, advanced)** in Settings. Then nothing leaves your computer except the one-time embedding-model download.
+- Resume text and job descriptions are sent through your server to these providers.
 
 ### Other scripts
 
@@ -155,7 +151,7 @@ Store each job, project and achievement once on the **Experience bank** page (st
 
 - **UI**: React 19 + React Router, Tailwind CSS (class-based dark mode), feature folders.
 - **State**: Zustand stores with `persist` (`resume-ai:*` keys in localStorage): resumes, jobs, cover letters, settings. Agent conversations are saved per resume (`resume-ai:chats`) and synced like the rest.
-- **LLM**: `src/lib/llm` exposes a small `LlmClient` interface (`chat`, `stream`, `testConnection`). `OllamaClient` implements it with `/api/chat` (NDJSON streaming, `format: "json"`); `OpenAiCompatibleClient` covers OpenRouter and Groq (`/chat/completions`, SSE streaming); `FallbackClient` chains providers (Auto mode). `getLlm()` builds it from Settings; `setLlmClient()` swaps the provider (used by tests). `generateJson()` validates with zod and retries once, feeding the validation error back.
+- **LLM**: `src/lib/llm` exposes a small `LlmClient` interface (`chat`, `stream`, `testConnection`). `OpenAiCompatibleClient` covers OpenRouter and Groq (`/chat/completions`, SSE streaming); `FallbackClient` chains providers (Auto mode). `getLlm()` builds it from Settings; `setLlmClient()` swaps the provider (used by tests). `generateJson()` validates with zod and retries once, feeding the validation error back.
 - **Prompts**: `src/lib/prompts`, one file per task, all including the shared `TRUTHFULNESS_RULES`.
 - **ATS score** (`src/lib/ats`): pure and deterministic. Components: keyword coverage (frequency + tech-term extraction, light stemming), semantic similarity (embedding cosine, best-chunk matching), section completeness, bullet quality (action verb, quantified, length) and formatting checks. Weights are 30/20/15/20/15 and are renormalised when a component is unavailable (no job description, or embeddings not yet run). The LLM is never asked for a score.
 - **Changes** (`src/lib/changes.ts`): model output (indexes, not ids) is resolved against the real resume into `Change` objects (`before` always comes from the resume), shared by Tailoring and Chat. Stale changes (resume edited since) are skipped, never forced.

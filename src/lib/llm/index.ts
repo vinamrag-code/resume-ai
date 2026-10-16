@@ -3,7 +3,6 @@ import { canManageModels } from '@/lib/auth/useCanManageModels'
 import { useSettings } from '@/store/settings'
 import type { SettingsState } from '@/store/settings'
 import { FallbackClient } from './fallback'
-import { OllamaClient } from './ollama'
 import { OpenAiCompatibleClient } from './openai'
 import { CLOUD_PROVIDERS, getServerProviders, PROVIDERS, resolveModel } from './providers'
 import type { ProviderId } from './providers'
@@ -11,7 +10,6 @@ import type { LlmClient } from './types'
 
 export * from './types'
 export { generateJson, extractJson } from './json'
-export { OllamaClient, OLLAMA_HELP } from './ollama'
 export { OpenAiCompatibleClient } from './openai'
 export { FallbackClient } from './fallback'
 export { PROVIDERS, CLOUD_PROVIDERS, loadServerProviders, getServerProviders, setServerProviders, getServerModels, setServerModels, resolveModel, subscribeServerProviders } from './providers'
@@ -24,11 +22,10 @@ export function setLlmClient(client: LlmClient | null): void {
   override = client
 }
 
-type ClientSettings = Pick<SettingsState, 'provider' | 'ollamaUrl' | 'models'>
+type ClientSettings = Pick<SettingsState, 'provider' | 'models'>
 
 function single(id: ProviderId, s: ClientSettings): LlmClient {
   const info = PROVIDERS[id]
-  if (id === 'ollama') return new OllamaClient({ baseUrl: s.ollamaUrl, model: s.models[id] || info.defaultModel })
   // Cloud models must be on the server's allowlist; otherwise the admin's default is used.
   const model = resolveModel(id, s.models[id])
   return new OpenAiCompatibleClient({

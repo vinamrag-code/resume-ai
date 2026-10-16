@@ -241,13 +241,13 @@ describe('AI features need sign-in; manual editing does not', () => {
     expect(screen.getByRole('button', { name: 'Generate letter' })).toBeDisabled()
   })
 
-  it('does not gate anything when the server does not require sign-in, and a saved Ollama choice never bypasses sign-in', () => {
+  it('does not gate anything when the server does not require sign-in, and a saved provider choice never bypasses sign-in', () => {
     const r = seed()
     const a = renderAt(<ChatPanel resume={r} />)
     expect(screen.getByLabelText(/message the resume counselor/i)).toBeEnabled()
     a.unmount()
     signedOut()
-    useSettings.setState({ provider: 'ollama' })
+    useSettings.setState({ provider: 'groq' })
     renderAt(<ChatPanel resume={r} />)
     expect(screen.getByLabelText(/message the resume counselor/i)).toBeDisabled()
   })

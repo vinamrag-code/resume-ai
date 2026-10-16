@@ -9,7 +9,7 @@ export class FallbackClient implements LlmClient {
   constructor(private readonly clients: LlmClient[]) {}
 
   private empty(): LlmError {
-    return new LlmError('auth', 'No AI provider is available. The server needs a Groq or OpenRouter API key (GROQ_API_KEY / OPENROUTER_API_KEY), or choose Ollama in Settings.')
+    return new LlmError('auth', 'No AI provider is available. The server needs a Groq or OpenRouter API key (GROQ_API_KEY / OPENROUTER_API_KEY).')
   }
 
   async chat(messages: ChatMessage[], options?: ChatOptions): Promise<string> {

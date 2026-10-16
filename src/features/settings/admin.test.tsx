@@ -47,7 +47,7 @@ describe('what a member can actually use', () => {
   const chat = async () => (await import('@/lib/llm')).getLlm().chat([{ role: 'user', content: 'hi' }])
 
   it("ignores a member's saved provider and model, using Auto mode with the admin default", async () => {
-    useSettings.setState({ provider: 'ollama', models: { ollama: 'llama3.1:8b', groq: 'openai/gpt-oss-120b' } })
+    useSettings.setState({ provider: 'openrouter', models: { openrouter: 'some/other:free', groq: 'openai/gpt-oss-120b' } })
     await chat()
     expect(bodies[0]).toEqual({ url: '/api/llm/groq/chat/completions', model: 'llama-3.3-70b-versatile' })
   })
@@ -59,13 +59,13 @@ describe('what a member can actually use', () => {
     expect(bodies[0]).toEqual({ url: '/api/llm/groq/chat/completions', model: 'openai/gpt-oss-120b' })
   })
 
-  it('does not let a member skip sign-in gating by saving Ollama as the provider', async () => {
-    useAuth.setState({ user: null })
-    useSettings.setState({ provider: 'ollama' })
+  it('does not let anyone skip sign-in gating with a saved provider choice', async () => {
+    useAuth.setState({ user: null, isAdmin: true })
+    useSettings.setState({ provider: 'groq' })
     const { renderHook } = await import('@testing-library/react')
     const { useAiAccess } = await import('@/lib/auth/useAiAccess')
     expect(renderHook(() => useAiAccess()).result.current).toBe(false)
-    useAuth.setState({ isAdmin: true })
+    useAuth.setState({ user: { uid: 'u1', email: 'me@example.com', name: 'Me', picture: '', emailVerified: true } })
     expect(renderHook(() => useAiAccess()).result.current).toBe(true)
   })
 })
@@ -82,7 +82,7 @@ describe('model resolution', () => {
   it('requests use the admin default when the saved model is no longer allowed', async () => {
     const bodies: { model: string }[] = []
     vi.stubGlobal('fetch', vi.fn(async (_u: string, init?: RequestInit) => (bodies.push(JSON.parse(init!.body as string)), new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] })))))
-    await createLlm({ provider: 'groq', ollamaUrl: '', models: { ...defaultModels(), groq: 'old/removed-model' } }).chat([{ role: 'user', content: 'hi' }])
+    await createLlm({ provider: 'groq', models: { ...defaultModels(), groq: 'old/removed-model' } }).chat([{ role: 'user', content: 'hi' }])
     expect(bodies[0]!.model).toBe('llama-3.3-70b-versatile')
   })
 

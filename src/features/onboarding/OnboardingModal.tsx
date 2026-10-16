@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Modal } from '@/components/ui'
 import { useSettings } from '@/store/settings'
-import { OnboardingSteps } from './OnboardingSteps'
 
 export function OnboardingModal() {
   const onboarded = useSettings((s) => s.onboarded)
@@ -12,9 +11,8 @@ export function OnboardingModal() {
   return (
     <Modal title="Welcome to Resume AI" onClose={done}>
       <p className="mb-3 text-sm text-ink-600 dark:text-ink-300">
-        Resume AI is free: your resumes stay in this browser, and AI answers come from Groq and OpenRouter using your own free API keys. A quick one-time setup:
+        Resume AI is free: your resumes stay in this browser, and AI answers come from Groq and OpenRouter through this site&apos;s server. There is nothing to install. Open Settings to test the connection.
       </p>
-      <OnboardingSteps />
       <p className="mt-3 rounded-lg bg-brand-50 p-2.5 text-xs text-brand-900 dark:bg-brand-900/30 dark:text-brand-100">
         The AI only rewords and reprioritises facts you provide. It is told never to invent employers, titles, dates, degrees, metrics or skills.
       </p>

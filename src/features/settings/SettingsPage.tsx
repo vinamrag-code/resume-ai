@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react'
 import { ErrorBanner, Modal, Spinner } from '@/components/ui'
-import { OnboardingSteps } from '@/features/onboarding/OnboardingSteps'
 import { useSyncExternalStore } from 'react'
 import { GoogleSignInButton } from '@/components/GoogleSignInButton'
 import { useAuth } from '@/lib/auth/store'
@@ -9,7 +8,7 @@ import { AdminModels } from '@/features/settings/AdminModels'
 import { useCanManageModels } from '@/lib/auth/useCanManageModels'
 import { createLlm, getServerModels, getServerProviders, PROVIDERS, resolveModel, subscribeServerProviders } from '@/lib/llm'
 import type { ProviderId } from '@/lib/llm'
-import type { ProviderChoice } from '@/lib/llm/providers'
+import type { CloudProvider, ProviderChoice } from '@/lib/llm/providers'
 import type { ConnectionStatus } from '@/lib/llm'
 import { downloadBlob } from '@/lib/export/download'
 import { createBackup, restoreBackup } from '@/store/backup'
@@ -18,15 +17,15 @@ import { useChats } from '@/store/chats'
 import { useCoverLetters } from '@/store/coverLetters'
 import { useJobs } from '@/store/jobs'
 import { useResumes } from '@/store/resumes'
-import { DEFAULT_OLLAMA_URL, useSettings } from '@/store/settings'
+import { useSettings } from '@/store/settings'
 import type { ThemePref } from '@/store/settings'
 
 export function SettingsPage() {
-  const { provider, ollamaUrl, models, theme, update, setProvider, setModel, clearModel } = useSettings()
+  const { provider, models, theme, update, setProvider, setModel, clearModel } = useSettings()
   const shown: ProviderId[] = provider === 'auto' ? ['groq', 'openrouter'] : [provider]
   const server = useSyncExternalStore(subscribeServerProviders, getServerProviders)
   const serverModels = useSyncExternalStore(subscribeServerProviders, getServerModels)
-  const keyState = (id: ProviderId) => (server === null ? 'checking…' : server.has(id as 'groq' | 'openrouter') ? 'available on server ✓' : 'not configured on server')
+  const keyState = (id: ProviderId) => (server === null ? 'checking…' : server.has(id as CloudProvider) ? 'available on server ✓' : 'not configured on server')
   const [status, setStatus] = useState<ConnectionStatus | null>(null)
   const [testing, setTesting] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
@@ -40,7 +39,7 @@ export function SettingsPage() {
   const test = async () => {
     setTesting(true)
     setStatus(null)
-    setStatus(await createLlm({ provider, ollamaUrl, models }).testConnection())
+    setStatus(await createLlm({ provider, models }).testConnection())
     setTesting(false)
   }
 
@@ -76,8 +75,8 @@ export function SettingsPage() {
       <h1 className="text-2xl font-semibold">Settings</h1>
 
       {canManage ? (
-      <section className="card space-y-3" aria-labelledby="s-ollama">
-        <h2 id="s-ollama" className="text-base font-semibold">
+      <section className="card space-y-3" aria-labelledby="s-models">
+        <h2 id="s-models" className="text-base font-semibold">
           AI models
         </h2>
         <div>
@@ -88,7 +87,6 @@ export function SettingsPage() {
             <option value="auto">Auto (recommended): Groq, with OpenRouter as fallback and checker</option>
             <option value="groq">Groq only</option>
             <option value="openrouter">OpenRouter only</option>
-            <option value="ollama">Ollama (local, advanced)</option>
           </select>
           {provider === 'auto' && (
             <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">
@@ -101,9 +99,9 @@ export function SettingsPage() {
             <div key={id}>
               <label htmlFor={`model-${id}`} className="label">
                 {PROVIDERS[id].label.replace(/ \(.*\)/, '')} model
-                {PROVIDERS[id].cloud && <span className="font-normal"> · {keyState(id)}</span>}
+                <span className="font-normal"> · {keyState(id)}</span>
               </label>
-              {id !== 'ollama' && serverModels ? (
+              {serverModels?.allowed[id] ? (
                 <select id={`model-${id}`} className="input" value={resolveModel(id, models[id])} onChange={(e) => setModel(id, e.target.value)}>
                   {serverModels.allowed[id].map((m) => (
                     <option key={m} value={m}>
@@ -117,26 +115,16 @@ export function SettingsPage() {
               )}
             </div>
           ))}
-          {provider === 'ollama' && (
-            <div className="sm:col-span-2">
-              <label htmlFor="ollama-url" className="label">
-                Ollama base URL
-              </label>
-              <input id="ollama-url" className="input" value={ollamaUrl} onChange={(e) => update({ ollamaUrl: e.target.value })} placeholder={DEFAULT_OLLAMA_URL} />
-            </div>
-          )}
         </div>
-        {provider !== 'ollama' && (
-          <div role="note" className="rounded-lg border border-spark-400 bg-spark-400/10 p-3 text-sm">
-            <p>
-              <strong>Cloud models.</strong> Your resume text and job descriptions are sent to {provider === 'auto' ? 'Groq / OpenRouter' : PROVIDERS[provider].label.replace(/ \(.*\)/, '')} to generate answers.
-            </p>
-            {server !== null && server.size === 0 && (
-              <p className="mt-1">No AI provider is configured on this server. The site owner needs to set <code>GROQ_API_KEY</code> and/or <code>OPENROUTER_API_KEY</code> in the server environment.</p>
-            )}
-            <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">API keys stay on the server and are never sent to your browser.</p>
-          </div>
-        )}
+        <div role="note" className="rounded-lg border border-spark-400 bg-spark-400/10 p-3 text-sm">
+          <p>
+            <strong>Cloud models.</strong> Your resume text and job descriptions are sent to {provider === 'auto' ? 'Groq / OpenRouter' : PROVIDERS[provider].label.replace(/ \(.*\)/, '')} to generate answers.
+          </p>
+          {server !== null && server.size === 0 && (
+            <p className="mt-1">No AI provider is configured on this server. The site owner needs to set <code>GROQ_API_KEY</code> and/or <code>OPENROUTER_API_KEY</code> in the server environment.</p>
+          )}
+          <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">API keys stay on the server and are never sent to your browser.</p>
+        </div>
         <div className="flex flex-wrap items-center gap-3">
           <button type="button" className="btn-primary" onClick={() => void test()} disabled={testing}>
             {testing ? (
@@ -147,23 +135,15 @@ export function SettingsPage() {
               'Test connection'
             )}
           </button>
-          <button type="button" className="btn-ghost" onClick={() => { update({ ollamaUrl: DEFAULT_OLLAMA_URL }); (Object.keys(PROVIDERS) as ProviderId[]).forEach((id) => (id === 'ollama' ? setModel(id, PROVIDERS[id].defaultModel) : clearModel(id))) }}>
+          <button type="button" className="btn-ghost" onClick={() => (Object.keys(PROVIDERS) as ProviderId[]).forEach(clearModel)}>
             Reset to defaults
           </button>
         </div>
         {status && (
           <div role="status" className={`rounded-lg border p-3 text-sm ${status.ok ? 'border-brand-300 bg-brand-50 text-brand-900 dark:border-brand-700 dark:bg-brand-900/30 dark:text-brand-100' : 'border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200'}`}>
             <p>{status.ok ? '✓ ' : '✗ '}{status.message}</p>
-            {status.models.length > 0 && <p className="mt-1 text-xs">Installed: {status.models.join(', ')}</p>}
+            {status.models.length > 0 && <p className="mt-1 text-xs">Model: {status.models.join(', ')}</p>}
           </div>
-        )}
-        {provider === 'ollama' && (
-          <details>
-            <summary className="cursor-pointer text-sm font-medium">Ollama setup instructions</summary>
-            <div className="mt-3">
-              <OnboardingSteps />
-            </div>
-          </details>
         )}
       </section>
       ) : (

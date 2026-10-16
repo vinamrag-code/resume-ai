@@ -1,4 +1,4 @@
-export type ProviderId = 'ollama' | 'openrouter' | 'groq'
+export type ProviderId = 'openrouter' | 'groq'
 
 /** What the user picks in Settings: Auto uses Groq first with OpenRouter as fallback and checker. */
 export type ProviderChoice = ProviderId | 'auto'
@@ -6,24 +6,20 @@ export type ProviderChoice = ProviderId | 'auto'
 export interface ProviderInfo {
   id: ProviderId
   label: string
-  /** Base URL: the server proxy path for cloud providers (keys stay on the server), or the Ollama default. */
+  /** Base URL: the server proxy path (keys stay on the server). */
   baseUrl: string
   defaultModel: string
   /** True if the provider honours `response_format: json_object`. */
   supportsJsonFormat: boolean
-  /** Prompts and resume text leave this computer when the provider is used. */
-  cloud: boolean
 }
 
 export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
-  ollama: { id: 'ollama', label: 'Ollama (local, advanced)', baseUrl: 'http://localhost:11434', defaultModel: 'llama3.1:8b', supportsJsonFormat: true, cloud: false },
   openrouter: {
     id: 'openrouter',
     label: 'OpenRouter (cloud)',
     baseUrl: '/api/llm/openrouter',
     defaultModel: 'nvidia/nemotron-3-super-120b-a12b:free',
     supportsJsonFormat: false,
-    cloud: true,
   },
   groq: {
     id: 'groq',
@@ -31,7 +27,6 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
     baseUrl: '/api/llm/groq',
     defaultModel: 'openai/gpt-oss-120b',
     supportsJsonFormat: true,
-    cloud: true,
   },
 }
 

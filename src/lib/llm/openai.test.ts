@@ -63,8 +63,7 @@ describe('OpenAiCompatibleClient', () => {
   })
 
   it('createLlm picks the client for the provider', () => {
-    const base = { ollamaUrl: 'http://x', models: defaultModels() }
-    expect(createLlm({ ...base, provider: 'ollama' }).constructor.name).toBe('OllamaClient')
+    const base = { models: defaultModels() }
     expect(createLlm({ ...base, provider: 'groq' })).toBeInstanceOf(OpenAiCompatibleClient)
     expect(createLlm({ ...base, provider: 'auto' })).toBeInstanceOf(FallbackClient)
   })
@@ -113,7 +112,7 @@ describe('FallbackClient', () => {
 
 describe('Auto mode ordering', () => {
   afterEach(() => setServerProviders(null))
-  const settings = { provider: 'auto' as const, ollamaUrl: '', models: defaultModels() }
+  const settings = { provider: 'auto' as const, models: defaultModels() }
   const ok = () => new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }))
   const firstUrl = async (role: 'primary' | 'checker') => {
     const seen: string[] = []

@@ -1,8 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { extractJson, generateJson } from './json'
-import { OllamaClient } from './ollama'
-import { LlmError } from './types'
 import type { ChatMessage, LlmClient } from './types'
 
 const msgs: ChatMessage[] = [{ role: 'user', content: 'hi' }]
@@ -54,59 +52,5 @@ describe('generateJson', () => {
     const llm = scripted(['nope', '{"name":1}'])
     await expect(generateJson(llm, msgs, schema)).rejects.toMatchObject({ kind: 'invalid-json' })
     expect(llm.calls).toHaveLength(2)
-  })
-})
-
-describe('OllamaClient', () => {
-  afterEach(() => vi.unstubAllGlobals())
-  const client = new OllamaClient({ baseUrl: 'http://localhost:11434/', model: 'llama3.1:8b' })
-
-  it('maps network failure to a friendly unreachable error', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
-    await expect(client.chat(msgs)).rejects.toMatchObject({ kind: 'unreachable' })
-    const status = await client.testConnection()
-    expect(status.ok).toBe(false)
-    expect(status.message).toMatch(/OLLAMA_ORIGINS/)
-  })
-
-  it('sends model, format and trims the base url', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: { content: 'ok' } })))
-    vi.stubGlobal('fetch', fetchMock)
-    expect(await client.chat(msgs, { json: true })).toBe('ok')
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(url).toBe('http://localhost:11434/api/chat')
-    const body = JSON.parse(init.body as string) as { model: string; format: string; stream: boolean }
-    expect(body).toMatchObject({ model: 'llama3.1:8b', format: 'json', stream: false })
-  })
-
-  it('parses streamed NDJSON split across chunks', async () => {
-    const enc = new TextEncoder()
-    const parts = ['{"message":{"content":"Hel"}}\n{"mess', 'age":{"content":"lo"}}\n{"done":true}\n']
-    const stream = new ReadableStream<Uint8Array>({
-      start(c) {
-        parts.forEach((p) => c.enqueue(enc.encode(p)))
-        c.close()
-      },
-    })
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(stream)))
-    const tokens: string[] = []
-    const full = await client.stream(msgs, (t) => tokens.push(t))
-    expect(tokens).toEqual(['Hel', 'lo'])
-    expect(full).toBe('Hello')
-  })
-
-  it('reports a missing model', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => new Response('model "x" not found', { status: 404 })))
-    await expect(client.chat(msgs)).rejects.toBeInstanceOf(LlmError)
-    await expect(client.chat(msgs)).rejects.toMatchObject({ kind: 'model-missing' })
-  })
-
-  it('testConnection lists models and checks the configured one', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => new Response(JSON.stringify({ models: [{ name: 'llama3.1:8b' }] }))))
-    expect((await client.testConnection()).ok).toBe(true)
-    const other = new OllamaClient({ baseUrl: 'http://localhost:11434', model: 'mistral' })
-    const s = await other.testConnection()
-    expect(s.ok).toBe(false)
-    expect(s.message).toMatch(/ollama pull mistral/)
   })
 })
