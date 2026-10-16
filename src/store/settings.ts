@@ -46,8 +46,8 @@ export const useSettings = create<SettingsState>()(
       version: 4,
       partialize: ({ provider, models, theme, onboarded }) => ({ provider, models, theme, onboarded }),
       // Older versions saved the built-in cloud defaults as if the user had chosen them, which would stop an
-      // admin's default from applying. Keep only models that differ from those built-ins. Ollama was removed, so a
-      // saved Ollama choice (or any unknown provider) becomes Auto.
+      // admin's default from applying. Keep only models that differ from those built-ins. A saved
+      // provider this version does not know (e.g. one since removed) becomes Auto.
       migrate: (old) => {
         const o = (old ?? {}) as { provider?: string; models?: ModelChoices; theme?: ThemePref; onboarded?: boolean }
         const kept = Object.fromEntries(Object.entries(o.models ?? {}).filter(([id, m]) => id in PROVIDERS && m !== PROVIDERS[id as ProviderId].defaultModel)) as ModelChoices

@@ -91,8 +91,8 @@ describe('backup', () => {
     expect(useResumes.getState().resumes[0]!.name).toBe('Main')
   })
 
-  it('restores an older backup that chose Ollama (since removed) as Auto', () => {
-    const old = { ...createBackup(), settings: { provider: 'ollama', ollamaUrl: 'http://localhost:11434', models: {}, theme: 'dark' } }
+  it('restores a backup naming an unknown provider as Auto, ignoring old settings fields', () => {
+    const old = { ...createBackup(), settings: { provider: 'removed-provider', legacyUrl: 'http://localhost:1234', models: {}, theme: 'dark' } }
     expect(restoreBackup(JSON.stringify(old))).toMatchObject({ ok: true })
     expect(useSettings.getState().provider).toBe('auto')
     expect(useSettings.getState().theme).toBe('dark')

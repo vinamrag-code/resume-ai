@@ -88,10 +88,9 @@ describe('provider choice', () => {
     expect(screen.getByRole('note')).toHaveTextContent('GROQ_API_KEY')
   })
 
-  it('shows only the chosen provider, and no longer offers Ollama', async () => {
+  it('shows only the chosen provider', async () => {
     useSettings.setState({ provider: 'auto' })
     renderAt(<SettingsPage />)
-    expect(screen.queryByRole('option', { name: /ollama/i })).not.toBeInTheDocument()
     await userEvent.selectOptions(screen.getByLabelText('Provider'), 'openrouter')
     expect(screen.getByLabelText(/openrouter model/i)).toBeInTheDocument()
     expect(screen.queryByLabelText(/groq model/i)).not.toBeInTheDocument()

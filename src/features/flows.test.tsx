@@ -59,12 +59,12 @@ describe('import flow', () => {
     expect(llm.calls[0]![0]!.content).toMatch(/never invent|Never invent/i)
   })
 
-  it('shows a friendly error when Ollama is unreachable and keeps the text', async () => {
-    mockLlm([new LlmError('unreachable', 'Could not reach Ollama. Start it and try again.')])
+  it('shows a friendly error when the AI provider is unreachable and keeps the text', async () => {
+    mockLlm([new LlmError('unreachable', 'Could not reach Groq. Check your internet connection.')])
     renderAt(<ImportPage />, { path: '/import', route: '/import' })
     await userEvent.type(screen.getByLabelText(/paste resume text/i), 'Some resume text that is long enough to parse.')
     await userEvent.click(screen.getByRole('button', { name: 'Parse with AI' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent(/could not reach ollama/i)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not reach groq/i)
     expect(screen.getByRole('link', { name: /open settings/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/paste resume text/i)).toHaveValue('Some resume text that is long enough to parse.')
     expect(useResumes.getState().resumes).toHaveLength(0)
@@ -355,10 +355,10 @@ describe('resume agent chat', () => {
 
   it('shows an error if the server is down', async () => {
     const r = seedResume()
-    mockLlm([new LlmError('unreachable', 'Could not reach Ollama.')])
+    mockLlm([new LlmError('unreachable', 'Could not reach Groq.')])
     renderAt(<ChatPanel resume={r} />)
     await userEvent.click(screen.getByRole('button', { name: 'Review my summary' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent(/could not reach ollama/i)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not reach groq/i)
   })
 })
 

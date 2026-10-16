@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { PROVIDERS } from '@/lib/llm/providers'
+import type { ProviderChoice } from '@/lib/llm/providers'
 import { BankItemSchema } from '@/types/bank'
 import { ChatSchema } from '@/types/chat'
 import { CoverLetterSchema, JobSchema } from '@/types/job'
@@ -15,9 +17,8 @@ export const BackupSchema = z.object({
   version: z.literal(1),
   exportedAt: z.string(),
   settings: z.object({
-    // Older backups may name Ollama (since removed) and carry an ollamaUrl; Ollama restores as Auto.
-    provider: z.enum(['auto', 'ollama', 'openrouter', 'groq']).default('auto').transform((p) => (p === 'ollama' ? 'auto' : p)),
-    ollamaUrl: z.string().optional(),
+    // A provider this version does not know (e.g. one since removed) restores as Auto.
+    provider: z.string().default('auto').transform((p): ProviderChoice => (p === 'auto' || p in PROVIDERS ? (p as ProviderChoice) : 'auto')),
     models: z.record(z.string(), z.string()).default({}),
     theme: z.enum(['system', 'light', 'dark']),
   }),
