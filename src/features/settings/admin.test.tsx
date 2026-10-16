@@ -20,7 +20,7 @@ vi.mock('firebase/firestore', () => ({
   setDoc: (...a: unknown[]) => (fs.setDocError ? Promise.reject(fs.setDocError) : fs.setDoc(...a)),
 }))
 
-const MODELS = { allowed: { groq: ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile'], openrouter: ['nvidia/nemotron-3-super-120b-a12b:free'] }, defaults: { groq: 'llama-3.3-70b-versatile', openrouter: 'nvidia/nemotron-3-super-120b-a12b:free' } }
+const MODELS = { allowed: { groq: ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile'], openrouter: ['nvidia/nemotron-3-super-120b-a12b:free'], inception: ['mercury-2.5'] }, defaults: { groq: 'llama-3.3-70b-versatile', openrouter: 'nvidia/nemotron-3-super-120b-a12b:free', inception: 'mercury-2.5' } }
 const CONFIG = { apiKey: 'k', authDomain: 'x', projectId: 'x', appId: '1' }
 
 beforeEach(() => {
@@ -47,7 +47,7 @@ describe('what a member can actually use', () => {
   const chat = async () => (await import('@/lib/llm')).getLlm().chat([{ role: 'user', content: 'hi' }])
 
   it("ignores a member's saved provider and model, using Auto mode with the admin default", async () => {
-    useSettings.setState({ provider: 'openrouter', models: { openrouter: 'some/other:free', groq: 'openai/gpt-oss-120b' } })
+    useSettings.setState({ provider: 'inception', models: { inception: 'mercury-2.5', groq: 'openai/gpt-oss-120b' } })
     await chat()
     expect(bodies[0]).toEqual({ url: '/api/llm/groq/chat/completions', model: 'llama-3.3-70b-versatile' })
   })
@@ -194,7 +194,7 @@ describe('Settings model picker and admin panel', () => {
 
   it('lets an admin add models, pick the default and save them for everyone', async () => {
     useAuth.setState({ isAdmin: true })
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ providers: { groq: true }, models: { groq: ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile', 'new/model'], openrouter: MODELS.allowed.openrouter }, defaults: { groq: 'new/model', openrouter: MODELS.defaults.openrouter } }))))
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ providers: { groq: true }, models: { groq: ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile', 'new/model'], openrouter: MODELS.allowed.openrouter, inception: MODELS.allowed.inception }, defaults: { groq: 'new/model', openrouter: MODELS.defaults.openrouter, inception: MODELS.defaults.inception } }))))
     renderAt(<SettingsPage />)
     expect(screen.getByText('Admin: AI models')).toBeInTheDocument()
     const list = screen.getByLabelText(/Groq models \(one per line\)/)

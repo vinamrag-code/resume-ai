@@ -3,7 +3,7 @@
 A free, open-source, **local-first** AI resume builder. Import a resume, analyse it against a job with a transparent ATS score, tailor it with reviewable diffs, chat with a resume counselor, write cover letters, and track applications. No backend, no accounts, no telemetry.
 
 - Your data lives in your browser (`localStorage`).
-- AI answers come from Groq (primary) and OpenRouter (fallback + fact-checker) through a small server-side proxy that holds your API keys.
+- AI answers come from Groq (primary), OpenRouter (fallback + fact-checker) and Inception (last fallback) through a small server-side proxy that holds your API keys.
 - Semantic matching runs in the browser with `@huggingface/transformers` (`Xenova/all-MiniLM-L6-v2`, ~25 MB, downloaded once).
 - Network calls go only to the AI provider(s) you configured and the one-time embedding-model download.
 
@@ -23,6 +23,7 @@ Resume AI uses hosted models through the keys you configure **on the server**:
 
 - **Groq** (fast, answers first): <https://console.groq.com/keys>
 - **OpenRouter** (fallback and independent fact-checker): <https://openrouter.ai/keys>
+- **Inception** (Mercury, last fallback): <https://platform.inceptionlabs.ai>
 
 One key is enough to start; both is best.
 
@@ -35,6 +36,7 @@ copy .env.example .env      # PowerShell (macOS/Linux: cp .env.example .env)
 ```
 GROQ_API_KEY=your-key
 OPENROUTER_API_KEY=your-key
+INCEPTION_API_KEY=your-key
 ```
 
 `.env` is git-ignored. The keys are read only by the server-side proxy (below) and are **never bundled into the browser build or sent to visitors**.
@@ -54,7 +56,7 @@ Visitors never see your keys. The browser calls `/api/llm/...` on your own serve
 
 - `GET /api/auth/config` publishes the public Firebase settings and whether sign-in is required.
 - `GET /api/llm/status` tells the app which providers are configured (never the keys).
-- `POST /api/llm/{groq|openrouter}/chat/completions` is a validated, streaming passthrough.
+- `POST /api/llm/{groq|openrouter|inception}/chat/completions` is a validated, streaming passthrough.
 - **Protections:** a model allowlist (visitors cannot pick other or paid models), message-count / prompt-size / output-token caps, only known fields forwarded (no tools), same-origin only, and per-visitor rate limits (default 20/minute and 300/day, configurable; set `TRUST_PROXY=1` behind a platform proxy so limits are per visitor).
 - Limits are per server process (in memory), so run a single instance, or add a shared store such as Redis if you scale out.
 
@@ -67,7 +69,7 @@ npm run build:server   # proxy + static server -> server-dist/index.mjs
 npm start              # reads PORT, GROQ_API_KEY, OPENROUTER_API_KEY, ...
 ```
 
-`render.yaml` is included for [Render](https://render.com): set `GROQ_API_KEY` and `OPENROUTER_API_KEY` in the dashboard. All server variables are listed in `.env.example`. Anyone who can open your site can use your quota within these limits, so keep the limits modest and set spending caps on your provider accounts.
+`render.yaml` is included for [Render](https://render.com): set `GROQ_API_KEY`, `OPENROUTER_API_KEY` and `INCEPTION_API_KEY` in the dashboard. All server variables are listed in `.env.example`. Anyone who can open your site can use your quota within these limits, so keep the limits modest and set spending caps on your provider accounts.
 
 ### Sign-in and cloud sync (Firebase)
 
@@ -107,7 +109,7 @@ docker run --rm -v "$PWD":/work -w /work resume-ai-rules firebase emulators:exec
 
 ### How models are chosen (Auto mode, the default)
 
-- **Primary:** Groq (`openai/gpt-oss-120b`), the fastest. If it fails or is rate-limited, OpenRouter takes over automatically.
+- **Primary:** Groq (`openai/gpt-oss-120b`), the fastest. If it fails or is rate-limited, OpenRouter takes over automatically, then Inception (`mercury-2.5`).
 - **Checker:** the AI fact-check of suggested edits goes to OpenRouter first, so a second, independent model reviews them (falling back to Groq).
 - Providers without a key on the server are skipped; with one key it is used for everything.
 - Resume text and job descriptions are sent through your server to these providers.
@@ -151,7 +153,7 @@ Store each job, project and achievement once on the **Experience bank** page (st
 
 - **UI**: React 19 + React Router, Tailwind CSS (class-based dark mode), feature folders.
 - **State**: Zustand stores with `persist` (`resume-ai:*` keys in localStorage): resumes, jobs, cover letters, settings. Agent conversations are saved per resume (`resume-ai:chats`) and synced like the rest.
-- **LLM**: `src/lib/llm` exposes a small `LlmClient` interface (`chat`, `stream`, `testConnection`). `OpenAiCompatibleClient` covers OpenRouter and Groq (`/chat/completions`, SSE streaming); `FallbackClient` chains providers (Auto mode). `getLlm()` builds it from Settings; `setLlmClient()` swaps the provider (used by tests). `generateJson()` validates with zod and retries once, feeding the validation error back.
+- **LLM**: `src/lib/llm` exposes a small `LlmClient` interface (`chat`, `stream`, `testConnection`). `OpenAiCompatibleClient` covers Groq, OpenRouter and Inception (`/chat/completions`, SSE streaming); `FallbackClient` chains providers (Auto mode). `getLlm()` builds it from Settings; `setLlmClient()` swaps the provider (used by tests). `generateJson()` validates with zod and retries once, feeding the validation error back.
 - **Prompts**: `src/lib/prompts`, one file per task, all including the shared `TRUTHFULNESS_RULES`.
 - **ATS score** (`src/lib/ats`): pure and deterministic. Components: keyword coverage (frequency + tech-term extraction, light stemming), semantic similarity (embedding cosine, best-chunk matching), section completeness, bullet quality (action verb, quantified, length) and formatting checks. Weights are 30/20/15/20/15 and are renormalised when a component is unavailable (no job description, or embeddings not yet run). The LLM is never asked for a score.
 - **Changes** (`src/lib/changes.ts`): model output (indexes, not ids) is resolved against the real resume into `Change` objects (`before` always comes from the resume), shared by Tailoring and Chat. Stale changes (resume edited since) are skipped, never forced.

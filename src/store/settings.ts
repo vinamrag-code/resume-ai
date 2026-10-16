@@ -13,7 +13,7 @@ export function defaultModels(): ModelChoices {
 }
 
 export interface SettingsState {
-  /** "auto" = Groq first, OpenRouter as fallback and fact-checker. */
+  /** "auto" = Groq first, then OpenRouter (also the fact-checker), then Inception. */
   provider: ProviderChoice
   /** Models the user picked themselves (cloud providers are empty until they choose one). */
   models: ModelChoices

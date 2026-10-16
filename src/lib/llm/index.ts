@@ -37,24 +37,24 @@ function single(id: ProviderId, s: ClientSettings): LlmClient {
   })
 }
 
-/** Order of cloud providers in Auto mode: Groq is fastest, OpenRouter is the second opinion. */
+/** Order of cloud providers in Auto mode: Groq is fastest, OpenRouter is the second opinion, Inception the last fallback. */
 const AUTO_ORDER = CLOUD_PROVIDERS
 
 export type LlmRole = 'primary' | 'checker'
 
 /**
  * Build a client for the current settings.
- * - Auto: primary = Groq then OpenRouter as fallback; checker = the *other* provider first, so
- *   fact-checks come from an independent model, falling back to the primary one.
+ * - Auto: primary = Groq, then OpenRouter, then Inception; checker = the same chain rotated by one
+ *   (OpenRouter, Inception, Groq), so fact-checks come from an independent model, falling back to the primary one.
  *   Only providers that have a key on the server are used (keys never reach the browser).
  * - A specific provider: used for everything.
  */
 export function createLlm(s: ClientSettings, role: LlmRole = 'primary'): LlmClient {
   if (s.provider !== 'auto') return single(s.provider, s)
-  // Until the server status is known, try both; a provider without a key answers 503 and Auto falls through.
+  // Until the server status is known, try all; a provider without a key answers 503 and Auto falls through.
   const known = getServerProviders()
   const available = AUTO_ORDER.filter((id) => !known || known.has(id))
-  const ordered = role === 'checker' ? [...available].reverse() : available
+  const ordered = role === 'checker' ? [...available.slice(1), ...available.slice(0, 1)] : available
   return new FallbackClient(ordered.map((id) => single(id, s)))
 }
 

@@ -65,6 +65,7 @@ describe('OpenAiCompatibleClient', () => {
   it('createLlm picks the client for the provider', () => {
     const base = { models: defaultModels() }
     expect(createLlm({ ...base, provider: 'groq' })).toBeInstanceOf(OpenAiCompatibleClient)
+    expect(createLlm({ ...base, provider: 'inception' })).toBeInstanceOf(OpenAiCompatibleClient)
     expect(createLlm({ ...base, provider: 'auto' })).toBeInstanceOf(FallbackClient)
   })
 })
@@ -124,6 +125,15 @@ describe('Auto mode ordering', () => {
     setServerProviders(new Set(['groq', 'openrouter']))
     expect(await firstUrl('primary')).toContain('/api/llm/groq')
     expect(await firstUrl('checker')).toContain('/api/llm/openrouter')
+  })
+  it('with all three, Inception is the last fallback for answers and the checker stays OpenRouter', async () => {
+    setServerProviders(new Set(['groq', 'openrouter', 'inception']))
+    expect(await firstUrl('primary')).toContain('/api/llm/groq')
+    expect(await firstUrl('checker')).toContain('/api/llm/openrouter')
+    const seen: string[] = []
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u: string) => { seen.push(u); return u.includes('inception') ? ok() : new Response('x', { status: 429 }) }))
+    expect(await createLlm(settings).chat(msgs)).toBe('ok')
+    expect(seen.map((u) => u.split('/')[3])).toEqual(['groq', 'openrouter', 'inception'])
   })
   it('uses whichever single provider the server has for every role', async () => {
     setServerProviders(new Set(['openrouter']))

@@ -68,7 +68,7 @@ describe('model source', () => {
 describe('proxy uses the admin-managed models', () => {
   let close: (() => void) | null = null
   afterEach(() => close?.())
-  const models = async () => ({ allowed: { groq: ['new/model-a', 'new/model-b'], openrouter: ['x/y:free'] }, defaults: { groq: 'new/model-b', openrouter: 'x/y:free' } })
+  const models = async () => ({ allowed: { groq: ['new/model-a', 'new/model-b'], openrouter: ['x/y:free'], inception: ['mercury-2.5'] }, defaults: { groq: 'new/model-b', openrouter: 'x/y:free', inception: 'mercury-2.5' } })
 
   async function start() {
     const upstream = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ choices: [{ message: { content: 'hi' } }] })))
@@ -85,8 +85,8 @@ describe('proxy uses the admin-managed models', () => {
   it('status publishes the admin allowlist and defaults', async () => {
     const { base } = await start()
     const status = await (await fetch(`${base}/api/llm/status`)).json()
-    expect(status.models).toEqual({ groq: ['new/model-a', 'new/model-b'], openrouter: ['x/y:free'] })
-    expect(status.defaults).toEqual({ groq: 'new/model-b', openrouter: 'x/y:free' })
+    expect(status.models).toEqual({ groq: ['new/model-a', 'new/model-b'], openrouter: ['x/y:free'], inception: ['mercury-2.5'] })
+    expect(status.defaults).toEqual({ groq: 'new/model-b', openrouter: 'x/y:free', inception: 'mercury-2.5' })
   })
 
   it('accepts models the admin added and refuses the old default and anything else', async () => {

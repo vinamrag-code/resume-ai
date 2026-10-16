@@ -1,4 +1,4 @@
-export type ProviderId = 'openrouter' | 'groq'
+export type ProviderId = 'openrouter' | 'groq' | 'inception'
 
 /** What the user picks in Settings: Auto uses Groq first with OpenRouter as fallback and checker. */
 export type ProviderChoice = ProviderId | 'auto'
@@ -28,10 +28,17 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
     defaultModel: 'openai/gpt-oss-120b',
     supportsJsonFormat: true,
   },
+  inception: {
+    id: 'inception',
+    label: 'Inception (cloud)',
+    baseUrl: '/api/llm/inception',
+    defaultModel: 'mercury-2.5',
+    supportsJsonFormat: true,
+  },
 }
 
-export type CloudProvider = 'groq' | 'openrouter'
-export const CLOUD_PROVIDERS: CloudProvider[] = ['groq', 'openrouter']
+export type CloudProvider = 'groq' | 'openrouter' | 'inception'
+export const CLOUD_PROVIDERS: CloudProvider[] = ['groq', 'openrouter', 'inception']
 
 /** Which cloud providers have a key on the server. `null` until the status request finishes. */
 let serverProviders: Set<CloudProvider> | null = null
