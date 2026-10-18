@@ -3,15 +3,15 @@ import { ASSISTANT_NAME } from '@/lib/assistant'
 import { ChatPanel } from './ChatPanel'
 
 /**
- * The assistant's chat window. On wide screens it opens to the left of the resume preview and follows the page as you
- * scroll; on narrow screens it is a sheet at the bottom of the screen.
+ * The assistant's chat as a docked panel: a column to the right of the resume preview on wide screens (it follows the page
+ * as you scroll), and below the preview on narrow ones.
  */
 export function AssistantWidget({ resume, onClose }: { resume: Resume; onClose: () => void }) {
   return (
-    <div className="no-print fixed inset-x-3 bottom-3 z-30 lg:absolute lg:inset-auto lg:right-full lg:top-0 lg:mr-3 lg:h-full lg:w-[26rem]">
+    <div className="no-print min-w-0">
       <aside
         aria-label={`${ASSISTANT_NAME}, your resume assistant`}
-        className="flex max-h-[80vh] flex-col overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-xl dark:border-ink-700 dark:bg-ink-900 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)]"
+        className="flex max-h-[80vh] flex-col overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-sm dark:border-ink-700 dark:bg-ink-900 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)]"
       >
         <header className="flex items-center gap-3 border-b border-ink-200 px-4 py-3 dark:border-ink-700">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-spark-500 text-ink-950" aria-hidden="true">
