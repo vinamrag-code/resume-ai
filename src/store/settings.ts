@@ -43,7 +43,7 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: 'resume-ai:settings',
-      version: 4,
+      version: 5, // 5: a provider chosen in another build of the app (e.g. Inception) is reset to Auto
       partialize: ({ provider, models, theme, onboarded }) => ({ provider, models, theme, onboarded }),
       // Older versions saved the built-in cloud defaults as if the user had chosen them, which would stop an
       // admin's default from applying. Keep only models that differ from those built-ins. A saved
