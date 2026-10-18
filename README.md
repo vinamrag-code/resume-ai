@@ -3,7 +3,7 @@
 A free, open-source, **local-first** AI resume builder. Import a resume, analyse it against a job with a transparent ATS score, tailor it with reviewable diffs, chat with a resume counselor, write cover letters, and track applications. No backend, no accounts, no telemetry.
 
 - Your data lives in your browser (`localStorage`).
-- AI answers come from Groq (primary) and OpenRouter (fallback + fact-checker) through a small server-side proxy that holds your API keys.
+- AI answers come from a LangChain pipeline (`src/lib/chain`): saved resumes/imported files are retrieved from an IndexedDB vector store, Groq improves the prompt, Inception (Mercury) writes the answer, Groq polishes it, and OpenRouter backs up every step (and is the independent fact-checker). Calls go through a small server-side proxy that holds your API keys.
 - Semantic matching runs in the browser with `@huggingface/transformers` (`Xenova/all-MiniLM-L6-v2`, ~25 MB, downloaded once).
 - Network calls go only to the AI provider(s) you configured and the one-time embedding-model download.
 
@@ -21,7 +21,8 @@ Requires Node 20+.
 
 Resume AI uses hosted models through the keys you configure **on the server**:
 
-- **Groq** (fast, answers first): <https://console.groq.com/keys>
+- **Inception** (writes the answers, `INCEPTION_API_KEY`): <https://platform.inceptionlabs.ai>
+- **Groq** (improves the prompt and polishes the answer): <https://console.groq.com/keys>
 - **OpenRouter** (fallback and independent fact-checker): <https://openrouter.ai/keys>
 
 One key is enough to start; both is best.
@@ -54,7 +55,7 @@ Visitors never see your keys. The browser calls `/api/llm/...` on your own serve
 
 - `GET /api/auth/config` publishes the public Firebase settings and whether sign-in is required.
 - `GET /api/llm/status` tells the app which providers are configured (never the keys).
-- `POST /api/llm/{groq|openrouter}/chat/completions` is a validated, streaming passthrough.
+- `POST /api/llm/{groq|openrouter|inception}/chat/completions` is a validated, streaming passthrough.
 - **Protections:** a model allowlist (visitors cannot pick other or paid models), message-count / prompt-size / output-token caps, only known fields forwarded (no tools), same-origin only, and per-visitor rate limits (default 20/minute and 300/day, configurable; set `TRUST_PROXY=1` behind a platform proxy so limits are per visitor).
 - Limits are per server process (in memory), so run a single instance, or add a shared store such as Redis if you scale out.
 

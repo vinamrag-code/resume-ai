@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { FallbackClient } from './fallback'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { LlmError } from './types'
 import type { LlmClient } from './types'
 import { defaultModels } from '@/store/settings'
+import { ChainLlmClient, LangChainClient } from '@/lib/chain'
 import { createLlm, setServerProviders } from './index'
+import { setInceptionStatus } from './providers'
 import { OpenAiCompatibleClient } from './openai'
 
 const cfg = { baseUrl: 'https://api.example.com/v1/', model: 'm1', apiKey: 'sk-test', label: 'Example', supportsJsonFormat: true }
@@ -65,7 +66,8 @@ describe('OpenAiCompatibleClient', () => {
   it('createLlm picks the client for the provider', () => {
     const base = { models: defaultModels() }
     expect(createLlm({ ...base, provider: 'groq' })).toBeInstanceOf(OpenAiCompatibleClient)
-    expect(createLlm({ ...base, provider: 'auto' })).toBeInstanceOf(FallbackClient)
+    expect(createLlm({ ...base, provider: 'auto' })).toBeInstanceOf(ChainLlmClient)
+    expect(createLlm({ ...base, provider: 'auto' }, 'checker')).toBeInstanceOf(LangChainClient)
   })
 })
 
@@ -78,40 +80,46 @@ function fake(name: string, behaviour: 'ok' | LlmError): LlmClient & { used: num
   }
 }
 
-describe('FallbackClient', () => {
+describe('LangChainClient (withFallbacks)', () => {
   const down = new LlmError('rate-limit', 'limited')
   it('uses the first provider when it works', async () => {
     const a = fake('A', 'ok'); const b = fake('B', 'ok')
-    expect(await new FallbackClient([a, b]).chat(msgs)).toBe('A')
+    expect(await new LangChainClient([a, b]).chat(msgs)).toBe('A')
     expect(b.used).toBe(0)
   })
   it('falls back on provider errors, for chat and for streams that have not started', async () => {
     const a = fake('A', down); const b = fake('B', 'ok')
-    expect(await new FallbackClient([a, b]).chat(msgs)).toBe('B')
+    expect(await new LangChainClient([a, b]).chat(msgs)).toBe('B')
     const tokens: string[] = []
-    expect(await new FallbackClient([fake('A', down), fake('B', 'ok')]).stream(msgs, (t) => tokens.push(t))).toBe('B')
+    expect(await new LangChainClient([fake('A', down), fake('B', 'ok')]).stream(msgs, (t) => tokens.push(t))).toBe('B')
     expect(tokens).toEqual(['B'])
   })
-  it('throws the last error when all fail, and never retries cancellation', async () => {
-    await expect(new FallbackClient([fake('A', down), fake('B', new LlmError('auth', 'bad key'))]).chat(msgs)).rejects.toMatchObject({ kind: 'auth' })
+  it('throws the first provider\'s error when all fail, and never retries cancellation', async () => {
+    await expect(new LangChainClient([fake('A', down), fake('B', new LlmError('auth', 'bad key'))]).chat(msgs)).rejects.toMatchObject({ kind: 'rate-limit' })
+    const ctl = new AbortController()
+    const cancelled: LlmClient = { chat: async () => { ctl.abort(); throw new DOMException('x', 'AbortError') }, stream: async () => '', testConnection: async () => ({ ok: true, models: [], message: '' }) }
     const b = fake('B', 'ok')
-    await expect(new FallbackClient([fake('A', new LlmError('aborted', 'x')), b]).chat(msgs)).rejects.toMatchObject({ kind: 'aborted' })
+    await expect(new LangChainClient([cancelled, b]).chat(msgs, { signal: ctl.signal })).rejects.toMatchObject({ kind: 'aborted' })
     expect(b.used).toBe(0)
   })
   it('gives a helpful error when no provider is configured', async () => {
-    await expect(new FallbackClient([]).chat(msgs)).rejects.toMatchObject({ kind: 'auth', message: expect.stringContaining('GROQ_API_KEY') })
-    expect((await new FallbackClient([]).testConnection()).ok).toBe(false)
+    await expect(new LangChainClient([]).chat(msgs)).rejects.toMatchObject({ kind: 'auth', message: expect.stringContaining('GROQ_API_KEY') })
+    expect((await new LangChainClient([]).testConnection()).ok).toBe(false)
   })
   it('does not switch providers once text was streamed', async () => {
     const partial: LlmClient = { chat: async () => '', stream: async (_m, onToken) => { onToken('par'); throw down }, testConnection: async () => ({ ok: true, models: [], message: '' }) }
     const b = fake('B', 'ok')
-    await expect(new FallbackClient([partial, b]).stream(msgs, () => {})).rejects.toBe(down)
+    await expect(new LangChainClient([partial, b]).stream(msgs, () => {})).rejects.toBe(down)
     expect(b.used).toBe(0)
   })
 })
 
-describe('Auto mode ordering', () => {
-  afterEach(() => setServerProviders(null))
+describe('Auto mode ordering (without Inception)', () => {
+  beforeEach(() => setInceptionStatus({ available: false, model: 'mercury-2' }))
+  afterEach(() => {
+    setServerProviders(null)
+    setInceptionStatus(null)
+  })
   const settings = { provider: 'auto' as const, models: defaultModels() }
   const ok = () => new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }))
   const firstUrl = async (role: 'primary' | 'checker') => {

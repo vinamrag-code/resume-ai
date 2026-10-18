@@ -60,7 +60,7 @@ describe('LLM proxy', () => {
   it('reports which providers are configured without revealing keys', async () => {
     const { base } = await start(loadConfig({ GROQ_API_KEY: 'gk-secret' }))
     const text = await (await fetch(`${base}/api/llm/status`)).text()
-    expect(JSON.parse(text).providers).toEqual({ groq: true, openrouter: false })
+    expect(JSON.parse(text).providers).toEqual({ groq: true, openrouter: false, inception: false })
     expect(text).not.toContain('gk-secret')
   })
 
@@ -74,6 +74,19 @@ describe('LLM proxy', () => {
     expect(url).toBe('https://api.groq.com/openai/v1/chat/completions')
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer gk-secret')
     expect(JSON.parse(init.body as string)).not.toHaveProperty('tools')
+  })
+
+  it('routes Inception with its own key and allowlist, and answers 503 without a key', async () => {
+    const upstream = okUpstream()
+    const withKey = loadConfig({ INCEPTION_API_KEY: 'ik-secret' })
+    const { post } = await start(withKey, upstream)
+    expect((await post('/api/llm/inception/chat/completions', { ...goodBody, model: 'mercury-2' })).status).toBe(200)
+    const [url, init] = upstream.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('https://api.inceptionlabs.ai/v1/chat/completions')
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer ik-secret')
+    expect((await post('/api/llm/inception/chat/completions', goodBody)).status).toBe(400) // a Groq model is not allowed here
+    const { post: post2 } = await start(loadConfig({}), okUpstream())
+    expect((await post2('/api/llm/inception/chat/completions', { ...goodBody, model: 'mercury-2' })).status).toBe(503)
   })
 
   it('streams the upstream response through', async () => {

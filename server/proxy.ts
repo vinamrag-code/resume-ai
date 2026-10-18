@@ -11,6 +11,7 @@ import { RateLimiter } from './rateLimit'
 const UPSTREAM: Record<Provider, string> = {
   groq: 'https://api.groq.com/openai/v1/chat/completions',
   openrouter: 'https://openrouter.ai/api/v1/chat/completions',
+  inception: 'https://api.inceptionlabs.ai/v1/chat/completions',
 }
 
 type FetchLike = (url: string, init: RequestInit) => Promise<Response>
@@ -89,7 +90,7 @@ function sameOrigin(req: IncomingMessage): boolean {
 /**
  * Handles /api/llm/* requests. Returns true if the request was handled.
  *   GET  /api/llm/status                       -> which providers have a key on the server
- *   POST /api/llm/{groq|openrouter}/chat/completions -> validated, rate-limited, key-injected passthrough (streaming supported)
+ *   POST /api/llm/{groq|openrouter|inception}/chat/completions -> validated, rate-limited, key-injected passthrough (streaming supported)
  */
 export function createLlmHandler(cfg: ServerConfig, fetchImpl: FetchLike = fetch as FetchLike, limiter = new RateLimiter(cfg.perMinute, cfg.perDay), userLimiter = new RateLimiter(cfg.userPerMinute, cfg.userPerDay), deps: { verifyFetch?: (url: string) => Promise<Response>; models?: () => Promise<ModelConfig>; isAdmin?: (uid: string, token: string) => Promise<boolean> } = {}) {
   const isAdmin = deps.isAdmin ?? createAdminCheck(cfg)
@@ -110,10 +111,10 @@ export function createLlmHandler(cfg: ServerConfig, fetchImpl: FetchLike = fetch
     }
     if (url.pathname === '/api/llm/status' && req.method === 'GET') {
       const m = await models()
-      send(res, 200, { providers: { groq: !!cfg.keys.groq, openrouter: !!cfg.keys.openrouter }, models: m.allowed, defaults: m.defaults })
+      send(res, 200, { providers: { groq: !!cfg.keys.groq, openrouter: !!cfg.keys.openrouter, inception: !!cfg.keys.inception }, models: m.allowed, defaults: m.defaults })
       return true
     }
-    const m = url.pathname.match(/^\/api\/llm\/(groq|openrouter)\/chat(?:\/completions)?$/)
+    const m = url.pathname.match(/^\/api\/llm\/(groq|openrouter|inception)\/chat(?:\/completions)?$/)
     if (!m) {
       fail(res, 404, 'Not found.')
       return true

@@ -1,4 +1,4 @@
-export type Provider = 'groq' | 'openrouter'
+export type Provider = 'groq' | 'openrouter' | 'inception'
 
 export interface ServerConfig {
   port: number
@@ -39,16 +39,18 @@ const num = (v: string | undefined, fallback: number) => {
 export const DEFAULT_MODELS: Record<Provider, string[]> = {
   groq: ['openai/gpt-oss-120b'],
   openrouter: ['nvidia/nemotron-3-super-120b-a12b:free'],
+  inception: ['mercury-2'],
 }
 
 /** Read server settings from environment variables. API keys never reach the browser bundle. */
 export function loadConfig(env: Record<string, string | undefined> = process.env): ServerConfig {
   return {
     port: num(env.PORT, 8787),
-    keys: { groq: env.GROQ_API_KEY?.trim() ?? '', openrouter: env.OPENROUTER_API_KEY?.trim() ?? '' },
+    keys: { groq: env.GROQ_API_KEY?.trim() ?? '', openrouter: env.OPENROUTER_API_KEY?.trim() ?? '', inception: env.INCEPTION_API_KEY?.trim() ?? '' },
     allowedModels: {
       groq: list(env.GROQ_ALLOWED_MODELS, DEFAULT_MODELS.groq),
       openrouter: list(env.OPENROUTER_ALLOWED_MODELS, DEFAULT_MODELS.openrouter),
+      inception: list(env.INCEPTION_ALLOWED_MODELS, DEFAULT_MODELS.inception),
     },
     perMinute: num(env.RATE_LIMIT_PER_MINUTE, 20),
     perDay: num(env.RATE_LIMIT_PER_DAY, 300),

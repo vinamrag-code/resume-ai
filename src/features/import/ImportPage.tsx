@@ -4,6 +4,8 @@ import { SignInNotice } from '@/components/SignInNotice'
 import { ErrorBanner, Spinner, TruthfulnessNote } from '@/components/ui'
 import { useAiAccess } from '@/lib/auth/useAiAccess'
 import { extractText } from '@/lib/extract'
+import { forgetImportedFile, indexImportedFile } from '@/lib/rag/indexer'
+import { getEmbeddings } from '@/lib/rag/retrieve'
 import { useResumes } from '@/store/resumes'
 import { parseResumeText } from './parseResume'
 
@@ -18,6 +20,7 @@ export function ImportPage() {
   const [phase, setPhase] = useState<Phase>('idle')
   const [error, setError] = useState<unknown>(null)
   const abort = useRef<AbortController | null>(null)
+  const indexedFile = useRef('')
   const busy = phase !== 'idle'
 
   const onFile = async (file: File | undefined) => {
@@ -25,8 +28,12 @@ export function ImportPage() {
     setError(null)
     setPhase('extracting')
     try {
-      setText(await extractText(file))
+      const extracted = await extractText(file)
+      setText(extracted)
       setFileName(file.name.replace(/\.[^.]+$/, ''))
+      // Remember the file so later answers can draw on it. Best effort: never blocks or fails the import.
+      indexedFile.current = file.name
+      void indexImportedFile(file.name, extracted, getEmbeddings()).catch(() => undefined)
     } catch (err) {
       setError(err)
     } finally {
@@ -41,6 +48,8 @@ export function ImportPage() {
     try {
       const content = await parseResumeText(text, abort.current.signal)
       const r = create(fileName || content.contact.name || 'Imported resume', content)
+      // The new resume holds this file's content in structured form, so the raw copy would only duplicate it.
+      if (indexedFile.current) void forgetImportedFile(indexedFile.current).catch(() => undefined)
       navigate(`/resume/${r.id}`)
     } catch (err) {
       setError(err)

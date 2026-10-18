@@ -38,7 +38,7 @@ export function parseModelDoc(doc: unknown, env: ModelConfig): ModelConfig {
 
 /** Server defaults come from environment variables; the admin's Firestore document overrides them. */
 export function envModels(cfg: Pick<ServerConfig, 'allowedModels'>): ModelConfig {
-  return { allowed: cfg.allowedModels, defaults: { groq: cfg.allowedModels.groq[0]!, openrouter: cfg.allowedModels.openrouter[0]! } }
+  return { allowed: cfg.allowedModels, defaults: { groq: cfg.allowedModels.groq[0]!, openrouter: cfg.allowedModels.openrouter[0]!, inception: cfg.allowedModels.inception[0]! } }
 }
 
 /**

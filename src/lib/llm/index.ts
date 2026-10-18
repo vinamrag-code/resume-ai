@@ -2,16 +2,16 @@ import { getIdToken, useAuth } from '@/lib/auth/store'
 import { canManageModels } from '@/lib/auth/useCanManageModels'
 import { useSettings } from '@/store/settings'
 import type { SettingsState } from '@/store/settings'
-import { FallbackClient } from './fallback'
+import { ChainLlmClient, LangChainClient } from '@/lib/chain'
 import { OpenAiCompatibleClient } from './openai'
-import { CLOUD_PROVIDERS, getServerProviders, PROVIDERS, resolveModel } from './providers'
+import { CLOUD_PROVIDERS, getInceptionStatus, getServerProviders, INCEPTION, PROVIDERS, resolveModel } from './providers'
 import type { ProviderId } from './providers'
 import type { LlmClient } from './types'
 
 export * from './types'
 export { generateJson, extractJson } from './json'
 export { OpenAiCompatibleClient } from './openai'
-export { FallbackClient } from './fallback'
+export { LangChainClient } from '@/lib/chain'
 export { PROVIDERS, CLOUD_PROVIDERS, loadServerProviders, getServerProviders, setServerProviders, getServerModels, setServerModels, resolveModel, subscribeServerProviders } from './providers'
 export type { ProviderId, ProviderInfo } from './providers'
 
@@ -37,6 +37,16 @@ function single(id: ProviderId, s: ClientSettings): LlmClient {
   })
 }
 
+function inception(): LlmClient {
+  return new OpenAiCompatibleClient({
+    baseUrl: INCEPTION.baseUrl,
+    model: getInceptionStatus()?.model ?? INCEPTION.defaultModel,
+    getToken: getIdToken,
+    label: 'Inception',
+    supportsJsonFormat: INCEPTION.supportsJsonFormat,
+  })
+}
+
 /** Order of cloud providers in Auto mode: Groq is fastest, OpenRouter is the second opinion. */
 const AUTO_ORDER = CLOUD_PROVIDERS
 
@@ -44,7 +54,7 @@ export type LlmRole = 'primary' | 'checker'
 
 /**
  * Build a client for the current settings.
- * - Auto: primary = Groq then OpenRouter as fallback; checker = the *other* provider first, so
+ * - Auto: primary = the LangChain pipeline (see `ChainLlmClient`); checker = the *other* provider first, so
  *   fact-checks come from an independent model, falling back to the primary one.
  *   Only providers that have a key on the server are used (keys never reach the browser).
  * - A specific provider: used for everything.
@@ -54,8 +64,15 @@ export function createLlm(s: ClientSettings, role: LlmRole = 'primary'): LlmClie
   // Until the server status is known, try both; a provider without a key answers 503 and Auto falls through.
   const known = getServerProviders()
   const available = AUTO_ORDER.filter((id) => !known || known.has(id))
+  // The primary role runs the LangChain pipeline: Groq improves the prompt, Inception writes, Groq polishes it,
+  // and OpenRouter stands behind every step. The checker stays on Groq/OpenRouter so fact-checks remain independent.
+  const inceptionStatus = getInceptionStatus()
+  if (role === 'primary' && (!inceptionStatus || inceptionStatus.available)) {
+    const openrouter = available.includes('openrouter') ? [single('openrouter', s)] : []
+    return new ChainLlmClient({ editor: available.map((id) => single(id, s)), writer: [inception(), ...openrouter] })
+  }
   const ordered = role === 'checker' ? [...available].reverse() : available
-  return new FallbackClient(ordered.map((id) => single(id, s)))
+  return new LangChainClient(ordered.map((id) => single(id, s)))
 }
 
 /** The app-wide LLM client, built from the current Settings. */
