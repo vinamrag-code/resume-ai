@@ -123,7 +123,7 @@ export function ChatPanel({ resume }: { resume: Resume }) {
         { signal: abort.current.signal, temperature: 0.4 },
       )
       // On the first turn only layout changes and explicit fixes are accepted; content rewrites wait for answers.
-      const parsed = parseEdits(full, resume, phase)
+      const parsed = parseEdits(full, resume, phase, history.filter((t) => t.role === 'user').map((t) => t.content).join('\n'))
       const changes = await verifyChanges(parsed, resumeToText(resume.content), abort.current.signal)
       // Never leave the user with an empty or JSON-only reply.
       const shown = visibleText(full) ? full : `${fallbackText(changes.length > 0)}`

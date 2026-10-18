@@ -66,6 +66,28 @@ describe('buildChanges', () => {
     expect(sk.afterSkills).toEqual(['React', 'TypeScript', 'Docker', 'Node.js', 'SQL'].slice(0, 3).concat(['Node.js', 'SQL']))
     expect(sk.afterSkills).not.toContain('Rust')
   })
+
+  describe('adding skills the user named', () => {
+    const only = (edits: Record<string, unknown>, userText: string) => buildChanges(content, ProposedEditsSchema.parse(edits), src, undefined, userText).find((c) => c.target.kind === 'skills')
+
+    it('adds a skill the user wrote, keeping the existing ones, with no scary warning', () => {
+      const sk = only({ addSkills: ['LangChain'] }, 'please add langchain to my skills')!
+      expect(sk.afterSkills).toEqual([...content.skills, 'LangChain'])
+      expect(sk.beforeSkills).toEqual(content.skills)
+      expect(sk.warnings).toEqual([])
+      expect(applyChanges(content, [{ ...sk, status: 'accepted' }]).content.skills).toContain('LangChain')
+    })
+    it('refuses a skill the user never mentioned, however the model asks for it', () => {
+      expect(only({ addSkills: ['LangGraph'] }, 'make my skills fit the job')).toBeUndefined()
+      expect(only({ skills: [...content.skills, 'Rust'] }, 'rust please')).toBeUndefined() // reordering can never add one either
+    })
+    it('ignores a skill already on the resume and combines with a reorder', () => {
+      expect(only({ addSkills: [content.skills[0]!] }, `add ${content.skills[0]!}`)).toBeUndefined()
+      const sk = only({ skills: ['SQL'], addSkills: ['LangChain'] }, 'add LangChain')!
+      expect(sk.afterSkills![0]).toBe('SQL')
+      expect(sk.afterSkills!.at(-1)).toBe('LangChain')
+    })
+  })
 })
 
 describe('accept / reject / apply', () => {

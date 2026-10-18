@@ -81,6 +81,8 @@ export const ProposedEditsSchema = z.object({
     })
     .nullish(),
   skills: z.array(z.string()).nullish(),
+  /** Skills the user named themselves; accepted only if they really appear in the user's own messages. */
+  addSkills: z.array(z.string()).nullish(),
   summaryReason: z.string().nullish(),
   skillsReason: z.string().nullish(),
 })
@@ -159,14 +161,30 @@ export function sanitizeSkills(original: string[], proposed: string[]): string[]
   return out
 }
 
+/** Proposed new skills that the user really wrote in the conversation and the resume does not have yet. */
+export function namedSkills(existing: string[], proposed: string[], userText: string): string[] {
+  const said = userText.toLowerCase()
+  const have = new Set(existing.map((s) => s.trim().toLowerCase()))
+  const out: string[] = []
+  for (const raw of proposed) {
+    const skill = raw.trim()
+    const key = skill.toLowerCase()
+    if (!skill || have.has(key) || !said.includes(key)) continue
+    have.add(key)
+    out.push(skill)
+  }
+  return out
+}
+
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
 
 /**
  * Convert model output into reviewable changes. Indexes are resolved against the real resume, so
  * `before` is always the user's actual text. Invalid indexes, unknown fields and no-op edits are dropped.
- * Pass `format` (the resume's current layout) to allow layout changes.
+ * Pass `format` (the resume's current layout) to allow layout changes, and `userText` (what the user wrote in the
+ * conversation) to allow adding skills they named: the model can never add a skill the user did not mention.
  */
-export function buildChanges(content: ResumeContent, proposed: ProposedEdits, sourceText: string, format?: Format): Change[] {
+export function buildChanges(content: ResumeContent, proposed: ProposedEdits, sourceText: string, format?: Format, userText = ''): Change[] {
   const changes: Change[] = []
   const warn = (before: string, after: string) => [
     ...findNewNumbers(after, `${sourceText}\n${before}`).map((n) => `"${n}" does not appear in your resume. Only keep it if it is true.`),
@@ -207,9 +225,15 @@ export function buildChanges(content: ResumeContent, proposed: ProposedEdits, so
     if (!EDITABLE_FIELDS[f.section].includes(f.field)) continue
     make({ kind: 'field', section: f.section, entry: f.section === 'contact' ? 0 : (f.entry ?? 0), field: f.field }, f.value, f.reason ?? '')
   }
-  if (proposed.skills && proposed.skills.length) {
-    const ordered = sanitizeSkills(content.skills, proposed.skills)
-    make({ kind: 'skills' }, ordered.join(', '), proposed.skillsReason ?? 'Puts the most relevant skills first.', { afterSkills: ordered, beforeSkills: [...content.skills] })
+  const named = namedSkills(content.skills, proposed.addSkills ?? [], userText)
+  if ((proposed.skills && proposed.skills.length) || named.length) {
+    const ordered = [...sanitizeSkills(content.skills, proposed.skills?.length ? proposed.skills : content.skills), ...named]
+    make({ kind: 'skills' }, ordered.join(', '), named.length ? `Adds ${named.join(', ')}, as you asked.` : (proposed.skillsReason ?? 'Puts the most relevant skills first.'), {
+      afterSkills: ordered,
+      beforeSkills: [...content.skills],
+      // The user supplied these skills, so "not in your resume" would be a misleading warning.
+      ...(named.length ? { warnings: [] } : {}),
+    })
   }
   if (format && proposed.format) {
     const f = proposed.format

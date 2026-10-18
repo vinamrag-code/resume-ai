@@ -70,6 +70,10 @@ describe('reply parsing never exposes JSON', () => {
     expect(parseEdits('```json\n' + json + '\n```', resume, 'edit')).toHaveLength(1)
     const rewrite = JSON.stringify({ summary: 'A rewritten summary of my experience building software.' })
     expect(parseEdits(`<edits>${rewrite}</edits>`, resume, 'clarify')).toEqual([])
+    // Adding a skill the user named is an explicit request, so it works on the very first message too.
+    const add = `<edits>${JSON.stringify({ addSkills: ['LangChain'] })}</edits>`
+    expect(parseEdits(add, resume, 'clarify', 'add LangChain to my skills').map((c) => c.label)).toEqual(['Skills order'])
+    expect(parseEdits(add, resume, 'clarify', 'improve my resume')).toEqual([])
     expect(parseEdits(`<edits>${rewrite}</edits>`, resume, 'edit')).toHaveLength(1)
   })
 })

@@ -58,17 +58,19 @@ export function isPreparingEdits(raw: string): boolean {
  * explicit field fixes and removals. Content rewrites need the user's answers first.
  */
 function allowedOnFirstTurn(c: Change): boolean {
-  return c.target.kind === 'format' || c.target.kind === 'field' || c.target.kind === 'bullet-remove'
+  const addsSkills = c.target.kind === 'skills' && (c.afterSkills?.length ?? 0) > (c.beforeSkills?.length ?? 0)
+  return c.target.kind === 'format' || c.target.kind === 'field' || c.target.kind === 'bullet-remove' || addsSkills
 }
 
 /** Turn a finished reply into reviewable changes. */
-export function parseEdits(raw: string, resume: Resume, phase: 'clarify' | 'edit' = 'edit'): Change[] {
+/** `userText` is everything the user has written so far; it is what lets them add skills by name. */
+export function parseEdits(raw: string, resume: Resume, phase: 'clarify' | 'edit' = 'edit', userText = ''): Change[] {
   const { editsJson } = splitReply(raw)
   if (!editsJson) return []
   try {
     const parsed = ProposedEditsSchema.safeParse(JSON.parse(extractJson(editsJson)))
     if (!parsed.success) return []
-    const all = buildChanges(resume.content, parsed.data, resumeToText(resume.content), currentFormat(resume))
+    const all = buildChanges(resume.content, parsed.data, resumeToText(resume.content), currentFormat(resume), userText)
     return phase === 'clarify' ? all.filter(allowedOnFirstTurn) : all
   } catch {
     return []
