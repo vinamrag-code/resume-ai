@@ -14,7 +14,9 @@ const VerifySchema = z.object({
 export async function verifyChanges(changes: Change[], resumeText: string, signal?: AbortSignal): Promise<Change[]> {
   if (changes.length === 0) return changes
   try {
-    const items = changes.map((c, index) => ({ index, before: c.before, after: c.after }))
+    // Skills are either a reorder or something the user named, so there is nothing for the checker to find.
+    const items = changes.flatMap((c, index) => (c.target.kind === 'skills' ? [] : [{ index, before: c.before, after: c.after }]))
+    if (items.length === 0) return changes
     const { results } = await generateJson(getLlm('checker'), verifyPrompt(resumeText, items), VerifySchema, { signal, temperature: 0 })
     return changes.map((c, index) => {
       const claims = (results.find((r) => r.index === index)?.unsupported ?? []).filter((s) => s.trim())
