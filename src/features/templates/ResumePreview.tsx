@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { displayUrl, normalizeUrl } from '@/lib/links'
+import { groupedSkills } from '@/lib/skills'
 import type { Resume } from '@/types/resume'
 import { getTemplate } from './templates'
 import type { TemplateDef } from './templates'
@@ -155,7 +156,12 @@ export function ResumePreview({ resume }: { resume: Resume }) {
           <Heading t={t} space={sp}>
             Skills
           </Heading>
-          <p>{c.skills.join(', ')}</p>
+          {groupedSkills(c).map((l) => (
+            <p key={l.heading}>
+              {l.heading && <strong>{l.heading}: </strong>}
+              {l.skills.join(', ')}
+            </p>
+          ))}
         </section>
       )}
 

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { FIELD_SECTIONS, FORMAT_KEYS } from '@/lib/changes'
 import type { Change } from '@/lib/changes'
+import { SkillGroupSchema } from '@/types/resume'
 
 const bulletTarget = (kind: 'bullet' | 'bullet-add' | 'bullet-remove') =>
   z.object({ kind: z.literal(kind), section: z.enum(['experience', 'projects']), entry: z.number().int().min(0), bullet: z.number().int().min(0) })
@@ -22,6 +23,8 @@ export const ChangeSchema = z.object({
   after: z.string(),
   afterSkills: z.array(z.string()).optional(),
   beforeSkills: z.array(z.string()).optional(),
+  afterGroups: z.array(SkillGroupSchema).optional(),
+  beforeGroups: z.array(SkillGroupSchema).optional(),
   reason: z.string(),
   status: z.enum(['pending', 'accepted', 'rejected']),
   warnings: z.array(z.string()),

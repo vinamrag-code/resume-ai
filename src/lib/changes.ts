@@ -1,8 +1,9 @@
 import { z } from 'zod'
 import { findNewTerms } from '@/lib/ats/guards'
 import { makeId } from '@/lib/id'
+import { parseSkillsText, pruneGroups, skillsText } from '@/lib/skills'
 import { HEADER_ALIGNS, TEMPLATE_IDS } from '@/types/resume'
-import type { Resume, ResumeContent } from '@/types/resume'
+import type { Resume, ResumeContent, SkillGroup } from '@/types/resume'
 
 export type ChangeStatus = 'pending' | 'accepted' | 'rejected'
 
@@ -42,6 +43,9 @@ export interface Change {
   /** Only for skills changes: the proposed ordered list, and the list it replaces. */
   afterSkills?: string[]
   beforeSkills?: string[]
+  /** Only for skills changes: the sub-headings after and before. */
+  afterGroups?: SkillGroup[]
+  beforeGroups?: SkillGroup[]
   reason: string
   status: ChangeStatus
   /** Truthfulness warnings, e.g. numbers that do not appear in the original resume. */
@@ -83,6 +87,8 @@ export const ProposedEditsSchema = z.object({
   skills: z.array(z.string()).nullish(),
   /** Skills the user named themselves; accepted only if they really appear in the user's own messages. */
   addSkills: z.array(z.string()).nullish(),
+  /** The sub-headings to show the skills under (replaces the current ones). Skills must already be on the resume or in addSkills. */
+  skillGroups: z.array(z.object({ heading: z.string(), skills: z.array(z.string()) })).nullish(),
   summaryReason: z.string().nullish(),
   skillsReason: z.string().nullish(),
 })
@@ -112,7 +118,7 @@ export function getText(content: ResumeContent, target: ChangeTarget): string | 
     case 'summary':
       return content.summary
     case 'skills':
-      return content.skills.join(', ')
+      return skillsText(content)
     case 'bullet':
     case 'bullet-remove':
       return content[target.section][target.entry]?.bullets[target.bullet]
@@ -176,6 +182,32 @@ export function namedSkills(existing: string[], proposed: string[], userText: st
   return out
 }
 
+/** Proposed sub-headings -> groups of skills the resume really has, each skill under one heading at most. */
+export function sanitizeGroups(skills: string[], proposed: { heading: string; skills: string[] }[]): SkillGroup[] {
+  const byKey = new Map(skills.map((s) => [s.trim().toLowerCase(), s]))
+  const used = new Set<string>()
+  const out: SkillGroup[] = []
+  for (const g of proposed) {
+    const heading = g.heading.trim()
+    const own = g.skills.flatMap((s) => {
+      const k = s.trim().toLowerCase()
+      const skill = byKey.get(k)
+      if (!skill || used.has(k)) return []
+      used.add(k)
+      return [skill]
+    })
+    if (heading && own.length) out.push({ id: makeId(), heading, skills: own })
+  }
+  return out
+}
+
+/** A new skill order also reorders the skills inside each sub-heading (which is where the order is shown). */
+function reorderGroups(groups: SkillGroup[], order: string[]): SkillGroup[] {
+  const pos = new Map(order.map((s, i) => [s.toLowerCase(), i]))
+  const at = (s: string) => pos.get(s.trim().toLowerCase()) ?? order.length
+  return groups.map((g) => ({ ...g, skills: [...g.skills].sort((a, b) => at(a) - at(b)) }))
+}
+
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
 
 /**
@@ -225,14 +257,20 @@ export function buildChanges(content: ResumeContent, proposed: ProposedEdits, so
     if (!EDITABLE_FIELDS[f.section].includes(f.field)) continue
     make({ kind: 'field', section: f.section, entry: f.section === 'contact' ? 0 : (f.entry ?? 0), field: f.field }, f.value, f.reason ?? '')
   }
-  const named = namedSkills(content.skills, proposed.addSkills ?? [], userText)
-  if ((proposed.skills && proposed.skills.length) || named.length) {
+  // Models often list a skill the user named only inside a sub-heading and forget "addSkills", so both count (still only if the user wrote it).
+  const named = namedSkills(content.skills, [...(proposed.addSkills ?? []), ...(proposed.skillGroups ?? []).flatMap((g) => g.skills)], userText)
+  const wantsGroups = (proposed.skillGroups?.length ?? 0) > 0
+  if ((proposed.skills && proposed.skills.length) || named.length || wantsGroups) {
     const ordered = [...sanitizeSkills(content.skills, proposed.skills?.length ? proposed.skills : content.skills), ...named]
-    make({ kind: 'skills' }, ordered.join(', '), named.length ? `Adds ${named.join(', ')}, as you asked.` : (proposed.skillsReason ?? 'Puts the most relevant skills first.'), {
+    const groups = wantsGroups ? sanitizeGroups(ordered, proposed.skillGroups ?? []) : reorderGroups(pruneGroups(content.skillGroups, ordered), ordered)
+    const why = named.length ? `Adds ${named.join(', ')}, as you asked.` : (proposed.skillsReason ?? (wantsGroups ? 'Groups your skills under sub-headings.' : 'Puts the most relevant skills first.'))
+    make({ kind: 'skills' }, skillsText({ skills: ordered, skillGroups: groups }), why, {
       afterSkills: ordered,
       beforeSkills: [...content.skills],
-      // The user supplied these skills, so "not in your resume" would be a misleading warning.
-      ...(named.length ? { warnings: [] } : {}),
+      afterGroups: groups,
+      beforeGroups: structuredClone(content.skillGroups),
+      // The user supplied these skills, and a heading is not a claim about experience, so "not in your resume" would mislead.
+      ...(named.length || wantsGroups ? { warnings: [] } : {}),
     })
   }
   if (format && proposed.format) {
@@ -293,7 +331,11 @@ export function applyChanges(content: ResumeContent, changes: Change[]): ApplyRe
     }
     const t = c.target
     if (t.kind === 'summary') next.summary = c.after
-    else if (t.kind === 'skills') next.skills = c.afterSkills ?? c.after.split(',').map((s) => s.trim())
+    else if (t.kind === 'skills') {
+      const typed = c.afterSkills ? undefined : parseSkillsText(c.after)
+      next.skills = c.afterSkills ?? typed?.skills ?? []
+      next.skillGroups = c.afterGroups ?? typed?.skillGroups ?? pruneGroups(next.skillGroups, next.skills)
+    }
     else if (t.kind === 'field') {
       const e = entryOf(next, t.section, t.entry)
       if (e) e[t.field] = c.after
@@ -330,5 +372,5 @@ export function formatPatch(change: Change): { templateId?: Resume['templateId']
 export function invertChange(change: Change): Change {
   const t = change.target
   const target: ChangeTarget = t.kind === 'bullet-add' ? { ...t, kind: 'bullet-remove' } : t.kind === 'bullet-remove' ? { ...t, kind: 'bullet-add' } : t
-  return { ...change, target, before: change.after, after: change.before, beforeSkills: change.afterSkills, afterSkills: change.beforeSkills, status: 'accepted' }
+  return { ...change, target, before: change.after, after: change.before, beforeSkills: change.afterSkills, afterSkills: change.beforeSkills, beforeGroups: change.afterGroups, afterGroups: change.beforeGroups, status: 'accepted' }
 }

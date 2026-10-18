@@ -30,6 +30,8 @@ export const ProjectSchema = z.object({
   bullets: z.array(str),
   bankId: str.optional(),
 })
+/** A sub-heading under Skills, e.g. "Languages" with Python and Go. Only decides where skills are shown; `skills` is the full list. */
+export const SkillGroupSchema = z.object({ id: str, heading: str, skills: z.array(str) })
 export const CertificationSchema = z.object({ id: str, name: str, issuer: str, date: str })
 
 export const ResumeContentSchema = z.object({
@@ -45,6 +47,8 @@ export const ResumeContentSchema = z.object({
   education: z.array(EducationSchema),
   projects: z.array(ProjectSchema),
   skills: z.array(str),
+  /** Optional sub-headings for the skills. Empty means one plain list. Older saved resumes do not have it. */
+  skillGroups: z.array(SkillGroupSchema).default([]),
   certifications: z.array(CertificationSchema),
 })
 
@@ -52,6 +56,7 @@ export type ResumeContent = z.infer<typeof ResumeContentSchema>
 export type Experience = z.infer<typeof ExperienceSchema>
 export type Education = z.infer<typeof EducationSchema>
 export type Project = z.infer<typeof ProjectSchema>
+export type SkillGroup = z.infer<typeof SkillGroupSchema>
 export type Certification = z.infer<typeof CertificationSchema>
 export type ContactLink = z.infer<typeof LinkSchema>
 

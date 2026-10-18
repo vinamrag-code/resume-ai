@@ -9,6 +9,7 @@ import type { ChatMessage } from '@/lib/llm'
 import { chatSystemPrompt } from '@/lib/prompts'
 import { makeId } from '@/lib/id'
 import { resumeForPrompt, resumeToText } from '@/lib/resume'
+import { parseSkillsText } from '@/lib/skills'
 import { useResumes } from '@/store/resumes'
 import type { Resume } from '@/types/resume'
 import { DiffView } from '@/features/tailor/DiffView'
@@ -26,10 +27,12 @@ function Suggestion({ change, resume, onApplied }: { change: Change; resume: Res
   const stale = change.status !== 'accepted' && isStaleFor(resume, change)
   const edited = text !== change.after
   const apply = () => {
+    // An edited skills box is read back as lines ("Heading: a, b") so the user can regroup by hand.
+    const typed = change.target.kind === 'skills' && edited ? parseSkillsText(text) : undefined
     const finalChange: Change = {
       ...change,
       after: text.trim(),
-      afterSkills: change.target.kind === 'skills' ? text.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
+      ...(typed ? { afterSkills: typed.skills, afterGroups: typed.skillGroups } : {}),
       status: 'accepted',
     }
     const patch = formatPatch(finalChange)
@@ -51,7 +54,7 @@ function Suggestion({ change, resume, onApplied }: { change: Change; resume: Res
           <label htmlFor={id} className="label">
             Edit before applying
           </label>
-          <textarea id={id} rows={2} className="input" value={text} onChange={(e) => setText(e.target.value)} />
+          <textarea id={id} rows={change.target.kind === 'skills' ? 4 : 2} className="input" value={text} onChange={(e) => setText(e.target.value)} />
         </div>
       )}
       {change.reason && <p className="text-xs text-ink-500 dark:text-ink-400">Why: {change.reason}</p>}
@@ -83,6 +86,15 @@ export function ChatPanel({ resume }: { resume: Resume }) {
   const [error, setError] = useState<unknown>(null)
   const abort = useRef<AbortController | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  // The message box grows with what is typed (up to its max height, then scrolls).
+  useEffect(() => {
+    const box = inputRef.current
+    if (!box) return
+    box.style.height = 'auto'
+    box.style.height = `${box.scrollHeight}px`
+  }, [input])
 
   useEffect(() => {
     endRef.current?.scrollIntoView?.({ block: 'end' })
@@ -181,7 +193,7 @@ export function ChatPanel({ resume }: { resume: Resume }) {
         </div>
         <ErrorBanner error={error} onDismiss={() => setError(null)} />
         <form
-          className="flex gap-2"
+          className="flex items-end gap-2"
           onSubmit={(e) => {
             e.preventDefault()
             void send(input)
@@ -190,7 +202,23 @@ export function ChatPanel({ resume }: { resume: Resume }) {
           <label htmlFor="chat-input" className="sr-only">
             Message the resume counselor
           </label>
-          <input id="chat-input" className="input" value={input} onChange={(e) => setInput(e.target.value)} placeholder={aiAllowed ? 'Ask about a section or answer the questions…' : 'Sign in to chat with the Agent'} disabled={busy || !aiAllowed} />
+          <textarea
+            id="chat-input"
+            ref={inputRef}
+            rows={1}
+            autoComplete="off"
+            className="input max-h-48 resize-none overflow-y-auto"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              // Enter sends, Shift+Enter adds a line.
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault()
+                void send(input)
+              }
+            }}
+            placeholder={aiAllowed ? 'Ask about a section or answer the questions…' : 'Sign in to chat with the Agent'} disabled={busy || !aiAllowed}
+          />
           {busy ? (
             <button type="button" className="btn-secondary" onClick={() => abort.current?.abort()}>
               <Spinner label="Generating" /> Stop

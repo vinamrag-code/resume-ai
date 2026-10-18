@@ -1,4 +1,5 @@
 import { AlignmentType, Document, ExternalHyperlink, LevelFormat, Packer, Paragraph, TabStopPosition, TabStopType, TextRun } from 'docx'
+import { groupedSkills } from '@/lib/skills'
 import { displayUrl, normalizeUrl } from '@/lib/links'
 import type { ResumeContent, ResumeStyle, TemplateId } from '@/types/resume'
 
@@ -69,7 +70,16 @@ export function buildResumeDocx(content: ResumeContent, style: ResumeStyle, temp
       body.push(rowLine([e.degree, e.field].filter(Boolean).join(', '), dates(e.start, e.end)), text(e.school), ...bullets(e.details))
     }
   }
-  if (c.skills.length) body.push(heading('Skills'), text(c.skills.join(', ')))
+  if (c.skills.length) {
+    body.push(heading('Skills'))
+    for (const l of groupedSkills(c)) {
+      body.push(
+        l.heading
+          ? new Paragraph({ spacing: { after: gap }, children: [run(`${l.heading}: `, { bold: true }), run(l.skills.join(', '))] })
+          : text(l.skills.join(', ')),
+      )
+    }
+  }
   if (c.certifications.length) {
     body.push(heading('Certifications'))
     for (const x of c.certifications) body.push(rowLine([x.name, x.issuer].filter(Boolean).join(', '), x.date))

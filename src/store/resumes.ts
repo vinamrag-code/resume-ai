@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { makeId } from '@/lib/id'
-import { cloneContent, newResume } from '@/lib/resume'
+import { cloneContent, newResume, withSkillGroups } from '@/lib/resume'
 import type { Resume, ResumeContent, ResumeStyle, TargetJob, TemplateId } from '@/types/resume'
 
 export interface ResumeState {
@@ -73,6 +73,10 @@ export const useResumes = create<ResumeState>()(
         setJobLink: (id, jobId) => patch(id, (r) => ({ ...r, jobId })),
       }
     },
-    { name: 'resume-ai:resumes', partialize: (s) => ({ resumes: s.resumes }) },
+    {
+      name: 'resume-ai:resumes',
+      partialize: (s) => ({ resumes: s.resumes }),
+      merge: (saved, current) => ({ ...current, resumes: withSkillGroups((saved as Pick<ResumeState, 'resumes'> | undefined)?.resumes ?? current.resumes) }),
+    },
   ),
 )

@@ -29,9 +29,11 @@ const EDIT_FORMAT = `WHAT YOU CAN CHANGE (put it in the ${EDITS_OPEN} block; eve
   "fields":        [{"section":"contact|experience|education|projects|certifications","entry":0,"field":"title","value":"new value","reason":"why"}],
   "skills": ["same skills as the resume, in the new order"],
   "addSkills": ["a skill the USER named in this conversation and wants added"],
+  "skillGroups": [{"heading":"Languages","skills":["Python","Go"]}],
   "format": {"templateId":"classic|modern|compact","fontSize":10.5,"spacing":1.0,"headerAlign":"auto|left|center|right","bulletIndent":1.1,"reason":"why"}
 }
-- Adding a skill: use "addSkills" ONLY for skills the user wrote themselves in this conversation. Never add a skill from the job description or your own idea, and never say you added a skill unless it is in an "addSkills" entry of the block. "skills" can only reorder skills the resume already has.
+- Adding a skill: use "addSkills" ONLY for skills the user wrote themselves in this conversation. Never add a skill from the job description or your own idea, and never say you added a skill unless it is in an "addSkills" entry of the block. When the user lists skills to add, put EVERY one of them in "addSkills" (one entry per skill, in their wording), and also place them in "skillGroups" if they gave headings. "skills" can only reorder skills the resume already has.
+- Sub-headings for skills: "skillGroups" replaces how the skills are grouped (e.g. Languages, Frameworks, Tools). Use it when the user asks for sub-headings or to regroup skills; list every group you want, and put only skills the resume already has (or that are in "addSkills") in them. A skill left out of every group is shown under "Other".
 - "entry" and "bullet" are the zero-based indexes shown in the resume JSON ("bullet" in addBullets is the position to insert at).
 - Editable "fields": contact: name,email,phone,location | experience: title,company,location,start,end | education: school,degree,field,start,end | projects: name,link | certifications: name,issuer,date. For contact, entry is 0.
 - "format" controls the layout: fontSize 8-14 (pt), spacing 0.6-1.6, bulletIndent 0.5-3 (em; larger = more indented bullets), headerAlign for the name/contact block. These are the ONLY layout controls that exist (there is no per-line indentation or free positioning); if the user asks for something else, say what is possible instead and offer the closest option.

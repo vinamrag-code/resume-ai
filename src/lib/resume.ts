@@ -1,4 +1,5 @@
 import { makeId } from '@/lib/id'
+import { groupedSkills, skillLines } from '@/lib/skills'
 import type { ParsedResume, Resume, ResumeContent } from '@/types/resume'
 
 export const DEFAULT_STYLE = { fontSize: 10.5, spacing: 1, headerAlign: 'auto', bulletIndent: 1.1 } as const
@@ -11,6 +12,7 @@ export function emptyContent(): ResumeContent {
     education: [],
     projects: [],
     skills: [],
+    skillGroups: [],
     certifications: [],
   }
 }
@@ -46,8 +48,14 @@ export function hydrateParsed(p: ParsedResume): ResumeContent {
       .map((e) => ({ id: makeId(), ...e, details: clean(e.details) })),
     projects: p.projects.filter((x) => x.name).map((x) => ({ id: makeId(), ...x, bullets: clean(x.bullets) })),
     skills: [...new Set(clean(p.skills))],
+    skillGroups: [],
     certifications: p.certifications.filter((c) => c.name).map((c) => ({ id: makeId(), ...c })),
   }
+}
+
+/** Resumes saved before sub-headings existed have no `skillGroups`; give them an empty list. */
+export function withSkillGroups(resumes: Resume[]): Resume[] {
+  return resumes.map((r) => (Array.isArray(r.content.skillGroups) ? r : { ...r, content: { ...r.content, skillGroups: [] } }))
 }
 
 export function cloneContent(c: ResumeContent): ResumeContent {
@@ -81,7 +89,7 @@ export function resumeToText(c: ResumeContent): string {
       for (const d of e.details) lines.push(`- ${d}`)
     }
   }
-  if (c.skills.length) lines.push('', 'SKILLS', c.skills.join(', '))
+  if (c.skills.length) lines.push('', 'SKILLS', ...skillLines(c))
   if (c.certifications.length) {
     lines.push('', 'CERTIFICATIONS')
     for (const x of c.certifications) lines.push(`${x.name} ${x.issuer} ${x.date}`)
@@ -110,6 +118,7 @@ export function resumeForPrompt(c: ResumeContent): string {
       })),
       education: c.education.map((e) => ({ school: e.school, degree: e.degree, field: e.field })),
       skills: c.skills,
+      ...(c.skillGroups.length ? { skillGroups: groupedSkills(c).map((l) => ({ heading: l.heading, skills: l.skills })) } : {}),
       certifications: c.certifications.map((x) => x.name),
     },
     null,

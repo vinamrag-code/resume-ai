@@ -4,6 +4,7 @@ import { useBank } from '@/store/bank'
 import { useChats } from '@/store/chats'
 import { useCoverLetters } from '@/store/coverLetters'
 import { useJobs } from '@/store/jobs'
+import { withSkillGroups } from '@/lib/resume'
 import { useResumes } from '@/store/resumes'
 import { applyLocal, knownAfter, planSync } from './items'
 import type { LocalDoc, RemoteItem } from './items'
@@ -47,7 +48,7 @@ let applying = false
 function writeLocal(doc: LocalDoc): void {
   applying = true
   try {
-    useResumes.setState({ resumes: doc.resumes })
+    useResumes.setState({ resumes: withSkillGroups(doc.resumes) })
     useJobs.setState({ jobs: doc.jobs })
     useCoverLetters.setState({ letters: doc.letters })
     useChats.setState({ chats: doc.chats })

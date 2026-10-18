@@ -3,8 +3,10 @@ import { BankLinkBar } from '@/features/bank/BankLinkBar'
 import { BankPicker } from '@/features/bank/BankPicker'
 import { makeId } from '@/lib/id'
 import { useBank } from '@/store/bank'
-import type { Experience, Project, ResumeContent } from '@/types/resume'
-import { AreaField, BulletsEditor, EntryList, Section, TextField } from './controls'
+import { moveItem } from '@/lib/arrays'
+import { groupedSkills, OTHER_HEADING } from '@/lib/skills'
+import type { Experience, Project, ResumeContent, SkillGroup } from '@/types/resume'
+import { AreaField, BulletsEditor, EntryList, RowControls, Section, TextField } from './controls'
 
 interface Props {
   content: ResumeContent
@@ -121,7 +123,7 @@ export function ResumeEditor({ content: c, onChange }: Props) {
       />
 
       <Section title="Skills">
-        <SkillsField skills={c.skills} onChange={(v) => set('skills', v)} />
+        <SkillsEditor content={c} onChange={(skills, skillGroups) => onChange((d) => ({ ...d, skills, skillGroups }))} />
       </Section>
 
       <EntryList
@@ -151,20 +153,87 @@ export function ResumeEditor({ content: c, onChange }: Props) {
   )
 }
 
-function SkillsField({ skills, onChange }: { skills: string[]; onChange: (s: string[]) => void }) {
-  const [text, setText] = useState(skills.join(', '))
+const splitSkills = (text: string) => text.split(',').map((s) => s.trim()).filter(Boolean)
+const keyOf = (s: string) => s.toLowerCase()
+
+/** Skills as one list, or (after "Add a sub-heading") as groups such as Languages and Tools. */
+function SkillsEditor({ content: c, onChange }: { content: Pick<ResumeContent, 'skills' | 'skillGroups'>; onChange: (skills: string[], groups: SkillGroup[]) => void }) {
+  const groups = c.skillGroups
+  if (groups.length === 0) {
+    return (
+      <>
+        <SkillsText label="Skills (comma separated)" initial={c.skills.join(', ')} onChange={(skills) => onChange(skills, [])} />
+        <p className="text-xs text-ink-500 dark:text-ink-400">Order matters: put the most relevant skills first.</p>
+        <button type="button" className="btn-secondary btn-sm" onClick={() => onChange(c.skills, [{ id: makeId(), heading: '', skills: c.skills }])}>
+          Group under sub-headings
+        </button>
+      </>
+    )
+  }
+  const inGroups = new Set(groups.flatMap((g) => g.skills.map(keyOf)))
+  const ungrouped = c.skills.filter((s) => !inGroups.has(keyOf(s)))
+  // A group edit never leaves the full list out of step: skills dropped from the group go (unless another group has them), new ones are added.
+  const editGroup = (i: number, patch: Partial<SkillGroup>) => {
+    const next = groups.map((g, j) => (j === i ? { ...g, ...patch } : g))
+    if (!patch.skills) return onChange(c.skills, next)
+    const still = new Set(next.flatMap((g) => g.skills.map(keyOf)))
+    const dropped = new Set((groups[i]?.skills ?? []).map(keyOf).filter((k) => !still.has(k)))
+    const known = new Set(c.skills.map(keyOf))
+    onChange([...c.skills.filter((s) => !dropped.has(keyOf(s))), ...patch.skills.filter((s) => !known.has(keyOf(s)))], next)
+  }
+  const removeUngrouped = (s: string) => onChange(c.skills.filter((x) => x !== s), groups)
   return (
-    <>
-      <AreaField
-        label="Skills (comma separated)"
-        value={text}
-        rows={3}
-        onChange={(v) => {
-          setText(v)
-          onChange(v.split(',').map((s) => s.trim()).filter(Boolean))
-        }}
-      />
-      <p className="text-xs text-ink-500 dark:text-ink-400">Order matters: put the most relevant skills first.</p>
-    </>
+    <div className="space-y-3">
+      {groups.map((g, i) => (
+        <div key={g.id} className="rounded border border-ink-200 p-3 dark:border-ink-700">
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <TextField label={`Sub-heading ${i + 1}`} value={g.heading} placeholder="Languages" onChange={(v) => editGroup(i, { heading: v })} />
+            </div>
+            <RowControls index={i} count={groups.length} label={`sub-heading ${i + 1}`} onMove={(to) => onChange(c.skills, moveItem(groups, i, to))} onRemove={() => onChange(c.skills, groups.filter((_, j) => j !== i))} />
+          </div>
+          <SkillsText label={`Skills under ${g.heading || `sub-heading ${i + 1}`} (comma separated)`} initial={g.skills.join(', ')} onChange={(skills) => editGroup(i, { skills })} />
+        </div>
+      ))}
+      {ungrouped.length > 0 && (
+        <div className="text-sm">
+          <p className="label">Not under a sub-heading (shown as "{OTHER_HEADING}")</p>
+          <ul className="flex flex-wrap gap-1.5">
+            {ungrouped.map((s) => (
+              <li key={s} className="flex items-center gap-1 rounded bg-ink-100 px-2 py-0.5 dark:bg-ink-800">
+                {s}
+                <button type="button" className="text-ink-500 hover:text-ink-900 dark:hover:text-ink-100" onClick={() => removeUngrouped(s)} aria-label={`Remove ${s}`}>
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className="btn-secondary btn-sm" onClick={() => onChange(c.skills, [...groups, { id: makeId(), heading: '', skills: [] }])}>
+          Add a sub-heading
+        </button>
+        <button type="button" className="btn-ghost btn-sm" onClick={() => onChange(groupedSkills({ skills: c.skills, skillGroups: groups }).flatMap((l) => l.skills), [])}>
+          Remove sub-headings
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** A comma-separated skills box that keeps what is typed (so a trailing comma is not eaten). */
+function SkillsText({ label, initial, onChange }: { label: string; initial: string; onChange: (skills: string[]) => void }) {
+  const [text, setText] = useState(initial)
+  return (
+    <AreaField
+      label={label}
+      value={text}
+      rows={2}
+      onChange={(v) => {
+        setText(v)
+        onChange(splitSkills(v))
+      }}
+    />
   )
 }
