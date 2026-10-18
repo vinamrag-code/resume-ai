@@ -205,24 +205,26 @@ describe('target job tab', () => {
 })
 
 describe('Edit with AI', () => {
-  it('sits beside the export buttons and opens the Agent chat', async () => {
+  it('sits beside the export buttons and opens the assistant widget, which can be closed', async () => {
     const r = seedResume()
     renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
     const edit = screen.getByRole('button', { name: 'Edit with AI' })
     expect(edit.parentElement).toContainElement(screen.getByRole('button', { name: 'Export PDF' }))
     expect(edit.parentElement).toContainElement(screen.getByRole('button', { name: 'Export DOCX' }))
-    expect(screen.queryByRole('region', { name: 'Resume agent chat' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
     await userEvent.click(edit)
-    expect(screen.getByRole('region', { name: 'Resume agent chat' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Agent' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('button', { name: 'Target job' })).not.toHaveAttribute('aria-current')
+    const widget = screen.getByRole('complementary', { name: 'Sage, your resume assistant' })
+    expect(within(widget).getByRole('region', { name: 'Resume agent chat' })).toBeInTheDocument()
+    expect(edit).toHaveAttribute('aria-expanded', 'true')
+    await userEvent.click(screen.getByRole('button', { name: 'Close Sage' }))
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
   })
 
-  it('has Agent as its own tab in the same row as Edit, Design and Target job', () => {
+  it('no longer has an Agent tab in the row with Edit, Design and Target job', () => {
     const r = seedResume()
     renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
     const row = screen.getByRole('navigation', { name: 'Resume tools' })
-    expect([...row.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Edit', 'Design', 'Target job', 'Agent'])
+    expect([...row.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Edit', 'Design', 'Target job'])
   })
 })
 

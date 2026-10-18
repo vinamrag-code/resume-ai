@@ -216,7 +216,7 @@ describe('AI features need sign-in; manual editing does not', () => {
     signedOut()
     const r = seed()
     const { unmount } = renderAt(<ChatPanel resume={r} />)
-    expect(screen.getByRole('region', { name: 'Sign in required' })).toHaveTextContent(/Sign in to use the Agent/)
+    expect(screen.getByRole('region', { name: 'Sign in required' })).toHaveTextContent(/Sign in to use Sage/)
     expect(screen.getByLabelText(/message the resume counselor/i)).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Review my summary' })).toBeDisabled()
     unmount()

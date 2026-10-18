@@ -15,6 +15,7 @@ import type { Resume } from '@/types/resume'
 import { DiffView } from '@/features/tailor/DiffView'
 import { verifyChanges } from '@/features/tailor/verifyChanges'
 import { fallbackText, isPreparingEdits, parseEdits, visibleText } from './chatLogic'
+import { ASSISTANT_NAME } from '@/lib/assistant'
 import { appliedSummary, buildHistory } from './history'
 import { selectTurns, useChats } from '@/store/chats'
 import type { ChatTurn } from '@/types/chat'
@@ -76,7 +77,8 @@ function Suggestion({ change, resume, onApplied }: { change: Change; resume: Res
   )
 }
 
-export function ChatPanel({ resume }: { resume: Resume }) {
+/** `embedded`: drawn inside the assistant widget, which already provides the card. */
+export function ChatPanel({ resume, embedded = false }: { resume: Resume; embedded?: boolean }) {
   const turns = useChats((s) => selectTurns(s.chats, resume.id)) ?? NO_TURNS
   const setTurns = useChats((s) => s.setTurns)
   const clear = useChats((s) => s.clear)
@@ -151,18 +153,18 @@ export function ChatPanel({ resume }: { resume: Resume }) {
   return (
     <div className="space-y-3">
       <TruthfulnessNote />
-      <SignInNotice feature="the Agent" />
-      <section className="card flex max-h-[70vh] min-h-80 flex-col gap-3" aria-label="Resume agent chat">
+      <SignInNotice feature={ASSISTANT_NAME} />
+      <section className={`flex min-h-80 flex-col gap-3 ${embedded ? '' : 'card max-h-[70vh]'}`} aria-label="Resume agent chat">
         <div className="flex-1 space-y-3 overflow-y-auto" role="log" aria-live="polite">
           {turns.length === 0 && (
             <div className="space-y-2 text-sm">
               <p>
-                I&apos;m your resume counselor. Tell me which section to work on and I&apos;ll ask a couple of questions first, then suggest edits you can apply with one click.
+                I&apos;m {ASSISTANT_NAME}, your resume assistant. Tell me which section to work on and I&apos;ll ask a couple of questions first, then suggest edits you can apply with one click.
                 {resume.target.description.trim() ? ' I can see your target job.' : ' Add a target job in the Target job tab for sharper advice.'}
               </p>
               <div className="flex flex-wrap gap-2">
                 {STARTERS.map((s) => (
-                  <button key={s} type="button" className="btn-secondary btn-sm" disabled={busy || !aiAllowed} onClick={() => void send(s)} title={aiAllowed ? undefined : 'Sign in to use the Agent'}>
+                  <button key={s} type="button" className="btn-secondary btn-sm" disabled={busy || !aiAllowed} onClick={() => void send(s)} title={aiAllowed ? undefined : `Sign in to use ${ASSISTANT_NAME}`}>
                     {s}
                   </button>
                 ))}
@@ -172,7 +174,7 @@ export function ChatPanel({ resume }: { resume: Resume }) {
           {turns.map((t) => (
             <div key={t.id} className={t.role === 'user' ? 'text-right' : ''}>
               <div className={`inline-block max-w-full whitespace-pre-wrap rounded-2xl px-3 py-2 text-left text-sm ${t.role === 'user' ? 'bg-brand-600 text-white dark:bg-brand-500 dark:text-ink-950' : 'bg-ink-100 dark:bg-ink-800'}`}>
-                <span className="sr-only">{t.role === 'user' ? 'You: ' : 'Counselor: '}</span>
+                <span className="sr-only">{t.role === 'user' ? 'You: ' : `${ASSISTANT_NAME}: `}</span>
                 {t.role === 'assistant' ? visibleText(t.content) || (busy || isPreparingEdits(t.content) ? 'Preparing suggestions…' : '') : t.content}
               </div>
               {t.changes.length > 0 && (
@@ -217,7 +219,7 @@ export function ChatPanel({ resume }: { resume: Resume }) {
                 void send(input)
               }
             }}
-            placeholder={aiAllowed ? 'Ask about a section or answer the questions…' : 'Sign in to chat with the Agent'} disabled={busy || !aiAllowed}
+            placeholder={aiAllowed ? 'Ask about a section or answer the questions…' : `Sign in to chat with ${ASSISTANT_NAME}`} disabled={busy || !aiAllowed}
           />
           {busy ? (
             <button type="button" className="btn-secondary" onClick={() => abort.current?.abort()}>
