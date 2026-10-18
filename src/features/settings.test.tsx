@@ -91,9 +91,9 @@ describe('provider choice', () => {
   it('shows only the chosen provider', async () => {
     useSettings.setState({ provider: 'auto' })
     renderAt(<SettingsPage />)
-    await userEvent.selectOptions(screen.getByLabelText('Provider'), 'openrouter')
-    expect(screen.getByLabelText(/openrouter model/i)).toBeInTheDocument()
+    await userEvent.selectOptions(screen.getByLabelText('Provider'), 'inception')
+    expect(screen.getByLabelText(/inception model/i)).toBeInTheDocument()
     expect(screen.queryByLabelText(/groq model/i)).not.toBeInTheDocument()
-    expect(screen.getByRole('note')).toHaveTextContent('OpenRouter')
+    expect(screen.getByRole('note')).toHaveTextContent('Inception')
   })
 })

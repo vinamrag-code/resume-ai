@@ -12,10 +12,12 @@ export function AdminModels() {
   const [lists, setLists] = useState<Record<CloudProvider, string>>(() => ({
     groq: (current?.allowed.groq ?? [PROVIDERS.groq.defaultModel]).join('\n'),
     openrouter: (current?.allowed.openrouter ?? [PROVIDERS.openrouter.defaultModel]).join('\n'),
+    inception: (current?.allowed.inception ?? [PROVIDERS.inception.defaultModel]).join('\n'),
   }))
   const [defaults, setDefaults] = useState<Record<CloudProvider, string>>(() => ({
     groq: current?.defaults.groq ?? PROVIDERS.groq.defaultModel,
     openrouter: current?.defaults.openrouter ?? PROVIDERS.openrouter.defaultModel,
+    inception: current?.defaults.inception ?? PROVIDERS.inception.defaultModel,
   }))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
@@ -29,7 +31,7 @@ export function AdminModels() {
     setError(null)
     setSaved(false)
     try {
-      const allowed = { groq: parsed.groq.models, openrouter: parsed.openrouter.models }
+      const allowed = { groq: parsed.groq.models, openrouter: parsed.openrouter.models, inception: parsed.inception.models }
       // A default that is no longer in the list falls back to the first model.
       const fixed = Object.fromEntries(CLOUD_PROVIDERS.map((id) => [id, allowed[id].includes(defaults[id]) ? defaults[id] : (allowed[id][0] ?? '')])) as Record<CloudProvider, string>
       await saveModelConfig({ allowed, defaults: fixed })

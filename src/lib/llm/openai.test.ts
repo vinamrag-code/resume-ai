@@ -1,10 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { LlmError } from './types'
 import type { LlmClient } from './types'
 import { defaultModels } from '@/store/settings'
 import { ChainLlmClient, LangChainClient } from '@/lib/chain'
 import { createLlm, setServerProviders } from './index'
-import { setInceptionStatus } from './providers'
 import { OpenAiCompatibleClient } from './openai'
 
 const cfg = { baseUrl: 'https://api.example.com/v1/', model: 'm1', apiKey: 'sk-test', label: 'Example', supportsJsonFormat: true }
@@ -66,6 +65,7 @@ describe('OpenAiCompatibleClient', () => {
   it('createLlm picks the client for the provider', () => {
     const base = { models: defaultModels() }
     expect(createLlm({ ...base, provider: 'groq' })).toBeInstanceOf(OpenAiCompatibleClient)
+    expect(createLlm({ ...base, provider: 'inception' })).toBeInstanceOf(OpenAiCompatibleClient)
     expect(createLlm({ ...base, provider: 'auto' })).toBeInstanceOf(ChainLlmClient)
     expect(createLlm({ ...base, provider: 'auto' }, 'checker')).toBeInstanceOf(LangChainClient)
   })
@@ -114,12 +114,8 @@ describe('LangChainClient (withFallbacks)', () => {
   })
 })
 
-describe('Auto mode ordering (without Inception)', () => {
-  beforeEach(() => setInceptionStatus({ available: false, model: 'mercury-2' }))
-  afterEach(() => {
-    setServerProviders(null)
-    setInceptionStatus(null)
-  })
+describe('Auto mode ordering (server without an Inception key)', () => {
+  afterEach(() => setServerProviders(null))
   const settings = { provider: 'auto' as const, models: defaultModels() }
   const ok = () => new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }))
   const firstUrl = async (role: 'primary' | 'checker') => {
@@ -138,7 +134,8 @@ describe('Auto mode ordering (without Inception)', () => {
     expect(await firstUrl('primary')).toContain('/api/llm/openrouter')
     expect(await firstUrl('checker')).toContain('/api/llm/openrouter')
   })
-  it('before the status is known, tries Groq first and falls through on 503', async () => {
+  it('tries Groq first and falls through to OpenRouter on 503', async () => {
+    setServerProviders(new Set(['groq', 'openrouter']))
     const seen: string[] = []
     vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u: string) => { seen.push(u); return u.includes('groq') ? new Response('x', { status: 503 }) : ok() }))
     expect(await createLlm(settings).chat(msgs)).toBe('ok')
@@ -148,5 +145,29 @@ describe('Auto mode ordering (without Inception)', () => {
     setServerProviders(new Set(['groq', 'openrouter']))
     vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u: string) => (u.includes('groq') ? new Response('x', { status: 429 }) : new Response(JSON.stringify({ choices: [{ message: { content: 'from-openrouter' } }] })))))
     expect(await createLlm(settings).chat(msgs)).toBe('from-openrouter')
+  })
+})
+
+describe('Auto mode with Inception on the server', () => {
+  afterEach(() => setServerProviders(null))
+  const settings = { provider: 'auto' as const, models: defaultModels() }
+  const ok = () => new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }))
+  const urls = async (role: 'primary' | 'checker', json = false) => {
+    const seen: string[] = []
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u: string) => { seen.push(u.split('/')[3]!); return ok() }))
+    await createLlm(settings, role).chat(msgs, { json })
+    return seen
+  }
+  it('answers go to Inception (JSON tasks skip the editing steps) and the checker stays on OpenRouter first', async () => {
+    setServerProviders(new Set(['groq', 'openrouter', 'inception']))
+    expect(await urls('primary', true)).toEqual(['inception'])
+    expect(await urls('checker')).toEqual(['openrouter'])
+  })
+  it('falls back to OpenRouter when Inception fails', async () => {
+    setServerProviders(new Set(['groq', 'openrouter', 'inception']))
+    const seen: string[] = []
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u: string) => { seen.push(u.split('/')[3]!); return u.includes('inception') ? new Response('x', { status: 429 }) : ok() }))
+    expect(await createLlm(settings).chat(msgs, { json: true })).toBe('ok')
+    expect(seen).toEqual(['inception', 'openrouter'])
   })
 })

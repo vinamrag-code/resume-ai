@@ -1,4 +1,4 @@
-export type ProviderId = 'openrouter' | 'groq'
+export type ProviderId = 'openrouter' | 'groq' | 'inception'
 
 /** What the user picks in Settings: Auto uses Groq first with OpenRouter as fallback and checker. */
 export type ProviderChoice = ProviderId | 'auto'
@@ -28,29 +28,20 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
     defaultModel: 'openai/gpt-oss-120b',
     supportsJsonFormat: true,
   },
+  inception: {
+    id: 'inception',
+    label: 'Inception (cloud)',
+    baseUrl: '/api/llm/inception',
+    defaultModel: 'mercury-2.5',
+    supportsJsonFormat: true,
+  },
 }
 
-export type CloudProvider = 'groq' | 'openrouter'
-
-/**
- * Inception (Mercury) writes the answers in the LangChain pipeline. It is not user-selectable and not part of the
- * admin model list: the server allows `INCEPTION_ALLOWED_MODELS` (default mercury-2). Mercury's streaming and JSON
- * mode are not relied on, so it is always called without them.
- */
-export const INCEPTION: Omit<ProviderInfo, 'id'> = {
-  label: 'Inception (cloud)',
-  baseUrl: '/api/llm/inception',
-  defaultModel: 'mercury-2',
-  supportsJsonFormat: false,
-}
-export const CLOUD_PROVIDERS: CloudProvider[] = ['groq', 'openrouter']
+export type CloudProvider = 'groq' | 'openrouter' | 'inception'
+export const CLOUD_PROVIDERS: CloudProvider[] = ['groq', 'openrouter', 'inception']
 
 /** Which cloud providers have a key on the server. `null` until the status request finishes. */
 let serverProviders: Set<CloudProvider> | null = null
-/** Inception's availability and model, from the same status request. */
-let inceptionStatus: { available: boolean; model: string } | null = null
-export const getInceptionStatus = () => inceptionStatus
-export const setInceptionStatus = (s: { available: boolean; model: string } | null) => { inceptionStatus = s }
 /** Models the server allows per provider, and the admin's default for each. `null` until known. */
 export interface ServerModels {
   allowed: Record<CloudProvider, string[]>
@@ -89,11 +80,10 @@ export function subscribeServerProviders(l: () => void): () => void {
 export async function loadServerProviders(): Promise<Set<CloudProvider>> {
   try {
     const res = await fetch('/api/llm/status')
-    const data = (await res.json()) as { providers?: Partial<Record<CloudProvider | 'inception', boolean>>; models?: Partial<Record<CloudProvider | 'inception', string[]>>; defaults?: Partial<Record<CloudProvider | 'inception', string>> }
+    const data = (await res.json()) as { providers?: Partial<Record<CloudProvider, boolean>>; models?: Partial<Record<CloudProvider, string[]>>; defaults?: Partial<Record<CloudProvider, string>> }
     if (data.models && data.defaults && CLOUD_PROVIDERS.every((id) => Array.isArray(data.models?.[id]) && typeof data.defaults?.[id] === 'string')) {
       serverModels = { allowed: data.models as ServerModels['allowed'], defaults: data.defaults as ServerModels['defaults'] }
     }
-    setInceptionStatus({ available: !!data.providers?.inception, model: data.defaults?.inception ?? INCEPTION.defaultModel })
     setServerProviders(new Set(CLOUD_PROVIDERS.filter((id) => data.providers?.[id])))
   } catch {
     setServerProviders(new Set())

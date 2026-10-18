@@ -80,13 +80,13 @@ describe('LLM proxy', () => {
     const upstream = okUpstream()
     const withKey = loadConfig({ INCEPTION_API_KEY: 'ik-secret' })
     const { post } = await start(withKey, upstream)
-    expect((await post('/api/llm/inception/chat/completions', { ...goodBody, model: 'mercury-2' })).status).toBe(200)
+    expect((await post('/api/llm/inception/chat/completions', { ...goodBody, model: 'mercury-2.5' })).status).toBe(200)
     const [url, init] = upstream.mock.calls[0] as [string, RequestInit]
     expect(url).toBe('https://api.inceptionlabs.ai/v1/chat/completions')
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer ik-secret')
     expect((await post('/api/llm/inception/chat/completions', goodBody)).status).toBe(400) // a Groq model is not allowed here
     const { post: post2 } = await start(loadConfig({}), okUpstream())
-    expect((await post2('/api/llm/inception/chat/completions', { ...goodBody, model: 'mercury-2' })).status).toBe(503)
+    expect((await post2('/api/llm/inception/chat/completions', { ...goodBody, model: 'mercury-2.5' })).status).toBe(503)
   })
 
   it('streams the upstream response through', async () => {

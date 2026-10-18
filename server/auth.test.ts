@@ -117,7 +117,7 @@ describe('API with Firebase sign-in', () => {
 describe('members versus admins on the AI proxy', () => {
   let close: (() => void) | null = null
   afterEach(() => close?.())
-  const models = async () => ({ allowed: { groq: ['m/default', 'm/other'], openrouter: ['o/x:free'], inception: ['mercury-2'] }, defaults: { groq: 'm/default', openrouter: 'o/x:free', inception: 'mercury-2' } })
+  const models = async () => ({ allowed: { groq: ['m/default', 'm/other'], openrouter: ['o/x:free'], inception: ['mercury-2.5'] }, defaults: { groq: 'm/default', openrouter: 'o/x:free', inception: 'mercury-2.5' } })
 
   async function start(adminUids: string[]) {
     const cfg = loadConfig({ GROQ_API_KEY: 'gk', ...FIREBASE_ENV })

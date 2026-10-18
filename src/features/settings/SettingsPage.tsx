@@ -22,7 +22,7 @@ import type { ThemePref } from '@/store/settings'
 
 export function SettingsPage() {
   const { provider, models, theme, update, setProvider, setModel, clearModel } = useSettings()
-  const shown: ProviderId[] = provider === 'auto' ? ['groq', 'openrouter'] : [provider]
+  const shown: ProviderId[] = provider === 'auto' ? ['groq', 'openrouter', 'inception'] : [provider]
   const server = useSyncExternalStore(subscribeServerProviders, getServerProviders)
   const serverModels = useSyncExternalStore(subscribeServerProviders, getServerModels)
   const keyState = (id: ProviderId) => (server === null ? 'checking…' : server.has(id as CloudProvider) ? 'available on server ✓' : 'not configured on server')
@@ -84,13 +84,14 @@ export function SettingsPage() {
             Provider
           </label>
           <select id="provider" className="input max-w-md" value={provider} onChange={(e) => { setProvider(e.target.value as ProviderChoice); setStatus(null) }}>
-            <option value="auto">Auto (recommended): Groq, with OpenRouter as fallback and checker</option>
+            <option value="auto">Auto (recommended): Groq improves, Inception writes, OpenRouter as fallback and checker</option>
             <option value="groq">Groq only</option>
             <option value="openrouter">OpenRouter only</option>
+            <option value="inception">Inception only</option>
           </select>
           {provider === 'auto' && (
             <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">
-              Groq answers first because it is fastest. If it fails or is rate-limited, OpenRouter takes over. OpenRouter also fact-checks suggestions so a second, independent model reviews them. Providers without a key are skipped.
+              Groq answers first because it is fastest. If it fails or is rate-limited, OpenRouter takes over, then Inception. OpenRouter also fact-checks suggestions so a second, independent model reviews them. Providers without a key are skipped.
             </p>
           )}
         </div>
@@ -118,10 +119,10 @@ export function SettingsPage() {
         </div>
         <div role="note" className="rounded-lg border border-spark-400 bg-spark-400/10 p-3 text-sm">
           <p>
-            <strong>Cloud models.</strong> Your resume text and job descriptions are sent to {provider === 'auto' ? 'Groq / OpenRouter' : PROVIDERS[provider].label.replace(/ \(.*\)/, '')} to generate answers.
+            <strong>Cloud models.</strong> Your resume text and job descriptions are sent to {provider === 'auto' ? 'Groq / OpenRouter / Inception' : PROVIDERS[provider].label.replace(/ \(.*\)/, '')} to generate answers.
           </p>
           {server !== null && server.size === 0 && (
-            <p className="mt-1">No AI provider is configured on this server. The site owner needs to set <code>GROQ_API_KEY</code> and/or <code>OPENROUTER_API_KEY</code> in the server environment.</p>
+            <p className="mt-1">No AI provider is configured on this server. The site owner needs to set <code>GROQ_API_KEY</code>, <code>OPENROUTER_API_KEY</code> and/or <code>INCEPTION_API_KEY</code> in the server environment.</p>
           )}
           <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">API keys stay on the server and are never sent to your browser.</p>
         </div>

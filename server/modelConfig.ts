@@ -25,7 +25,7 @@ export function parseModelDoc(doc: unknown, env: ModelConfig): ModelConfig {
   if (!fields) return env
   const defaultsFields = (fields.defaults as { mapValue?: { fields?: Record<string, unknown> } } | undefined)?.mapValue?.fields ?? {}
   const out: ModelConfig = { allowed: { ...env.allowed }, defaults: { ...env.defaults } }
-  for (const p of ['groq', 'openrouter'] as const) {
+  for (const p of ['groq', 'openrouter', 'inception'] as const) {
     const list = strings(fields[p])
     if (list.length) {
       out.allowed[p] = list
