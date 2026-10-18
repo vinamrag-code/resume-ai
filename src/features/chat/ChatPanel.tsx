@@ -68,7 +68,7 @@ function Suggestion({ change, resume, onApplied }: { change: Change; resume: Res
       ) : stale ? (
         <p className="text-xs text-ink-500">This part of your resume changed since the suggestion, so it can no longer be applied.</p>
       ) : (
-        <button type="button" className="btn-primary btn-sm" disabled={!text.trim()} onClick={apply}>
+        <button type="button" className="btn-primary btn-sm" disabled={!text.trim() && change.target.kind !== 'bullet-remove'} onClick={apply}>
           {edited ? 'Apply my edited version' : 'Apply to resume'}
         </button>
       )}

@@ -182,6 +182,18 @@ describe('agent memory', () => {
     expect(sent(other, 0)).toEqual(['user: hello agent', 'assistant: First model answer.', 'user: and what about my skills?'])
   })
 
+  it('lets the user apply a bullet removal (its new text is empty)', async () => {
+    const r = seed()
+    const first = sampleContent().experience[0]!.bullets
+    mockLlm([`Removed it.<edits>{"removeBullets":[{"section":"experience","entry":0,"bullet":0,"reason":"redundant"}]}</edits>`])
+    renderAt(<ChatPanel resume={r} />)
+    await send('remove the first bullet of my first job')
+    const apply = await screen.findByRole('button', { name: 'Apply to resume' })
+    expect(apply).toBeEnabled()
+    await userEvent.click(apply)
+    expect(useResumes.getState().resumes[0]!.content.experience[0]!.bullets).toEqual(first.slice(1))
+  })
+
   it('tells the model which suggestions were applied, without replaying raw edit JSON', async () => {
     const r = seed()
     const edits = '{"fields":[{"section":"contact","field":"phone","value":"555-0199"}]}'
