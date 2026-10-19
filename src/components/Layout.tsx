@@ -13,8 +13,8 @@ const NAV = [
   { to: '/cover', label: 'Cover letters', match: (p: string) => p.startsWith('/cover') },
 ]
 
-const NEXT_THEME: Record<ThemePref, ThemePref> = { system: 'light', light: 'dark', dark: 'system' }
-const THEME_LABEL: Record<ThemePref, string> = { system: 'system', light: 'light', dark: 'dark' }
+const NEXT_THEME: Record<ThemePref, ThemePref> = { light: 'dark', dark: 'light' }
+const THEME_LABEL: Record<ThemePref, string> = { light: 'light', dark: 'dark' }
 
 function ThemeIcon({ theme }: { theme: ThemePref }) {
   const common = { viewBox: '0 0 24 24', className: 'h-5 w-5', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true }
@@ -25,16 +25,9 @@ function ThemeIcon({ theme }: { theme: ThemePref }) {
         <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
       </svg>
     )
-  if (theme === 'dark')
-    return (
-      <svg {...common}>
-        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-      </svg>
-    )
   return (
     <svg {...common}>
-      <rect x="3" y="4" width="18" height="12" rx="2" />
-      <path d="M8 20h8M12 16v4" />
+      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
     </svg>
   )
 }
@@ -42,11 +35,7 @@ function ThemeIcon({ theme }: { theme: ThemePref }) {
 export function useApplyTheme() {
   const theme = useSettings((s) => s.theme)
   useEffect(() => {
-    const mq = window.matchMedia?.('(prefers-color-scheme: dark)')
-    const apply = () => document.documentElement.classList.toggle('dark', theme === 'dark' || (theme === 'system' && !!mq?.matches))
-    apply()
-    mq?.addEventListener?.('change', apply)
-    return () => mq?.removeEventListener?.('change', apply)
+    document.documentElement.classList.toggle('dark', theme === 'dark')
   }, [theme])
 }
 
@@ -55,13 +44,20 @@ export function Layout() {
   const theme = useSettings((s) => s.theme)
   const update = useSettings((s) => s.update)
   const { pathname } = useLocation()
+  // An open resume uses the whole browser width so the full-size page preview fits beside the editor and the assistant.
+  const isWorkspace = /^\/resume\/[^/]+\/?$/.test(pathname)
+  useEffect(() => {
+    document.documentElement.classList.toggle('lock-page', isWorkspace)
+    return () => document.documentElement.classList.remove('lock-page')
+  }, [isWorkspace])
+  const maxW = isWorkspace ? '' : 'max-w-[1500px]'
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className={`flex min-h-screen flex-col ${isWorkspace ? 'lg:h-[100dvh] lg:overflow-hidden' : ''}`}>
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:p-2 focus:text-ink-900">
         Skip to content
       </a>
       <header className="no-print sticky top-0 z-30 border-b border-ink-200 bg-white/90 backdrop-blur dark:border-ink-800 dark:bg-ink-900/90">
-        <div className="mx-auto flex max-w-[1500px] items-center gap-4 px-4 py-2.5">
+        <div className={`mx-auto flex ${maxW} items-center gap-4 px-4 py-2.5`}>
           <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
             <Logo />
             <span>Resume AI</span>
@@ -93,7 +89,7 @@ export function Layout() {
           <ProfileMenu active={pathname.startsWith('/settings')} />
         </div>
       </header>
-      <main id="main" className="mx-auto w-full max-w-[1500px] flex-1 px-4 py-6">
+      <main id="main" className={`mx-auto w-full ${maxW} flex-1 px-4 py-6 ${isWorkspace ? 'lg:flex lg:min-h-0 lg:flex-col' : ''}`}>
         <Outlet />
       </main>
       <footer className="no-print border-t border-ink-200 px-4 py-3 text-center text-xs text-ink-500 dark:border-ink-800 dark:text-ink-400">

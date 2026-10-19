@@ -26,15 +26,25 @@
 .resume-paper {
   background: #fff;
   color: #111;
-  width: 100%;
-  max-width: 8.5in;
-  min-height: 11in;
+  /* A4 at its true proportions; never squeezed to fit, the preview column scrolls instead. */
+  width: 210mm;
+  min-height: 297mm;
+  flex: none;
   margin: 0 auto;
   padding: 0.6in 0.65in;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.15), 0 8px 24px rgb(0 0 0 / 0.08);
 }
 .resume-paper ul { list-style: disc; padding-left: 1.1em; margin: 0; }
 .resume-paper h1, .resume-paper h2, .resume-paper h3, .resume-paper p { margin: 0; }
+
+/* Scrolls but hides its scrollbar (the assistant's chat). */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* The open resume uses the whole screen: the page itself never scrolls, each column does. */
+@media (min-width: 1024px) {
+  html.lock-page, html.lock-page body { height: 100dvh; overflow: hidden; }
+}
 
 /* ---- Print: only the element marked .print-area is printed ---- */
 @page { size: auto; margin: 0.4in; }
@@ -43,7 +53,8 @@
   body * { visibility: hidden !important; }
   .print-area, .print-area * { visibility: visible !important; }
   .print-area { position: absolute !important; left: 0; top: 0; width: 100% !important; }
-  .resume-paper { box-shadow: none !important; max-width: none !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; }
+  .resume-paper { box-shadow: none !important; width: auto !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; }
+  .preview-zoom { transform: none !important; width: auto !important; height: auto !important; }
   .no-print { display: none !important; }
 }
 

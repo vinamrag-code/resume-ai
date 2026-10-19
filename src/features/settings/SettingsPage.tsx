@@ -226,7 +226,6 @@ export function SettingsPage() {
             Theme
           </label>
           <select id="theme" className="input max-w-xs" value={theme} onChange={(e) => update({ theme: e.target.value as ThemePref })}>
-            <option value="system">Match system</option>
             <option value="light">Light</option>
             <option value="dark">Dark</option>
           </select>

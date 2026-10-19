@@ -20,7 +20,8 @@ export const BackupSchema = z.object({
     // A provider this version does not know (e.g. one since removed) restores as Auto.
     provider: z.string().default('auto').transform((p): ProviderChoice => (p === 'auto' || p in PROVIDERS ? (p as ProviderChoice) : 'auto')),
     models: z.record(z.string(), z.string()).default({}),
-    theme: z.enum(['system', 'light', 'dark']),
+    // Older backups may say 'system', which no longer exists.
+    theme: z.enum(['system', 'light', 'dark']).transform((t): 'light' | 'dark' => (t === 'dark' ? 'dark' : 'light')),
   }),
   resumes: z.array(ResumeSchema),
   jobs: z.array(JobSchema),

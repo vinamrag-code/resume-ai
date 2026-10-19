@@ -16,7 +16,7 @@ const setup = (route = '/') =>
 
 beforeEach(() => {
   useResumes.setState({ resumes: [] })
-  useSettings.setState({ theme: 'system', onboarded: true })
+  useSettings.setState({ theme: 'light', onboarded: true })
 })
 
 describe('navbar', () => {
@@ -55,14 +55,12 @@ describe('navbar', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 
-  it('theme toggle is an icon button that cycles system, light, dark', async () => {
+  it('theme toggle is an icon button that switches between light and dark', async () => {
     setup()
     const toggle = () => screen.getByRole('button', { name: /^Theme:/ })
-    expect(toggle()).toHaveAccessibleName('Theme: system. Switch to light')
+    expect(toggle()).toHaveAccessibleName('Theme: light. Switch to dark')
     expect(toggle()).not.toHaveTextContent(/theme/i)
     expect(toggle().querySelector('svg')).toBeInTheDocument()
-    await userEvent.click(toggle())
-    expect(toggle()).toHaveAccessibleName('Theme: light. Switch to dark')
     await userEvent.click(toggle())
     expect(useSettings.getState().theme).toBe('dark')
     expect(document.documentElement).toHaveClass('dark')

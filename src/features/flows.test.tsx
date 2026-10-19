@@ -204,25 +204,47 @@ describe('target job tab', () => {
   })
 })
 
-describe('Edit with AI', () => {
-  it('sits beside the export buttons and opens the Agent chat', async () => {
+describe('Sage and export', () => {
+  it('always shows the assistant panel, with no Edit with AI button', () => {
     const r = seedResume()
     renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
-    const edit = screen.getByRole('button', { name: 'Edit with AI' })
-    expect(edit.parentElement).toContainElement(screen.getByRole('button', { name: 'Export PDF' }))
-    expect(edit.parentElement).toContainElement(screen.getByRole('button', { name: 'Export DOCX' }))
-    expect(screen.queryByRole('region', { name: 'Resume agent chat' })).not.toBeInTheDocument()
-    await userEvent.click(edit)
-    expect(screen.getByRole('region', { name: 'Resume agent chat' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Agent' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('button', { name: 'Target job' })).not.toHaveAttribute('aria-current')
+    expect(screen.queryByRole('button', { name: 'Edit with AI' })).not.toBeInTheDocument()
+    const widget = screen.getByRole('complementary', { name: 'Sage, your resume assistant' })
+    expect(within(widget).getByRole('region', { name: 'Resume agent chat' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Close Sage' })).not.toBeInTheDocument()
   })
 
-  it('has Agent as its own tab in the same row as Edit, Design and Target job', () => {
+  it('puts Export beside Write cover letter, drops the saved time, and offers PDF or DOCX in a dropdown', async () => {
+    const r = seedResume()
+    renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
+    const exportBtn = screen.getByRole('button', { name: 'Export' })
+    expect(exportBtn.parentElement?.parentElement).toContainElement(screen.getByRole('link', { name: 'Write cover letter' }))
+    expect(screen.queryByText(/^Saved /)).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem')).not.toBeInTheDocument()
+    await userEvent.click(exportBtn)
+    expect(screen.getByRole('menuitem', { name: 'Export to PDF' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Export to DOCX' })).toBeInTheDocument()
+  })
+
+  it('lets the preview be zoomed in and out, and back to fit', async () => {
+    const r = seedResume()
+    renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
+    const level = screen.getByRole('status', { name: 'Zoom level' })
+    expect(level).toHaveTextContent('100%')
+    await userEvent.click(screen.getByRole('button', { name: 'Zoom out' }))
+    expect(level).toHaveTextContent('90%')
+    await userEvent.click(screen.getByRole('button', { name: 'Zoom in' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Zoom in' }))
+    expect(level).toHaveTextContent('110%')
+    await userEvent.click(screen.getByRole('button', { name: 'Fit page' }))
+    expect(level).toHaveTextContent('100%')
+  })
+
+  it('no longer has an Agent tab in the row with Edit, Design and Target job', () => {
     const r = seedResume()
     renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
     const row = screen.getByRole('navigation', { name: 'Resume tools' })
-    expect([...row.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Edit', 'Design', 'Target job', 'Agent'])
+    expect([...row.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Edit', 'Design', 'Target job'])
   })
 })
 

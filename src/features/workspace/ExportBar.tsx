@@ -1,13 +1,42 @@
-import { useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { ErrorBanner } from '@/components/ui'
 import { downloadBlob, printToPdf, safeFilename } from '@/lib/export/download'
 import { resumeToDocxBlob } from '@/lib/export/docx'
 import type { Resume } from '@/types/resume'
 
-export function ExportBar({ resume, onEditWithAi }: { resume: Resume; onEditWithAi: () => void }) {
+/** One Export button; its dropdown offers PDF (the browser's print dialog) or DOCX. */
+export function ExportBar({ resume }: { resume: Resume }) {
   const [error, setError] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
+  const [open, setOpen] = useState(false)
+  const root = useRef<HTMLDivElement>(null)
+  const menuId = useId()
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false)
+        root.current?.querySelector('button')?.focus()
+      }
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  const onPdf = () => {
+    setOpen(false)
+    printToPdf()
+  }
   const onDocx = async () => {
+    setOpen(false)
     setBusy(true)
     setError(null)
     try {
@@ -18,24 +47,39 @@ export function ExportBar({ resume, onEditWithAi }: { resume: Resume; onEditWith
       setBusy(false)
     }
   }
+  const item = 'flex w-full items-center rounded-lg px-3 py-2 text-left text-sm hover:bg-ink-100 dark:hover:bg-ink-800'
   return (
-    <div className="no-print space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className="btn bg-spark-500 text-ink-950 shadow-sm hover:bg-spark-400" onClick={onEditWithAi}>
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-            <path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9z" />
-          </svg>
-          Edit with AI
-        </button>
-        <button type="button" className="btn-primary" onClick={printToPdf}>
-          Export PDF
-        </button>
-        <button type="button" className="btn-secondary" onClick={() => void onDocx()} disabled={busy}>
-          {busy ? 'Building DOCX...' : 'Export DOCX'}
-        </button>
-        <span className="text-xs text-ink-500 dark:text-ink-400">PDF opens your browser&apos;s print dialog: choose &ldquo;Save as PDF&rdquo; and turn off headers and footers.</span>
-      </div>
-      <ErrorBanner error={error} onDismiss={() => setError(null)} />
+    <div ref={root} className="no-print relative">
+      <button
+        type="button"
+        className="btn-primary btn-sm"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
+        disabled={busy}
+        onClick={() => setOpen((o) => !o)}
+      >
+        {busy ? 'Building DOCX...' : 'Export'}
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {open && (
+        <div id={menuId} role="menu" aria-label="Export menu" className="absolute right-0 top-full z-40 mt-1 w-64 rounded-xl border border-ink-200 bg-white p-1.5 shadow-lg dark:border-ink-700 dark:bg-ink-900">
+          <button type="button" role="menuitem" className={item} onClick={onPdf}>
+            Export to PDF
+          </button>
+          <button type="button" role="menuitem" className={item} onClick={() => void onDocx()}>
+            Export to DOCX
+          </button>
+          <p className="px-3 py-1.5 text-xs text-ink-500 dark:text-ink-400">PDF opens your browser&apos;s print dialog: choose &ldquo;Save as PDF&rdquo; and turn off headers and footers.</p>
+        </div>
+      )}
+      {error != null && (
+        <div className="absolute right-0 top-full z-30 mt-1 w-80">
+          <ErrorBanner error={error} onDismiss={() => setError(null)} />
+        </div>
+      )}
     </div>
   )
 }

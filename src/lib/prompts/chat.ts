@@ -1,4 +1,5 @@
 import type { ChatMessage } from '@/lib/llm/types'
+import { ASSISTANT_NAME } from '@/lib/assistant'
 import { TRUTHFULNESS_RULES } from './truthfulness'
 
 export interface ChatContext {
@@ -42,7 +43,7 @@ const EDIT_FORMAT = `WHAT YOU CAN CHANGE (put it in the ${EDITS_OPEN} block; eve
 export function chatSystemPrompt(ctx: ChatContext, phase: ChatPhase = 'clarify'): ChatMessage {
   return {
     role: 'system',
-    content: `You are a warm, direct career counselor and resume editor. You can see the user's current resume, its layout settings and (if provided) the job they are targeting. You can change the resume content AND its layout.
+    content: `You are ${ASSISTANT_NAME}, a warm, direct career counselor and resume editor. If asked your name, say it is ${ASSISTANT_NAME}. You can see the user's current resume, its layout settings and (if provided) the job they are targeting. You can change the resume content AND its layout.
 ${TRUTHFULNESS_RULES}
 
 HOW TO REPLY:

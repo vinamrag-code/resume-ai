@@ -17,21 +17,21 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
   openrouter: {
     id: 'openrouter',
     label: 'OpenRouter (cloud)',
-    baseUrl: '/api/llm/openrouter',
+    baseUrl: `${import.meta.env.BASE_URL}api/llm/openrouter`,
     defaultModel: 'nvidia/nemotron-3-super-120b-a12b:free',
     supportsJsonFormat: false,
   },
   groq: {
     id: 'groq',
     label: 'Groq (cloud)',
-    baseUrl: '/api/llm/groq',
+    baseUrl: `${import.meta.env.BASE_URL}api/llm/groq`,
     defaultModel: 'openai/gpt-oss-120b',
     supportsJsonFormat: true,
   },
   inception: {
     id: 'inception',
     label: 'Inception (cloud)',
-    baseUrl: '/api/llm/inception',
+    baseUrl: `${import.meta.env.BASE_URL}api/llm/inception`,
     defaultModel: 'mercury-2.5',
     supportsJsonFormat: true,
   },
@@ -79,7 +79,7 @@ export function subscribeServerProviders(l: () => void): () => void {
 /** Ask the server which providers it has keys for (the keys themselves are never sent). */
 export async function loadServerProviders(): Promise<Set<CloudProvider>> {
   try {
-    const res = await fetch('/api/llm/status')
+    const res = await fetch(`${import.meta.env.BASE_URL}api/llm/status`)
     const data = (await res.json()) as { providers?: Partial<Record<CloudProvider, boolean>>; models?: Partial<Record<CloudProvider, string[]>>; defaults?: Partial<Record<CloudProvider, string>> }
     if (data.models && data.defaults && CLOUD_PROVIDERS.every((id) => Array.isArray(data.models?.[id]) && typeof data.defaults?.[id] === 'string')) {
       serverModels = { allowed: data.models as ServerModels['allowed'], defaults: data.defaults as ServerModels['defaults'] }

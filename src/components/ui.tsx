@@ -121,5 +121,5 @@ export function Field({ label, children }: { label: string; children: (id: strin
 }
 
 export function Logo({ className = 'h-7 w-7' }: { className?: string }) {
-  return <img src="/logo.svg" alt="" aria-hidden="true" className={className} />
+  return <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" aria-hidden="true" className={className} />
 }
