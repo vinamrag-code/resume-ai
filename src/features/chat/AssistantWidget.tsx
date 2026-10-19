@@ -6,7 +6,7 @@ import { ChatPanel } from './ChatPanel'
  * The assistant's chat as a docked panel: a column to the right of the resume preview on wide screens (it follows the page
  * as you scroll), and below the preview on narrow ones.
  */
-export function AssistantWidget({ resume, onClose }: { resume: Resume; onClose: () => void }) {
+export function AssistantWidget({ resume }: { resume: Resume }) {
   return (
     <div className="no-print min-w-0">
       <aside
@@ -23,9 +23,6 @@ export function AssistantWidget({ resume, onClose }: { resume: Resume; onClose: 
             <h2 className="text-sm font-semibold leading-tight">{ASSISTANT_NAME}</h2>
             <p className="text-xs text-ink-500 dark:text-ink-400">Your resume assistant</p>
           </div>
-          <button type="button" className="btn-ghost btn-sm" onClick={onClose} aria-label={`Close ${ASSISTANT_NAME}`}>
-            ✕
-          </button>
         </header>
         <div className="overflow-y-auto p-3">
           <ChatPanel resume={resume} embedded />

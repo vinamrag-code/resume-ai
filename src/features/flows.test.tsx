@@ -204,20 +204,26 @@ describe('target job tab', () => {
   })
 })
 
-describe('Edit with AI', () => {
-  it('sits beside the export buttons and opens the assistant widget, which can be closed', async () => {
+describe('Sage and export', () => {
+  it('always shows the assistant panel, with no Edit with AI button', () => {
     const r = seedResume()
     renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
-    const edit = screen.getByRole('button', { name: 'Edit with AI' })
-    expect(edit.parentElement).toContainElement(screen.getByRole('button', { name: 'Export PDF' }))
-    expect(edit.parentElement).toContainElement(screen.getByRole('button', { name: 'Export DOCX' }))
-    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
-    await userEvent.click(edit)
+    expect(screen.queryByRole('button', { name: 'Edit with AI' })).not.toBeInTheDocument()
     const widget = screen.getByRole('complementary', { name: 'Sage, your resume assistant' })
     expect(within(widget).getByRole('region', { name: 'Resume agent chat' })).toBeInTheDocument()
-    expect(edit).toHaveAttribute('aria-expanded', 'true')
-    await userEvent.click(screen.getByRole('button', { name: 'Close Sage' }))
-    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Close Sage' })).not.toBeInTheDocument()
+  })
+
+  it('puts Export beside Write cover letter, drops the saved time, and offers PDF or DOCX in a dropdown', async () => {
+    const r = seedResume()
+    renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
+    const exportBtn = screen.getByRole('button', { name: 'Export' })
+    expect(exportBtn.parentElement?.parentElement).toContainElement(screen.getByRole('link', { name: 'Write cover letter' }))
+    expect(screen.queryByText(/^Saved /)).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem')).not.toBeInTheDocument()
+    await userEvent.click(exportBtn)
+    expect(screen.getByRole('menuitem', { name: 'Export to PDF' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Export to DOCX' })).toBeInTheDocument()
   })
 
   it('no longer has an Agent tab in the row with Edit, Design and Target job', () => {

@@ -36,7 +36,6 @@ function Workspace({ resume }: { resume: Resume }) {
   const rename = useResumes((s) => s.rename)
   const updateContent = useResumes((s) => s.updateContent)
   const [tab, setTab] = useState<TabId>('edit')
-  const [assistantOpen, setAssistantOpen] = useState(false)
 
   return (
     <div className="space-y-4">
@@ -50,12 +49,10 @@ function Workspace({ resume }: { resume: Resume }) {
         <Link to={`/cover?resume=${resume.id}`} className="btn-secondary btn-sm">
           Write cover letter
         </Link>
-        <span className="text-xs text-ink-500 dark:text-ink-400" role="status">
-          Saved {new Date(resume.updatedAt).toLocaleTimeString()}
-        </span>
+        <ExportBar resume={resume} />
       </div>
 
-      <div className={`grid gap-6 ${assistantOpen ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(20rem,26rem)]' : 'lg:grid-cols-2'}`}>
+      <div className="grid gap-6 lg:grid-cols-[minmax(22rem,1fr)_auto_minmax(20rem,26rem)]">
         <div className="no-print min-w-0 space-y-4">
           <nav id="resume-tools" aria-label="Resume tools" className="flex flex-wrap gap-1 rounded-xl bg-ink-100 p-1 dark:bg-ink-800">
             {TABS.map((t) => (
@@ -74,13 +71,10 @@ function Workspace({ resume }: { resume: Resume }) {
           {tab === 'design' && <DesignPanel resume={resume} />}
           {tab === 'job' && <JobPanel resume={resume} scoring={scoring} />}
         </div>
-        <div className="min-w-0 space-y-3">
-          <ExportBar resume={resume} assistantOpen={assistantOpen} onEditWithAi={() => setAssistantOpen((o) => !o)} />
-          <div className="overflow-x-auto">
-            <ResumePreview resume={resume} />
-          </div>
+        <div className="min-w-0 overflow-x-auto">
+          <ResumePreview resume={resume} />
         </div>
-        {assistantOpen && <AssistantWidget resume={resume} onClose={() => setAssistantOpen(false)} />}
+        <AssistantWidget resume={resume} />
       </div>
     </div>
   )

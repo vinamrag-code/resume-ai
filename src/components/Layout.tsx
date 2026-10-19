@@ -55,13 +55,15 @@ export function Layout() {
   const theme = useSettings((s) => s.theme)
   const update = useSettings((s) => s.update)
   const { pathname } = useLocation()
+  // An open resume uses the whole browser width so the full-size page preview fits beside the editor and the assistant.
+  const maxW = /^\/resume\/[^/]+\/?$/.test(pathname) ? '' : 'max-w-[1500px]'
   return (
     <div className="flex min-h-screen flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:p-2 focus:text-ink-900">
         Skip to content
       </a>
       <header className="no-print sticky top-0 z-30 border-b border-ink-200 bg-white/90 backdrop-blur dark:border-ink-800 dark:bg-ink-900/90">
-        <div className="mx-auto flex max-w-[1500px] items-center gap-4 px-4 py-2.5">
+        <div className={`mx-auto flex ${maxW} items-center gap-4 px-4 py-2.5`}>
           <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
             <Logo />
             <span>Resume AI</span>
@@ -93,7 +95,7 @@ export function Layout() {
           <ProfileMenu active={pathname.startsWith('/settings')} />
         </div>
       </header>
-      <main id="main" className="mx-auto w-full max-w-[1500px] flex-1 px-4 py-6">
+      <main id="main" className={`mx-auto w-full ${maxW} flex-1 px-4 py-6`}>
         <Outlet />
       </main>
       <footer className="no-print border-t border-ink-200 px-4 py-3 text-center text-xs text-ink-500 dark:border-ink-800 dark:text-ink-400">
