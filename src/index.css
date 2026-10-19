@@ -37,6 +37,15 @@
 .resume-paper ul { list-style: disc; padding-left: 1.1em; margin: 0; }
 .resume-paper h1, .resume-paper h2, .resume-paper h3, .resume-paper p { margin: 0; }
 
+/* Scrolls but hides its scrollbar (the assistant's chat). */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* The open resume uses the whole screen: the page itself never scrolls, each column does. */
+@media (min-width: 1024px) {
+  html.lock-page, html.lock-page body { height: 100dvh; overflow: hidden; }
+}
+
 /* ---- Print: only the element marked .print-area is printed ---- */
 @page { size: auto; margin: 0.4in; }
 @media print {
@@ -45,6 +54,7 @@
   .print-area, .print-area * { visibility: visible !important; }
   .print-area { position: absolute !important; left: 0; top: 0; width: 100% !important; }
   .resume-paper { box-shadow: none !important; width: auto !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; }
+  .preview-zoom { transform: none !important; width: auto !important; height: auto !important; }
   .no-print { display: none !important; }
 }
 

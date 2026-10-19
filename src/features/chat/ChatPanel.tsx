@@ -151,11 +151,11 @@ export function ChatPanel({ resume, embedded = false }: { resume: Resume; embedd
   }
 
   return (
-    <div className="space-y-3">
+    <div className={embedded ? 'flex h-full min-h-0 flex-col gap-3' : 'space-y-3'}>
       <TruthfulnessNote />
       <SignInNotice feature={ASSISTANT_NAME} />
-      <section className={`flex min-h-80 flex-col gap-3 ${embedded ? '' : 'card max-h-[70vh]'}`} aria-label="Resume agent chat">
-        <div className="flex-1 space-y-3 overflow-y-auto" role="log" aria-live="polite">
+      <section className={`flex flex-col gap-3 ${embedded ? 'min-h-0 flex-1' : 'card max-h-[70vh] min-h-80'}`} aria-label="Resume agent chat">
+        <div className="no-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto" role="log" aria-live="polite">
           {turns.length === 0 && (
             <div className="space-y-2 text-sm">
               <p>
@@ -209,7 +209,7 @@ export function ChatPanel({ resume, embedded = false }: { resume: Resume; embedd
             ref={inputRef}
             rows={1}
             autoComplete="off"
-            className="input max-h-48 resize-none overflow-y-auto"
+            className="input no-scrollbar max-h-48 resize-none overflow-y-auto"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {

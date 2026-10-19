@@ -23,6 +23,8 @@ export default defineConfig(({ mode }) => {
   // Load ALL variables (not just VITE_*) for the server-side proxy only; they are never exposed to the client bundle.
   const env = loadEnv(mode, process.cwd(), '')
   return {
+    // URL prefix the app is served under (e.g. /resume-ai/ behind nginx). Defaults to the site root.
+    base: env.BASE_PATH || '/',
     plugins: [react(), llmProxy(env)],
     resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
     build: { chunkSizeWarningLimit: 1500 },

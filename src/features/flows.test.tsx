@@ -226,6 +226,20 @@ describe('Sage and export', () => {
     expect(screen.getByRole('menuitem', { name: 'Export to DOCX' })).toBeInTheDocument()
   })
 
+  it('lets the preview be zoomed in and out, and back to fit', async () => {
+    const r = seedResume()
+    renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })
+    const level = screen.getByRole('status', { name: 'Zoom level' })
+    expect(level).toHaveTextContent('100%')
+    await userEvent.click(screen.getByRole('button', { name: 'Zoom out' }))
+    expect(level).toHaveTextContent('90%')
+    await userEvent.click(screen.getByRole('button', { name: 'Zoom in' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Zoom in' }))
+    expect(level).toHaveTextContent('110%')
+    await userEvent.click(screen.getByRole('button', { name: 'Fit page' }))
+    expect(level).toHaveTextContent('100%')
+  })
+
   it('no longer has an Agent tab in the row with Edit, Design and Target job', () => {
     const r = seedResume()
     renderAt(<WorkspacePage />, { path: '/resume/:id', route: `/resume/${r.id}` })

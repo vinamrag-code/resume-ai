@@ -24,7 +24,7 @@ export async function importJobFromUrl(url: string, signal?: AbortSignal): Promi
   const token = await getIdToken()
   let res: Response
   try {
-    res = await fetch('/api/job/import', {
+    res = await fetch(`${import.meta.env.BASE_URL}api/job/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify({ url: url.trim() }),
