@@ -78,7 +78,7 @@ export function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-ink-200 px-4 py-4 text-center text-xs text-ink-500 dark:border-ink-800 dark:text-ink-400">Resume AI is free and open source. Sign in to use the app.</footer>
+      <footer className="border-t border-ink-200 px-4 py-4 text-center text-xs text-ink-500 dark:border-ink-800 dark:text-ink-400">Sign in to use Resume AI.</footer>
       {modal && <AuthModal initialMode={modal} onClose={() => setModal(null)} />}
     </div>
   )

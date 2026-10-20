@@ -93,7 +93,7 @@ export function Layout() {
         <Outlet />
       </main>
       <footer className="no-print border-t border-ink-200 px-4 py-3 text-center text-xs text-ink-500 dark:border-ink-800 dark:text-ink-400">
-        Resume AI is free and open source. Your data stays in this browser; AI answers come through this site's server.
+        Your data stays in this browser; AI answers come through this site's server.
       </footer>
     </div>
   )
