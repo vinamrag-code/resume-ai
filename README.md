@@ -1,6 +1,8 @@
 # Resume AI
 
-A free, open-source, **local-first** AI resume builder. Import a resume, analyse it against a job with a transparent ATS score, tailor it with reviewable diffs, chat with a resume counselor, write cover letters, and track applications. No backend, no accounts, no telemetry.
+A **local-first** AI resume builder. Import a resume, analyse it against a job with a transparent ATS score, tailor it with reviewable diffs, chat with Sage (the resume assistant), write cover letters, and track applications. No telemetry.
+
+> Working on this codebase with an AI coding CLI? Read [`AGENTS.md`](AGENTS.md) first.
 
 - Your data lives in your browser (`localStorage`).
 - AI answers come from a LangChain pipeline (`src/lib/chain`): saved resumes, job descriptions and imported files are retrieved from an IndexedDB vector store, Groq improves the prompt, Inception (Mercury) writes the answer, Groq polishes it, and OpenRouter backs up every step (and is the independent fact-checker). Calls go through a small server-side proxy that holds your API keys.
@@ -197,7 +199,3 @@ src/
 - In-browser embeddings need a one-time internet connection for the model download; Safari older than 26 may need a non-asyncify ONNX runtime that is not bundled.
 - Print-based PDFs depend on the browser's print settings (disable headers/footers).
 - Data is per-browser; use Export/Import to move it.
-
-## License
-
-MIT
