@@ -7,6 +7,7 @@ import { Layout } from '@/components/Layout'
 import { BankPage } from '@/features/bank/BankPage'
 import { BuildPage } from '@/features/build/BuildPage'
 import { AuthGate } from '@/features/auth/AuthGate'
+import { ConnectorsPage } from '@/features/connectors/ConnectorsPage'
 import { CoverLetterPage } from '@/features/cover/CoverLetterPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { ImportPage } from '@/features/import/ImportPage'
@@ -48,6 +49,7 @@ export function App() {
           <Route path="build" element={<BuildPage />} />
           <Route path="bank" element={<BankPage />} />
           <Route path="cover" element={<CoverLetterPage />} />
+          <Route path="connectors" element={<ConnectorsPage />} />
           <Route path="tracker" element={<TrackerPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route

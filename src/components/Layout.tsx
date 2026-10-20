@@ -10,6 +10,7 @@ const NAV = [
   { to: '/', label: 'Resumes', match: (p: string) => p === '/' || p.startsWith('/resume') || p.startsWith('/import') || p.startsWith('/build') },
   { to: '/bank', label: 'Experience bank', match: (p: string) => p.startsWith('/bank') },
   { to: '/tracker', label: 'Tracker', match: (p: string) => p.startsWith('/tracker') },
+  { to: '/connectors', label: 'Connectors', match: (p: string) => p.startsWith('/connectors') },
   { to: '/cover', label: 'Cover letters', match: (p: string) => p.startsWith('/cover') },
 ]
 
