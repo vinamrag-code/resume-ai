@@ -18,6 +18,7 @@ import { verifyChanges } from '@/features/tailor/verifyChanges'
 import { fallbackText, isPreparingEdits, parseEdits, visibleText } from './chatLogic'
 import { ASSISTANT_NAME } from '@/lib/assistant'
 import { appliedSummary, buildHistory } from './history'
+import { reviewChanges } from './reviewChanges'
 import { selectTurns, useChats } from '@/store/chats'
 import type { ChatTurn } from '@/types/chat'
 
@@ -142,10 +143,13 @@ export function ChatPanel({ resume, embedded = false }: { resume: Resume; embedd
         { signal: abort.current.signal, temperature: 0.4 },
       )
       // On the first turn only layout changes and explicit fixes are accepted; content rewrites wait for answers.
-      const parsed = parseEdits(full, resume, phase, history.filter((t) => t.role === 'user').map((t) => t.content).join('\n'))
-      const changes = await verifyChanges(parsed, resumeToText(resume.content), abort.current.signal)
+      const userText = history.filter((t) => t.role === 'user').map((t) => t.content).join('\n')
+      const parsed = parseEdits(full, resume, phase, userText)
+      // Intent check: complete a half-done multi-part request and flag edits nobody asked for, then fact-check the lot.
+      const reviewed = await reviewChanges({ request: content, full, changes: parsed, messages, resume, phase, userText, signal: abort.current.signal })
+      const changes = await verifyChanges(reviewed.changes, resumeToText(resume.content), abort.current.signal)
       // Never leave the user with an empty or JSON-only reply.
-      const shown = visibleText(full) ? full : `${fallbackText(changes.length > 0)}`
+      const shown = visibleText(full) ? (reviewed.note ? `${full}\n\n${reviewed.note}` : full) : `${fallbackText(changes.length > 0)}`
       setTurns(resume.id, (ts) => ts.map((t) => (t.id === assistantId ? { ...t, content: shown, changes } : t)))
     } catch (err) {
       setError(err)

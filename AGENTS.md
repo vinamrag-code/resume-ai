@@ -60,6 +60,7 @@ firestore.rules      security rules (tests in firestore-rules/, need the emulato
 ## Conventions
 
 - Match surrounding code: naming, comment density, idiom. Prefer existing libraries/components (zustand stores, zod schemas, `src/components/ui.tsx`, `LlmClient`, the existing embedder) over new dependencies.
+- Agent behaviour rules (do everything asked, nothing more, nothing without approval) live in `src/lib/prompts/AGENT_RULES.md`; it is loaded into the chat and tailor prompts at build time, so edit that file, not copies. Chat replies also go through `features/chat/reviewChanges.ts` (completes half-done multi-part requests, flags unrequested edits).
 - Validate all LLM JSON with zod via `generateJson()`; never trust model output shape.
 - Model edits refer to indexes and are resolved against the real resume (`changes.ts`); `before` always comes from the resume.
 - Every AI edit is a diff the user accepts or rejects. Do not auto-apply AI changes.
