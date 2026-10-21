@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { SignInNotice } from '@/components/SignInNotice'
-import { ErrorBanner, Spinner, TruthfulnessNote } from '@/components/ui'
+import { ErrorBanner, Spinner } from '@/components/ui'
 import { useAiAccess } from '@/lib/auth/useAiAccess'
 import { extractText } from '@/lib/extract'
 import { forgetImportedFile, indexImportedFile } from '@/lib/rag/indexer'
@@ -70,7 +70,6 @@ export function ImportPage() {
           Upload a PDF or DOCX, or paste text. Text is extracted in your browser, then your local AI turns it into editable sections.
         </p>
       </div>
-      <TruthfulnessNote />
       <SignInNotice feature="AI resume parsing" />
       <ErrorBanner error={error} onDismiss={() => setError(null)} />
 

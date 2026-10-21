@@ -56,14 +56,6 @@ export function EmptyState({ title, children, action }: { title: string; childre
   )
 }
 
-export function TruthfulnessNote({ className = '' }: { className?: string }) {
-  return (
-    <p className={`rounded-lg border border-brand-200 bg-brand-50 p-2.5 text-xs text-brand-900 dark:border-brand-800 dark:bg-brand-900/30 dark:text-brand-100 ${className}`}>
-      <strong>Truthful by design.</strong> The AI may reword and reprioritise what is already in your resume. It is instructed never to invent employers, titles, dates, degrees, metrics or skills. Always review changes before accepting.
-    </p>
-  )
-}
-
 export function ProgressBar({ value, label }: { value: number; label: string }) {
   const v = Math.max(0, Math.min(100, Math.round(value)))
   return (

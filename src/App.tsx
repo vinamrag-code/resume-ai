@@ -11,6 +11,7 @@ import { LandingPage } from '@/features/auth/LandingPage'
 import { CoverLetterPage } from '@/features/cover/CoverLetterPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { ResumesPage } from '@/features/dashboard/ResumesPage'
+import { MailPage } from '@/features/mail/MailPage'
 import { ImportPage } from '@/features/import/ImportPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { TrackerPage } from '@/features/tracker/TrackerPage'
@@ -61,6 +62,7 @@ function Gated() {
           <Route path="build" element={<BuildPage />} />
           <Route path="bank" element={<BankPage />} />
           <Route path="cover" element={<CoverLetterPage />} />
+          <Route path="mail" element={<MailPage />} />
           <Route path="tracker" element={<TrackerPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route

@@ -54,6 +54,9 @@ function Workspace({ resume }: { resume: Resume }) {
         <Link to={`/cover?resume=${resume.id}`} className="btn-secondary btn-sm">
           Write cover letter
         </Link>
+        <Link to={`/mail?resume=${resume.id}`} className="btn-secondary btn-sm">
+          Write email
+        </Link>
         <ExportBar resume={resume} />
       </div>
 

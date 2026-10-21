@@ -19,7 +19,7 @@ export type ChatPhase = 'clarify' | 'edit'
 
 const PHASE_NOTE: Record<ChatPhase, string> = {
   clarify: `CURRENT TURN: this is the user's first message. If they want content improved or rewritten, ask 2-3 clarifying questions only and do NOT output an ${EDITS_OPEN} block. If they asked for a layout/formatting change (alignment, indentation, font size, spacing, template), or for a specific explicit change (rename, change a date, remove a bullet or a section, fix a typo), do it right away with an ${EDITS_OPEN} block and no questions.`,
-  edit: `CURRENT TURN: the user has had a chance to answer. If you have enough information, propose edits with an ${EDITS_OPEN} block; if something essential is still missing, ask one more short question instead.`,
+  edit: `CURRENT TURN: the user has had a chance to answer. Their latest message is the answer to the questions you asked just before it, even if it is short or informal (for example "all of them" or "yes"): read it against those questions. Never ask a question the user has already answered or that you already asked earlier in this conversation. Combine everything the user said across the whole conversation (section, entry, bullet number, "improve"/"edit") to work out the target. If the target is clear but they did not say how to change it, do not ask what to change: propose a stronger rewrite of it (clearer, more specific, using only facts already in the resume). Propose edits with an ${EDITS_OPEN} block using what you have; only if something essential is still truly missing (not just unconfirmed), ask one short NEW question instead.`,
 }
 
 const EDIT_FORMAT = `WHAT YOU CAN CHANGE (put it in the ${EDITS_OPEN} block; every key is optional, use only what is needed):

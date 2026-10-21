@@ -1,4 +1,4 @@
-import { IconLayoutDashboard, IconFileText, IconLayoutKanban, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconMail, IconMenu2, IconMoon, IconStack2, IconSun } from '@tabler/icons-react'
+import { IconLayoutDashboard, IconFileText, IconLayoutKanban, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconMail, IconMailForward, IconMenu2, IconMoon, IconStack2, IconSun } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { ProfileMenu } from '@/components/ProfileMenu'
@@ -13,6 +13,7 @@ const NAV = [
   { to: '/bank', label: 'Experience bank', icon: IconStack2, match: (p: string) => p.startsWith('/bank') },
   { to: '/tracker', label: 'Tracker', icon: IconLayoutKanban, match: (p: string) => p.startsWith('/tracker') },
   { to: '/cover', label: 'Cover letters', icon: IconMail, match: (p: string) => p.startsWith('/cover') },
+  { to: '/mail', label: 'Emails', icon: IconMailForward, match: (p: string) => p.startsWith('/mail') },
 ]
 
 const NEXT_THEME: Record<ThemePref, ThemePref> = { light: 'dark', dark: 'light' }
@@ -74,9 +75,6 @@ function Sidebar({ rail, onNavigate, onToggleRail }: { rail: boolean; onNavigate
           )
         })}
       </nav>
-      <p aria-hidden={rail} className={`overflow-hidden rounded-lg bg-ink-50 text-xs text-ink-500 transition-all duration-500 ease-in-out motion-reduce:transition-none dark:bg-ink-900 dark:text-ink-400 ${rail ? 'max-h-0 p-0 opacity-0' : 'max-h-24 p-3 opacity-100'}`}>
-        Truthful by design: the AI only rewords what is already true about you.
-      </p>
       <div className={`flex flex-col gap-1 border-t border-ink-200 pt-3 dark:border-ink-800`}>
         <button
           type="button"
@@ -163,6 +161,8 @@ export function Layout() {
           <Outlet />
         </main>
         <footer className="no-print border-t border-ink-200 px-4 py-3 text-center text-xs text-ink-500 dark:border-ink-800 dark:text-ink-400">
+          <strong>Truthful by design.</strong> The AI may reword and reprioritise what is already in your resume. It is instructed never to invent employers, titles, dates, degrees, metrics or skills. Always review changes before accepting.
+          <br />
           Your data stays in this browser; AI answers come through this site's server. ·{' '}
           <Link to="/welcome" className="underline hover:text-brand-600 dark:hover:text-brand-300">
             About Resume AI
