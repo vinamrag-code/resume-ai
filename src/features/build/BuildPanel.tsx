@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ErrorBanner, ProgressBar, TruthfulnessNote } from '@/components/ui'
+import { ErrorBanner, ProgressBar } from '@/components/ui'
 import { AreaField, TextField } from '@/features/editor/controls'
 import { JobUrlImport } from '@/features/workspace/JobUrlImport'
 import { SignInNotice } from '@/components/SignInNotice'
@@ -129,7 +129,6 @@ export function BuildPanel({ embedderFactory = createTransformersEmbedder, initi
   const canFind = job.description.trim().length > 20 && !busy
   return (
     <div className="space-y-4">
-      <TruthfulnessNote />
       <section className="card space-y-3" aria-label="Job">
         <JobUrlImport
           existingDescription={job.description}

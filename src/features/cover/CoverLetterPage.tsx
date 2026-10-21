@@ -2,7 +2,7 @@ import { IconX } from '@tabler/icons-react'
 import { useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { SignInNotice } from '@/components/SignInNotice'
-import { EmptyState, ErrorBanner, Spinner, TruthfulnessNote } from '@/components/ui'
+import { EmptyState, ErrorBanner, Spinner } from '@/components/ui'
 import { useAiAccess } from '@/lib/auth/useAiAccess'
 import { AreaField, TextField } from '@/features/editor/controls'
 import { letterToDocxBlob } from '@/lib/export/coverLetterDocx'
@@ -104,7 +104,6 @@ export function CoverLetterPage() {
         <h1 className="text-2xl font-semibold">Cover letters</h1>
         <p className="mt-1 text-sm text-ink-500 dark:text-ink-400">Generate a letter from a resume and a job description, edit it, then export.</p>
       </div>
-      <TruthfulnessNote />
       <SignInNotice feature="cover letters" />
       <ErrorBanner error={error} onDismiss={() => setError(null)} />
 

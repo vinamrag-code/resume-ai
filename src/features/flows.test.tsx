@@ -15,6 +15,7 @@ import type { Resume } from '@/types/resume'
 import { ChatPanel } from './chat/ChatPanel'
 import { useChats } from '@/store/chats'
 import { CoverLetterPage } from './cover/CoverLetterPage'
+import { MailPage } from './mail/MailPage'
 import { ImportPage } from './import/ImportPage'
 import { TailorPanel } from './tailor/TailorPanel'
 import { TrackerPage } from './tracker/TrackerPage'
@@ -433,6 +434,27 @@ describe('cover letters', () => {
 
   it('shows an empty state without resumes', () => {
     renderAt(<CoverLetterPage />, { path: '/cover', route: '/cover' })
+    expect(screen.getByText('You need a resume first')).toBeInTheDocument()
+  })
+})
+
+describe('emails', () => {
+  it('writes an email, splits the subject, and builds a mail link with the recipient', async () => {
+    const r = seedResume()
+    const llm = mockLlm(['Subject: Frontend Engineer application\n\nHello,\n\nI build React apps.\n\nAda Lovelace'])
+    renderAt(<MailPage />, { path: '/mail', route: `/mail?resume=${r.id}` })
+    await userEvent.click(screen.getByRole('button', { name: 'Write email' }))
+    const body = (await screen.findByLabelText(/message \(editable\)/i)) as HTMLTextAreaElement
+    await waitFor(() => expect(body.value).toContain('Ada Lovelace'))
+    expect(llm.calls[0]![0]!.content).toMatch(/attach their resume/)
+    expect((screen.getByLabelText('Subject') as HTMLInputElement).value).toBe('Frontend Engineer application')
+    await userEvent.type(screen.getByLabelText('To'), 'hr@acme.com')
+    expect(screen.getByRole('link', { name: 'Open in email app' })).toHaveAttribute('href', expect.stringContaining('mailto:hr@acme.com?subject=Frontend%20Engineer%20application'))
+    expect(screen.getByRole('button', { name: /download attachments/i })).toBeInTheDocument()
+  })
+
+  it('shows an empty state without resumes', () => {
+    renderAt(<MailPage />, { path: '/mail', route: '/mail' })
     expect(screen.getByText('You need a resume first')).toBeInTheDocument()
   })
 })
