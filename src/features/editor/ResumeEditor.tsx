@@ -1,3 +1,4 @@
+import { IconX } from '@tabler/icons-react'
 import { useState } from 'react'
 import { BankLinkBar } from '@/features/bank/BankLinkBar'
 import { BankPicker } from '@/features/bank/BankPicker'
@@ -203,7 +204,7 @@ function SkillsEditor({ content: c, onChange }: { content: Pick<ResumeContent, '
               <li key={s} className="flex items-center gap-1 rounded bg-ink-100 px-2 py-0.5 dark:bg-ink-800">
                 {s}
                 <button type="button" className="text-ink-500 hover:text-ink-900 dark:hover:text-ink-100" onClick={() => removeUngrouped(s)} aria-label={`Remove ${s}`}>
-                  ×
+                  <IconX className="h-3.5 w-3.5" stroke={2} aria-hidden="true" />
                 </button>
               </li>
             ))}

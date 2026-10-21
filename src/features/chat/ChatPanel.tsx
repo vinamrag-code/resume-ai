@@ -1,3 +1,4 @@
+import { IconAlertTriangle, IconCheck } from '@tabler/icons-react'
 import { useEffect, useRef, useState } from 'react'
 import { SignInNotice } from '@/components/SignInNotice'
 import { ErrorBanner, Spinner, TruthfulnessNote } from '@/components/ui'
@@ -62,11 +63,11 @@ function Suggestion({ change, resume, onApplied }: { change: Change; resume: Res
       {change.reason && <p className="text-xs text-ink-500 dark:text-ink-400">Why: {change.reason}</p>}
       {change.warnings.map((w) => (
         <p key={w} role="note" className="rounded bg-spark-400/20 p-1.5 text-xs">
-          ⚠ {w}
+          <span className="inline-flex items-start gap-1.5"><IconAlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" stroke={2} aria-hidden="true" />{w}</span>
         </p>
       ))}
       {change.status === 'accepted' ? (
-        <p className="text-sm font-medium text-brand-700 dark:text-brand-300">Applied ✓</p>
+        <p className="text-sm font-medium text-brand-700 dark:text-brand-300"><span className="inline-flex items-center gap-1">Applied <IconCheck className="h-4 w-4" stroke={2.5} aria-hidden="true" /></span></p>
       ) : stale ? (
         <p className="text-xs text-ink-500">This part of your resume changed since the suggestion, so it can no longer be applied.</p>
       ) : (

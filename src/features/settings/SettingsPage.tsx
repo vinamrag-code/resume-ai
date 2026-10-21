@@ -1,3 +1,4 @@
+import { IconCheck, IconX } from '@tabler/icons-react'
 import { useRef, useState } from 'react'
 import { ErrorBanner, Modal, Spinner } from '@/components/ui'
 import { useSyncExternalStore } from 'react'
@@ -142,7 +143,7 @@ export function SettingsPage() {
         </div>
         {status && (
           <div role="status" className={`rounded-lg border p-3 text-sm ${status.ok ? 'border-brand-300 bg-brand-50 text-brand-900 dark:border-brand-700 dark:bg-brand-900/30 dark:text-brand-100' : 'border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200'}`}>
-            <p>{status.ok ? '✓ ' : '✗ '}{status.message}</p>
+            <p className="flex items-center gap-1.5">{status.ok ? <IconCheck className="h-4 w-4 shrink-0" stroke={2.5} aria-hidden="true" /> : <IconX className="h-4 w-4 shrink-0" stroke={2.5} aria-hidden="true" />}{status.message}</p>
             {status.models.length > 0 && <p className="mt-1 text-xs">Model: {status.models.join(', ')}</p>}
           </div>
         )}

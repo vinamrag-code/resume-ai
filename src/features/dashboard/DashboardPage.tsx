@@ -1,3 +1,5 @@
+import { IconCheck, IconFileText, IconLayoutKanban, IconStack2 } from '@tabler/icons-react'
+import type { Icon as TablerIcon } from '@tabler/icons-react'
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ProgressBar } from '@/components/ui'
@@ -37,13 +39,11 @@ const ViewAll = ({ to, label }: { to: string; label: string }) => (
   </Link>
 )
 
-function Stat({ to, label, value, hint, icon }: { to: string; label: string; value: number; hint: string; icon: string }) {
+function Stat({ to, label, value, hint, icon: Icon }: { to: string; label: string; value: number; hint: string; icon: TablerIcon }) {
   return (
     <Link to={to} className="card group flex items-start gap-3 transition hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-md dark:hover:border-brand-500/60">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d={icon} />
-        </svg>
+        <Icon className="h-5 w-5" stroke={1.8} aria-hidden="true" />
       </span>
       <div className="min-w-0">
         <p className="text-2xl font-bold leading-none">{value}</p>
@@ -106,16 +106,16 @@ export function DashboardPage() {
 
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Overview">
         <li>
-          <Stat to="/resumes" label="Resumes" value={resumes.length} hint={resumes.length ? `Last edited ${when(recentResumes[0]!.updatedAt)}` : 'None yet'} icon="M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6" />
+          <Stat to="/resumes" label="Resumes" value={resumes.length} hint={resumes.length ? `Last edited ${when(recentResumes[0]!.updatedAt)}` : 'None yet'} icon={IconFileText} />
         </li>
         <li>
-          <Stat to="/tracker" label="Applications" value={live} hint={`${counts.applied} applied, ${counts.saved} saved`} icon="M4 5h4v14H4zM10 5h4v9h-4zM16 5h4v6h-4z" />
+          <Stat to="/tracker" label="Applications" value={live} hint={`${counts.applied} applied, ${counts.saved} saved`} icon={IconLayoutKanban} />
         </li>
         <li>
-          <Stat to="/tracker" label="Interviews and offers" value={interviews} hint={`${counts.offer} offer${counts.offer === 1 ? '' : 's'}`} icon="M5 13l4 4L19 7" />
+          <Stat to="/tracker" label="Interviews and offers" value={interviews} hint={`${counts.offer} offer${counts.offer === 1 ? '' : 's'}`} icon={IconCheck} />
         </li>
         <li>
-          <Stat to="/bank" label="Experience bank" value={bank.length} hint={`${letters.length} cover letter${letters.length === 1 ? '' : 's'} written`} icon="M4 7l8-4 8 4-8 4zM4 12l8 4 8-4M4 17l8 4 8-4" />
+          <Stat to="/bank" label="Experience bank" value={bank.length} hint={`${letters.length} cover letter${letters.length === 1 ? '' : 's'} written`} icon={IconStack2} />
         </li>
       </ul>
 
@@ -180,7 +180,7 @@ export function DashboardPage() {
                   <li key={s.label}>
                     <Link to={s.to} className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm hover:bg-ink-100 dark:hover:bg-ink-800 ${s.done ? 'text-ink-400 line-through dark:text-ink-500' : ''}`}>
                       <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] ${s.done ? 'border-brand-500 bg-brand-500 text-white' : 'border-ink-300 dark:border-ink-600'}`} aria-hidden="true">
-                        {s.done ? '✓' : ''}
+                        {s.done ? <IconCheck className="h-3 w-3" stroke={3.5} /> : null}
                       </span>
                       {s.label}
                     </Link>

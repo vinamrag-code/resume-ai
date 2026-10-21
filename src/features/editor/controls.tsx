@@ -1,3 +1,4 @@
+import { IconArrowDown, IconArrowUp } from '@tabler/icons-react'
 import { useId } from 'react'
 import type { ReactNode } from 'react'
 import { moveItem, removeAt, replaceAt } from '@/lib/arrays'
@@ -30,10 +31,10 @@ export function RowControls({ index, count, label, onMove, onRemove }: { index: 
   return (
     <div className="flex shrink-0 gap-1" role="group" aria-label={`${label} actions`}>
       <button type="button" className="btn-ghost btn-sm" disabled={index === 0} onClick={() => onMove(index - 1)} aria-label={`Move ${label} up`}>
-        ↑
+        <IconArrowUp className="h-4 w-4" stroke={2} aria-hidden="true" />
       </button>
       <button type="button" className="btn-ghost btn-sm" disabled={index === count - 1} onClick={() => onMove(index + 1)} aria-label={`Move ${label} down`}>
-        ↓
+        <IconArrowDown className="h-4 w-4" stroke={2} aria-hidden="true" />
       </button>
       <button type="button" className="btn-danger btn-sm" onClick={onRemove} aria-label={`Remove ${label}`}>
         Remove

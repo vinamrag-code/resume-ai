@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -310,7 +310,7 @@ describe('profile menu', () => {
     setup()
     await userEvent.click(await screen.findByRole('button', { name: 'Profile' }))
     expect(await screen.findByText('ada@example.com')).toBeInTheDocument()
-    expect(screen.getByText('Ada L')).toBeInTheDocument()
+    expect(within(screen.getByRole('menu')).getByText('Ada L')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }))
     await waitFor(() => expect(useAuth.getState().user).toBeNull())
   })

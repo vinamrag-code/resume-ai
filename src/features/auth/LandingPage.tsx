@@ -1,3 +1,4 @@
+import { IconActivity, IconArrowRight, IconCheck, IconDownload, IconLayoutKanban, IconMail, IconMessageCircle, IconMoon, IconSun, IconWand } from '@tabler/icons-react'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
@@ -9,12 +10,12 @@ import { AuthModal } from './AuthModal'
 import type { AuthMode } from './AuthModal'
 
 const FEATURES = [
-  { title: 'Score it honestly', text: 'A transparent ATS score from keywords, semantic match, structure and bullet quality, never a black box.', icon: 'M3 12h4l3-8 4 16 3-8h4' },
-  { title: 'Tailor in one click', text: 'See every suggested change as a before and after, and accept only what is true for you.', icon: 'M4 7h16M4 12h10M4 17h6' },
-  { title: 'Talk to an editor', text: 'Sage asks the right questions, then edits your content and layout while you watch.', icon: 'M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z' },
-  { title: 'Track every application', text: 'A Kanban board linking each job to the exact resume and cover letter you sent.', icon: 'M4 5h4v14H4zM10 5h4v9h-4zM16 5h4v6h-4z' },
-  { title: 'Cover letters that fit', text: 'Draft a letter from your real experience and the job description, then edit it freely.', icon: 'M3 6h18v12H3zM3 7l9 6 9-6' },
-  { title: 'Export anywhere', text: 'Clean, ATS-safe PDF and DOCX with templates you can restyle in a click.', icon: 'M12 3v12m0 0l-4-4m4 4l4-4M5 21h14' },
+  { title: 'Score it honestly', text: 'A transparent ATS score from keywords, semantic match, structure and bullet quality, never a black box.', icon: IconActivity },
+  { title: 'Tailor in one click', text: 'See every suggested change as a before and after, and accept only what is true for you.', icon: IconWand },
+  { title: 'Talk to an editor', text: 'Sage asks the right questions, then edits your content and layout while you watch.', icon: IconMessageCircle },
+  { title: 'Track every application', text: 'A Kanban board linking each job to the exact resume and cover letter you sent.', icon: IconLayoutKanban },
+  { title: 'Cover letters that fit', text: 'Draft a letter from your real experience and the job description, then edit it freely.', icon: IconMail },
+  { title: 'Export anywhere', text: 'Clean, ATS-safe PDF and DOCX with templates you can restyle in a click.', icon: IconDownload },
 ]
 
 const STEPS = [
@@ -40,13 +41,6 @@ const FAQ = [
 
 const TICKER = ['Keyword match', 'Semantic score', 'Weak bullet finder', 'Diff review', 'Cover letters', 'Kanban tracker', 'PDF export', 'DOCX export', 'Experience bank', 'Sage assistant']
 
-function Icon({ d }: { d: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d={d} />
-    </svg>
-  )
-}
 
 function Eyebrow({ children }: { children: ReactNode }) {
   return <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-400">{children}</p>
@@ -58,9 +52,7 @@ function ThemeToggle() {
   const next = theme === 'dark' ? 'light' : 'dark'
   return (
     <button type="button" className="btn-ghost h-9 w-9 rounded-full p-0" onClick={() => update({ theme: next })} aria-label={`Theme: ${theme}. Switch to ${next}`}>
-      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        {theme === 'dark' ? <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /> : <><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>}
-      </svg>
+      {theme === 'dark' ? <IconMoon className="h-5 w-5" stroke={2} aria-hidden="true" /> : <IconSun className="h-5 w-5" stroke={2} aria-hidden="true" />}
     </button>
   )
 }
@@ -194,8 +186,8 @@ export function LandingPage() {
                   I already have an account
                 </button>
               )}
-              <a href="#how" className="btn-ghost px-4 py-3 text-base">
-                See how it works →
+              <a href="#how" className="btn-ghost gap-1.5 px-4 py-3 text-base">
+                See how it works <IconArrowRight className="h-4 w-4" stroke={2} aria-hidden="true" />
               </a>
             </div>
             <p className="mt-4 text-xs text-ink-500 dark:text-ink-400">Your resumes stay in your browser and sync to your private account.</p>
@@ -229,7 +221,7 @@ export function LandingPage() {
               <li key={f.title} className="group relative overflow-hidden rounded-2xl border border-ink-200 bg-white p-6 transition duration-200 hover:-translate-y-1 hover:border-brand-400 hover:shadow-xl hover:shadow-brand-500/10 dark:border-ink-800 dark:bg-ink-900/60 dark:hover:border-brand-500/60">
                 <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-brand-500/0 blur-2xl transition group-hover:bg-brand-500/20" />
                 <span className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">
-                  <Icon d={f.icon} />
+                  <f.icon className="h-5 w-5" stroke={1.8} aria-hidden="true" />
                 </span>
                 <h3 className="text-base font-semibold">{f.title}</h3>
                 <p className="mt-1.5 text-sm text-ink-600 dark:text-ink-300">{f.text}</p>
@@ -265,9 +257,7 @@ export function LandingPage() {
               {['Never invents employers, titles, dates or degrees', 'Never makes up metrics or skills', 'Every edit is a diff you accept or reject', 'Asks you a question when it needs a missing fact'].map((t) => (
                 <li key={t} className="flex items-start gap-3">
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white">
-                    <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M5 12l5 5L20 7" />
-                    </svg>
+                    <IconCheck className="h-3 w-3" stroke={3.5} aria-hidden="true" />
                   </span>
                   {t}
                 </li>

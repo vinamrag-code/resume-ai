@@ -113,7 +113,7 @@ describe('chat scrolling', () => {
     const apply = await screen.findByRole('button', { name: 'Apply to resume' })
     scroll.mockClear()
     await userEvent.click(apply)
-    expect(await screen.findByText('Applied ✓')).toBeInTheDocument()
+    expect(await screen.findByText('Applied')).toBeInTheDocument()
     expect(scroll).not.toHaveBeenCalled()
   })
 })

@@ -1,3 +1,4 @@
+import { IconCheck, IconX } from '@tabler/icons-react'
 import { ErrorBanner, ProgressBar, Spinner } from '@/components/ui'
 import type { Check } from '@/lib/ats/score'
 import type { Resume } from '@/types/resume'
@@ -13,7 +14,7 @@ function Checks({ title, checks }: { title: string; checks: Check[] }) {
         {checks.map((c) => (
           <li key={c.label} className="flex gap-2">
             <span aria-hidden="true" className={c.passed ? 'text-brand-600' : 'text-red-600'}>
-              {c.passed ? '✓' : '✗'}
+              {c.passed ? <IconCheck className="h-4 w-4" stroke={2.5} /> : <IconX className="h-4 w-4" stroke={2.5} />}
             </span>
             <span>
               <span className="sr-only">{c.passed ? 'Passed: ' : 'Failed: '}</span>

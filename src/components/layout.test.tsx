@@ -20,12 +20,14 @@ beforeEach(() => {
 })
 
 describe('navbar', () => {
-  it('puts the profile button at the right end, with Settings inside its menu and not in the main nav', async () => {
+  it('puts the profile and theme buttons at the bottom of the sidebar, with Settings inside the profile menu and not in the main nav', async () => {
     setup()
-    const header = screen.getByRole('banner')
-    const buttons = header.querySelectorAll('button')
-    expect(buttons[buttons.length - 1]).toHaveAccessibleName('Profile')
+    const aside = screen.getByRole('navigation', { name: 'Main' }).closest('aside')!
+    const buttons = aside.querySelectorAll('button')
     expect(buttons[buttons.length - 2]).toHaveAccessibleName(/^Theme:/)
+    expect(buttons[buttons.length - 1]).toHaveAccessibleName('Profile')
+    expect(buttons[0]).toHaveAccessibleName('Collapse sidebar')
+    expect(screen.getByRole('banner')).not.toContainElement(screen.getByRole('button', { name: 'Profile' }))
     expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Profile' }))
@@ -33,6 +35,20 @@ describe('navbar', () => {
     await userEvent.click(screen.getByRole('menuitem', { name: 'Settings' }))
     expect(await screen.findByRole('heading', { name: 'Settings' })).toBeInTheDocument()
     expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+
+  it('collapses and expands the sidebar, showing the full name only when expanded', async () => {
+    localStorage.removeItem('sidebar-collapsed')
+    useResumes.getState().create('R', sampleContent())
+    setup()
+    const profile = () => screen.getByRole('button', { name: 'Profile' })
+    expect(profile()).toHaveTextContent('Ada Lovelace')
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
+    expect(screen.getByText('Ada Lovelace')).toHaveClass('opacity-0')
+    expect(localStorage.getItem('sidebar-collapsed')).toBe('1')
+    await userEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
+    expect(profile()).toHaveTextContent('Ada Lovelace')
+    localStorage.removeItem('sidebar-collapsed')
   })
 
   it('shows initials and email from your resume, and closes with Escape', async () => {

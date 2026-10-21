@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react'
+import { IconLoader2 } from '@tabler/icons-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { GoogleSignInButton } from '@/components/GoogleSignInButton'
@@ -12,10 +13,7 @@ export function errorMessage(err: unknown): string {
 export function Spinner({ label = 'Loading' }: { label?: string }) {
   return (
     <span role="status" aria-label={label} className="inline-flex items-center">
-      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="4" />
-        <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-      </svg>
+      <IconLoader2 className="h-4 w-4 animate-spin" stroke={2.5} aria-hidden="true" />
     </span>
   )
 }
