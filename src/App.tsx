@@ -7,9 +7,10 @@ import { Layout } from '@/components/Layout'
 import { BankPage } from '@/features/bank/BankPage'
 import { BuildPage } from '@/features/build/BuildPage'
 import { AuthGate } from '@/features/auth/AuthGate'
-import { ConnectorsPage } from '@/features/connectors/ConnectorsPage'
+import { LandingPage } from '@/features/auth/LandingPage'
 import { CoverLetterPage } from '@/features/cover/CoverLetterPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
+import { ResumesPage } from '@/features/dashboard/ResumesPage'
 import { ImportPage } from '@/features/import/ImportPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { TrackerPage } from '@/features/tracker/TrackerPage'
@@ -39,17 +40,27 @@ export function App() {
     }
   }, [uid, email])
   return (
+    <Routes>
+      {/* The public landing page is reachable without signing in (and, in local dev, from the app footer). */}
+      <Route path="welcome" element={<LandingPage />} />
+      <Route path="*" element={<Gated />} />
+    </Routes>
+  )
+}
+
+function Gated() {
+  return (
     <AuthGate>
       {/* <OnboardingModal /> is intentionally not mounted: hosted users share the owner's API key. */}
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="resumes" element={<ResumesPage />} />
           <Route path="import" element={<ImportPage />} />
           <Route path="resume/:id" element={<WorkspacePage />} />
           <Route path="build" element={<BuildPage />} />
           <Route path="bank" element={<BankPage />} />
           <Route path="cover" element={<CoverLetterPage />} />
-          <Route path="connectors" element={<ConnectorsPage />} />
           <Route path="tracker" element={<TrackerPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route

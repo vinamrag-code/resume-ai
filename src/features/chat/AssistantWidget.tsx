@@ -1,3 +1,4 @@
+import { IconSparkles } from '@tabler/icons-react'
 import type { Resume } from '@/types/resume'
 import { ASSISTANT_NAME } from '@/lib/assistant'
 import { ChatPanel } from './ChatPanel'
@@ -14,9 +15,7 @@ export function AssistantWidget({ resume }: { resume: Resume }) {
       >
         <header className="flex items-center gap-3 border-b border-ink-200 px-4 py-3 dark:border-ink-700">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-spark-500 text-ink-950" aria-hidden="true">
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
-              <path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9z" />
-            </svg>
+            <IconSparkles className="h-5 w-5" stroke={2} />
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="text-sm font-semibold leading-tight">{ASSISTANT_NAME}</h2>

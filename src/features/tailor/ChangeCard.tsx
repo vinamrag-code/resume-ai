@@ -1,3 +1,4 @@
+import { IconAlertTriangle, IconCheck } from '@tabler/icons-react'
 import type { Change } from '@/lib/changes'
 import { DiffView } from './DiffView'
 
@@ -20,7 +21,7 @@ export function ChangeCard({ change, applied, outdated, onAccept, onReject, onUn
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">{change.label}</h3>
         <div className="flex items-center gap-1.5" role="group" aria-label={`Decision for ${change.label}`}>
-          {applied && <span className="text-xs font-medium text-brand-700 dark:text-brand-300">Applied ✓</span>}
+          {applied && <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-700 dark:text-brand-300">Applied <IconCheck className="h-3.5 w-3.5" stroke={2.5} aria-hidden="true" /></span>}
           {applied && onUndo && (
             <button type="button" className="btn-ghost btn-sm" onClick={onUndo}>
               Undo
@@ -41,7 +42,7 @@ export function ChangeCard({ change, applied, outdated, onAccept, onReject, onUn
       {outdated && <p className="text-xs text-ink-500">This part of your resume changed since the suggestion, so it can no longer be applied.</p>}
       {change.warnings.map((w) => (
         <p key={w} role="note" className="rounded bg-spark-400/20 p-1.5 text-xs text-ink-800 dark:text-spark-400">
-          ⚠ {w}
+          <span className="inline-flex items-start gap-1.5"><IconAlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" stroke={2} aria-hidden="true" />{w}</span>
         </p>
       ))}
     </li>

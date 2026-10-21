@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { applyChanges, buildChanges, currentFormat, formatPatch, invertChange, ProposedEditsSchema, setAllStatus } from '@/lib/changes'
 import { setLlmClient } from '@/lib/llm'
 import { newResume, resumeToText } from '@/lib/resume'
@@ -14,6 +14,12 @@ import { parseEdits, splitReply, visibleText } from './chatLogic'
 const content = sampleContent()
 const resume = newResume('x', content)
 const build = (edits: Record<string, unknown>) => buildChanges(content, ProposedEditsSchema.parse(edits), resumeToText(content), currentFormat(resume))
+
+const seedResume = () => useResumes.getState().create('Base', sampleContent())
+const sendMessage = async (text: string) => {
+  await userEvent.type(screen.getByLabelText(/message the resume counselor/i), text)
+  await userEvent.click(screen.getByRole('button', { name: 'Send' }))
+}
 
 beforeEach(() => {
   useResumes.setState({ resumes: [] })
@@ -53,6 +59,62 @@ describe('richer edits', () => {
     expect(applied.experience[0]!.bullets).toContain('Mentored two junior developers')
     // Undo in reverse order, as a stack.
     expect(applyChanges(applied, [...all].reverse().map(invertChange)).content).toEqual(content)
+  })
+})
+
+describe('removing sections', () => {
+  const all = (edits: Record<string, unknown>) => setAllStatus(build(edits), 'accepted')
+
+  it('removes a whole section or one entry, and undoes each exactly', () => {
+    const changes = all({ removeSections: [{ section: 'projects' }, { section: 'education', entry: 0 }, { section: 'summary' }, { section: 'skills' }] })
+    expect(changes.map((c) => c.label)).toEqual(['Remove projects section', 'Remove education 1', 'Remove summary', 'Remove skills section'])
+    const applied = applyChanges(content, changes).content
+    expect(applied).toMatchObject({ projects: [], education: [], summary: '', skills: [], skillGroups: [] })
+    expect(applied.experience).toEqual(content.experience)
+    expect(applyChanges(applied, [...changes].reverse().map(invertChange)).content).toEqual(content)
+  })
+
+  it('removes two entries in a row even though the first removal shifts the second', () => {
+    const two = structuredClone(content)
+    two.experience.push({ ...two.experience[0]!, id: 'e2', company: 'Globex' })
+    const changes = setAllStatus(buildChanges(two, ProposedEditsSchema.parse({ removeSections: [{ section: 'experience', entry: 0 }, { section: 'experience', entry: 1 }] }), resumeToText(two)), 'accepted')
+    const result = applyChanges(two, changes)
+    expect(result.skipped).toEqual([])
+    expect(result.content.experience).toEqual([])
+  })
+
+  it('ignores empty sections, bad entries and duplicates, and keeps one removal per whole section', () => {
+    expect(build({ removeSections: [{ section: 'certifications' }, { section: 'experience', entry: 9 }] })).toEqual([])
+    expect(build({ removeSections: [{ section: 'projects' }, { section: 'projects', entry: 0 }] })).toHaveLength(1)
+  })
+
+  it('is allowed on the first turn, because deleting is an explicit request', () => {
+    expect(parseEdits('Ok.<edits>{"removeSections":[{"section":"projects"}]}</edits>', resume, 'clarify')).toHaveLength(1)
+  })
+
+  it('lets the user apply a section removal from the chat', async () => {
+    const r = seedResume()
+    mockLlm(['Removing your projects.<edits>{"removeSections":[{"section":"projects","reason":"not relevant"}]}</edits>'])
+    renderAt(<ChatPanel resume={r} />)
+    await sendMessage('delete the projects section')
+    await userEvent.click(await screen.findByRole('button', { name: 'Apply to resume' }))
+    expect(useResumes.getState().resumes[0]!.content.projects).toEqual([])
+  })
+})
+
+describe('chat scrolling', () => {
+  it('does not scroll to the bottom when a suggestion is applied', async () => {
+    const r = seedResume()
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    mockLlm(['Updated.<edits>{"fields":[{"section":"contact","field":"phone","value":"555-0199"}]}</edits>'])
+    renderAt(<ChatPanel resume={r} />)
+    await sendMessage('change my phone')
+    const apply = await screen.findByRole('button', { name: 'Apply to resume' })
+    scroll.mockClear()
+    await userEvent.click(apply)
+    expect(await screen.findByText('Applied')).toBeInTheDocument()
+    expect(scroll).not.toHaveBeenCalled()
   })
 })
 

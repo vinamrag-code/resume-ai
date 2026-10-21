@@ -56,6 +56,18 @@ describe('extractJob', () => {
     expect(job.description).not.toMatch(/sign in|Similar jobs|Show more|Join/i)
   })
 
+  it('reads a page without structured data from its own markup (Amazon.jobs style), not from a split page title', () => {
+    const html = `<html><head><title>Systems Development Engineer Intern – 2027 - Job ID: 10498161 | Amazon.jobs</title>
+      <meta property="og:title" content="Systems Development Engineer Intern – 2027"><meta property="og:site_name" content="Amazon.jobs"></head>
+      <body><div class="jobs-navbar">Search jobs</div><div id="job-detail"><div class="apply-header"><h1 class="title">Systems Development Engineer Intern – 2027</h1><p class="meta">Job ID: 10498161 | ADCI HYD 13 SEZ</p></div>
+      <div id="job-detail-body"><div class="content"><div class="section"><h2>Description</h2><p>${LONG}<br/><br/>Key job responsibilities</p></div><div class="section"><h2>Basic Qualifications</h2><p>- Are enrolled in a Bachelor's degree</p></div></div>
+      <div class="sidebar"><h2>Job details</h2><div class="association location-icon"><ul class="association-content"><li>IND, KA, Bengaluru</li><li>IND, TS, Hyderabad</li></ul></div></div></div></div></body></html>`
+    const job = extractJob(html)!
+    expect(job).toMatchObject({ title: 'Systems Development Engineer Intern – 2027', company: 'Amazon', location: 'IND, KA, Bengaluru; IND, TS, Hyderabad' })
+    expect(job.description).toContain('Basic Qualifications')
+    expect(job.description).not.toMatch(/Job ID|Search jobs|Job details/)
+  })
+
   it('returns null for pages with almost no text (login walls, JavaScript apps)', () => {
     expect(extractJob('<html><head><title>Sign in</title></head><body><div id="root"></div></body></html>')).toBeNull()
   })

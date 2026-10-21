@@ -1,3 +1,4 @@
+import { IconArrowRight } from '@tabler/icons-react'
 import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { SignInNotice } from '@/components/SignInNotice'
@@ -142,7 +143,7 @@ export function TailorPanel({ resume, similarity }: { resume: Resume; similarity
         <div className="card flex flex-wrap items-center gap-3 text-sm" aria-label="Score impact">
           <span className="font-semibold">Overall ATS score</span>
           {baseline !== null && <span className={`rounded-full px-2 py-0.5 font-semibold ${scoreTone(baseline)}`}>Before {baseline}</span>}
-          <span aria-hidden="true">→</span>
+          <IconArrowRight className="h-4 w-4" stroke={2} aria-hidden="true" />
           <span className={`rounded-full px-2 py-0.5 font-semibold ${scoreTone(current)}`}>Now {current}</span>
           {pending.length > 0 && <span className={`rounded-full px-2 py-0.5 font-semibold ${scoreTone(projected)}`}>If all accepted {projected}</span>}
         </div>

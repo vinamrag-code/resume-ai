@@ -1,3 +1,4 @@
+import { IconChevronDown } from '@tabler/icons-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { ErrorBanner } from '@/components/ui'
 import { downloadBlob, printToPdf, safeFilename } from '@/lib/export/download'
@@ -60,9 +61,7 @@ export function ExportBar({ resume }: { resume: Resume }) {
         onClick={() => setOpen((o) => !o)}
       >
         {busy ? 'Building DOCX...' : 'Export'}
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M6 9l6 6 6-6" />
-        </svg>
+        <IconChevronDown className="h-4 w-4" stroke={2} aria-hidden="true" />
       </button>
       {open && (
         <div id={menuId} role="menu" aria-label="Export menu" className="absolute right-0 top-full z-40 mt-1 w-64 rounded-xl border border-ink-200 bg-white p-1.5 shadow-lg dark:border-ink-700 dark:bg-ink-900">

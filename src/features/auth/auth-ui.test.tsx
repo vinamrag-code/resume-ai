@@ -63,7 +63,7 @@ describe('landing page and gate', () => {
     setup()
     expect(await screen.findByRole('heading', { level: 1, name: /resume that gets read/i })).toBeInTheDocument()
     expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument()
-    expect(screen.queryByText('Your resumes')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /Welcome back/ })).not.toBeInTheDocument()
     expect(screen.getByLabelText('Features')).toBeInTheDocument()
   })
 
@@ -83,12 +83,12 @@ describe('landing page and gate', () => {
     fb.user = makeUser({ emailVerified: false })
     const first = setup()
     expect(await screen.findByRole('heading', { name: 'Check your inbox' })).toBeInTheDocument()
-    expect(screen.queryByText('Your resumes')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /Welcome back/ })).not.toBeInTheDocument()
     first.unmount()
     fb.user = makeUser()
     resetAuthForTests()
     setup()
-    expect(await screen.findByText('Your resumes')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Welcome back/ })).toBeInTheDocument()
   })
 })
 
@@ -169,7 +169,7 @@ describe('log in', () => {
     await userEvent.type(within(d).getByLabelText('Email'), 'ada@example.com')
     await userEvent.type(within(d).getByLabelText('Password'), 'Analytical1')
     await userEvent.click(within(d).getByRole('button', { name: 'Log in' }))
-    expect(await screen.findByText('Your resumes')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Welcome back/ })).toBeInTheDocument()
     expect(fb.calls).toContain('login:ada@example.com:Analytical1')
   })
 
@@ -210,7 +210,7 @@ describe('log in', () => {
   it('also offers Google', async () => {
     const d = await open()
     await userEvent.click(within(d).getByRole('button', { name: /Continue with Google/ }))
-    expect(await screen.findByText('Your resumes')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Welcome back/ })).toBeInTheDocument()
     expect(fb.calls).toContain('google')
   })
 })
@@ -227,7 +227,7 @@ describe('verify email page', () => {
     expect(screen.getByRole('button', { name: /Resend email \(\d+s\)/ })).toBeDisabled()
     fb.verifiedAfterReload = true
     await userEvent.click(screen.getByRole('button', { name: 'I have verified my email' }))
-    expect(await screen.findByText('Your resumes')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Welcome back/ })).toBeInTheDocument()
   })
 
   it('lets someone abandon the account', async () => {

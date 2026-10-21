@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { FIELD_SECTIONS, FORMAT_KEYS } from '@/lib/changes'
+import { FIELD_SECTIONS, FORMAT_KEYS, REMOVABLE_SECTIONS } from '@/lib/changes'
 import type { Change } from '@/lib/changes'
 import { SkillGroupSchema } from '@/types/resume'
 
@@ -15,6 +15,8 @@ export const ChangeSchema = z.object({
     bulletTarget('bullet-add'),
     bulletTarget('bullet-remove'),
     z.object({ kind: z.literal('field'), section: z.enum(FIELD_SECTIONS), entry: z.number().int().min(0), field: z.string() }),
+    z.object({ kind: z.literal('section-remove'), section: z.enum(REMOVABLE_SECTIONS), entry: z.number().int().min(0).optional() }),
+    z.object({ kind: z.literal('section-restore'), section: z.enum(REMOVABLE_SECTIONS), entry: z.number().int().min(0).optional() }),
     z.object({ kind: z.literal('skills') }),
     z.object({ kind: z.literal('format'), key: z.enum(FORMAT_KEYS) }),
   ]),
@@ -25,6 +27,7 @@ export const ChangeSchema = z.object({
   beforeSkills: z.array(z.string()).optional(),
   afterGroups: z.array(SkillGroupSchema).optional(),
   beforeGroups: z.array(SkillGroupSchema).optional(),
+  removed: z.unknown().optional(),
   reason: z.string(),
   status: z.enum(['pending', 'accepted', 'rejected']),
   warnings: z.array(z.string()),
