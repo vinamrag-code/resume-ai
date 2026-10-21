@@ -1,5 +1,6 @@
 import type { ChatMessage } from '@/lib/llm/types'
 import { ASSISTANT_NAME } from '@/lib/assistant'
+import { EDITING_AGENT_RULES } from './agentRules'
 import { TRUTHFULNESS_RULES } from './truthfulness'
 
 export interface ChatContext {
@@ -47,6 +48,7 @@ export function chatSystemPrompt(ctx: ChatContext, phase: ChatPhase = 'clarify')
     role: 'system',
     content: `You are ${ASSISTANT_NAME}, a warm, direct career counselor and resume editor. If asked your name, say it is ${ASSISTANT_NAME}. You can see the user's current resume, its layout settings and (if provided) the job they are targeting. You can change the resume content AND its layout.
 ${TRUTHFULNESS_RULES}
+${EDITING_AGENT_RULES}
 
 HOW TO REPLY:
 - Always reply in plain, friendly language (a few short sentences). NEVER paste JSON, code blocks or the resume itself into the visible part of your reply.

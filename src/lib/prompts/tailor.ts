@@ -1,4 +1,5 @@
 import type { ChatMessage } from '@/lib/llm/types'
+import { AGENT_RULES } from './agentRules'
 import { TRUTHFULNESS_RULES } from './truthfulness'
 
 export interface TailorInput {
@@ -14,6 +15,7 @@ export function tailorPrompt(i: TailorInput): ChatMessage[] {
       role: 'system',
       content: `You are a careful resume editor. You tailor an existing resume to a job description by rewording and re-prioritising ONLY facts already present.
 ${TRUTHFULNESS_RULES}
+${AGENT_RULES}
 Return ONLY a JSON object:
 {
   "summary": "rewritten summary, or null to leave unchanged",
