@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -70,9 +70,14 @@ describe('navbar', () => {
 describe('active navigation highlight', () => {
   const current = () => [...screen.getByRole('navigation', { name: 'Main' }).querySelectorAll('a[aria-current="page"]')].map((a) => a.textContent)
 
-  it('highlights Resumes on the list, import page and an open resume (which has no back button)', () => {
+  it('highlights Dashboard on the home page', () => {
+    setup('/')
+    expect(current()).toEqual(['Dashboard'])
+  })
+
+  it('highlights Resumes on the list, import page and an open resume, which has a back button to the list', () => {
     const r = useResumes.getState().create('R', sampleContent())
-    const first = setup('/')
+    const first = setup('/resumes')
     expect(current()).toEqual(['Resumes'])
     first.unmount()
     const second = setup('/import')
@@ -80,7 +85,18 @@ describe('active navigation highlight', () => {
     second.unmount()
     setup(`/resume/${r.id}`)
     expect(current()).toEqual(['Resumes'])
-    expect(screen.queryByRole('link', { name: /← Resumes|back/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to resumes' })).toHaveAttribute('href', '/resumes')
+  })
+
+  it('has the navigation in a left sidebar, and a menu button for small screens', async () => {
+    setup()
+    const nav = screen.getByRole('navigation', { name: 'Main' })
+    expect(nav.closest('aside')).toBeInTheDocument()
+    expect(screen.getByRole('banner')).not.toContainElement(nav)
+    await userEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+    const menu = screen.getByRole('complementary', { name: 'Menu' })
+    await userEvent.click(within(menu).getByRole('link', { name: 'Tracker' }))
+    expect(screen.queryByRole('complementary', { name: 'Menu' })).not.toBeInTheDocument()
   })
 
   it('highlights Tracker and Cover letters on their pages', () => {

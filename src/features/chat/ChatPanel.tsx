@@ -27,6 +27,7 @@ function Suggestion({ change, resume, onApplied }: { change: Change; resume: Res
   const [text, setText] = useState(change.after)
   const stale = change.status !== 'accepted' && isStaleFor(resume, change)
   const edited = text !== change.after
+  const removes = change.target.kind === 'bullet-remove' || change.target.kind === 'section-remove'
   const apply = () => {
     // An edited skills box is read back as lines ("Heading: a, b") so the user can regroup by hand.
     const typed = change.target.kind === 'skills' && edited ? parseSkillsText(text) : undefined
@@ -49,8 +50,8 @@ function Suggestion({ change, resume, onApplied }: { change: Change; resume: Res
   return (
     <li className="card space-y-2 bg-ink-50 dark:bg-ink-800">
       <h4 className="text-sm font-semibold">{change.label}</h4>
-      <DiffView before={change.before || '(empty)'} after={change.target.kind === 'bullet-remove' ? '(removed)' : text} />
-      {change.status !== 'accepted' && !stale && change.target.kind !== 'format' && change.target.kind !== 'bullet-remove' && (
+      <DiffView before={change.before || '(empty)'} after={removes ? '(removed)' : text} />
+      {change.status !== 'accepted' && !stale && change.target.kind !== 'format' && !removes && (
         <div>
           <label htmlFor={id} className="label">
             Edit before applying
@@ -69,7 +70,7 @@ function Suggestion({ change, resume, onApplied }: { change: Change; resume: Res
       ) : stale ? (
         <p className="text-xs text-ink-500">This part of your resume changed since the suggestion, so it can no longer be applied.</p>
       ) : (
-        <button type="button" className="btn-primary btn-sm" disabled={!text.trim() && change.target.kind !== 'bullet-remove'} onClick={apply}>
+        <button type="button" className="btn-primary btn-sm" disabled={!text.trim() && !removes} onClick={apply}>
           {edited ? 'Apply my edited version' : 'Apply to resume'}
         </button>
       )}
@@ -98,9 +99,12 @@ export function ChatPanel({ resume, embedded = false }: { resume: Resume; embedd
     box.style.height = `${box.scrollHeight}px`
   }, [input])
 
+  // Follow new messages and streaming text, but not other changes such as a suggestion being applied.
+  const last = turns[turns.length - 1]
+  const followKey = `${turns.length}:${last?.content.length ?? 0}:${last?.changes.length ?? 0}`
   useEffect(() => {
     endRef.current?.scrollIntoView?.({ block: 'end' })
-  }, [turns])
+  }, [followKey])
 
   const send = async (text: string) => {
     const content = text.trim()
@@ -173,7 +177,7 @@ export function ChatPanel({ resume, embedded = false }: { resume: Resume; embedd
           )}
           {turns.map((t) => (
             <div key={t.id} className={t.role === 'user' ? 'text-right' : ''}>
-              <div className={`inline-block max-w-full whitespace-pre-wrap rounded-2xl px-3 py-2 text-left text-sm ${t.role === 'user' ? 'bg-brand-600 text-white dark:bg-brand-500 dark:text-ink-950' : 'bg-ink-100 dark:bg-ink-800'}`}>
+              <div className={`inline-block max-w-full whitespace-pre-wrap rounded-2xl px-3 py-2 text-left text-sm ${t.role === 'user' ? 'bg-brand-600 text-white dark:bg-brand-500 dark:text-white' : 'bg-ink-100 dark:bg-ink-800'}`}>
                 <span className="sr-only">{t.role === 'user' ? 'You: ' : `${ASSISTANT_NAME}: `}</span>
                 {t.role === 'assistant' ? visibleText(t.content) || (busy || isPreparingEdits(t.content) ? 'Preparing suggestions…' : '') : t.content}
               </div>

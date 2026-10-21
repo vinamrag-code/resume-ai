@@ -81,7 +81,7 @@ export function ProgressBar({ value, label }: { value: number; label: string }) 
   )
 }
 
-export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+export function Modal({ title, onClose, children, size = 'lg' }: { title: string; onClose: () => void; children: ReactNode; size?: 'md' | 'lg' }) {
   const titleId = useId()
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -98,7 +98,7 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
   }, [onClose])
   return (
     <div className="animate-backdrop-in fixed inset-0 z-50 flex items-center justify-center bg-ink-950/60 p-4 backdrop-blur-sm" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="animate-modal-in max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-ink-900">
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={`animate-modal-in max-h-[90vh] w-full ${size === 'md' ? 'max-w-[26rem]' : 'max-w-lg'} overflow-y-auto rounded-2xl border border-transparent bg-white p-6 shadow-2xl dark:border-ink-700 dark:bg-ink-900 dark:shadow-brand-900/30`}>
         <h2 id={titleId} className="mb-3 text-lg font-semibold">
           {title}
         </h2>

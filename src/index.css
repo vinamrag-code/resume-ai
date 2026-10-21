@@ -5,20 +5,23 @@
 @layer base {
   html { color-scheme: light; }
   html.dark { color-scheme: dark; }
-  body { @apply bg-ink-50 text-ink-900 antialiased dark:bg-ink-950 dark:text-ink-100; }
+  body { @apply bg-ink-50 text-ink-900 antialiased dark:bg-ink-950 dark:text-ink-100; font-feature-settings: 'cv11', 'ss01'; }
+  ::selection { @apply bg-brand-500/30; }
   :focus-visible { @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white dark:ring-offset-ink-950; }
 }
 
 @layer components {
-  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50; }
-  .btn-primary { @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-400 dark:text-ink-950; }
-  .btn-secondary { @apply btn border border-ink-200 bg-white text-ink-800 hover:bg-ink-100 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100 dark:hover:bg-ink-800; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply btn bg-brand-600 text-white shadow-sm shadow-brand-600/30 hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-400 dark:shadow-[0_0_20px_-4px_theme(colors.brand.500)]; }
+  .btn-secondary { @apply btn border border-ink-200 bg-white text-ink-800 hover:bg-ink-100 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100 dark:hover:border-brand-500/50 dark:hover:bg-ink-800; }
   .btn-ghost { @apply btn text-ink-600 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-ink-800; }
   .btn-danger { @apply btn border border-red-200 bg-white text-red-700 hover:bg-red-50 dark:border-red-900 dark:bg-ink-900 dark:text-red-400 dark:hover:bg-red-950; }
   .btn-sm { @apply px-2.5 py-1 text-xs; }
-  .input { @apply w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 placeholder:text-ink-400 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100; }
+  .input { @apply w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 placeholder:text-ink-400 transition focus:border-brand-500 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100 dark:focus:border-brand-400; }
   .label { @apply mb-1 block text-xs font-medium text-ink-600 dark:text-ink-300; }
-  .card { @apply rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-800 dark:bg-ink-900; }
+  .card { @apply rounded-xl border border-ink-200 bg-white p-4 shadow-sm shadow-ink-900/5 transition-colors dark:border-ink-800 dark:bg-ink-900/80 dark:shadow-none; }
+  .gradient-text { @apply bg-gradient-to-r from-brand-600 via-brand-500 to-sky-400 bg-clip-text text-transparent dark:from-brand-300 dark:via-brand-400 dark:to-sky-300; }
+  .grid-bg { background-image: linear-gradient(to right, rgb(59 130 246 / 0.08) 1px, transparent 1px), linear-gradient(to bottom, rgb(59 130 246 / 0.08) 1px, transparent 1px); background-size: 48px 48px; -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%); mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%); }
   .chip { @apply inline-flex items-center rounded-full bg-ink-100 px-2 py-0.5 text-xs text-ink-700 dark:bg-ink-800 dark:text-ink-200; }
 }
 
@@ -60,5 +63,5 @@
 
 /* Respect "reduce motion": no entrance or floating animations. */
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-up, .animate-modal-in, .animate-backdrop-in, .animate-float { animation: none !important; }
+  .animate-fade-up, .animate-modal-in, .animate-backdrop-in, .animate-float, .animate-glow, .animate-marquee { animation: none !important; }
 }

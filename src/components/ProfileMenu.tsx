@@ -52,7 +52,7 @@ export function ProfileMenu({ active = false }: { active?: boolean }) {
         aria-current={active ? 'page' : undefined}
         aria-controls={open ? menuId : undefined}
         onClick={() => setOpen((o) => !o)}
-        className={`flex h-9 w-9 items-center justify-center rounded-full ${active ? 'ring-2 ring-brand-300 ring-offset-2 ring-offset-white dark:ring-offset-ink-900' : ''} bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 dark:bg-brand-500 dark:text-ink-950`}
+        className={`flex h-9 w-9 items-center justify-center rounded-full ${active ? 'ring-2 ring-brand-300 ring-offset-2 ring-offset-white dark:ring-offset-ink-900' : ''} bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 dark:bg-brand-500 dark:text-white`}
       >
         {auth.user?.picture ? (
           <img src={auth.user.picture} alt="" referrerPolicy="no-referrer" className="h-9 w-9 rounded-full object-cover" />

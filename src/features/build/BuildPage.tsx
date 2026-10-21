@@ -7,7 +7,7 @@ export function BuildPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <div>
-        <Link to="/" className="text-xs font-medium text-brand-700 hover:underline dark:text-brand-300">
+        <Link to="/resumes" className="text-xs font-medium text-brand-700 hover:underline dark:text-brand-300">
           Back to your resumes
         </Link>
         <h1 className="mt-1 text-2xl font-semibold">Build a resume from your experience bank</h1>

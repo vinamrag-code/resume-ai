@@ -1,7 +1,8 @@
 import { screen, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useChats } from '@/store/chats'
+import { useBank } from '@/store/bank'
+import { useCoverLetters } from '@/store/coverLetters'
+import { useJobs } from '@/store/jobs'
 import { useResumes } from '@/store/resumes'
 import { sampleContent } from '@/test/fixtures'
 import { renderAt } from '@/test/helpers'
@@ -9,18 +10,33 @@ import { DashboardPage } from './DashboardPage'
 
 beforeEach(() => {
   useResumes.setState({ resumes: [] })
-  useChats.setState({ chats: [] })
+  useJobs.setState({ jobs: [] })
+  useCoverLetters.setState({ letters: [] })
+  useBank.setState({ items: [] })
 })
 
-describe('deleting a resume', () => {
-  it("also deletes that resume's saved Agent conversation, and leaves other conversations alone", async () => {
-    const a = useResumes.getState().create('Doomed', sampleContent())
-    const b = useResumes.getState().create('Keeper', sampleContent())
-    for (const r of [a, b]) useChats.getState().setTurns(r.id, () => [{ id: 't', role: 'user', content: `chat for ${r.name}`, changes: [] }])
+describe('dashboard', () => {
+  it('welcomes a new user with a checklist and empty states', () => {
     renderAt(<DashboardPage />)
-    await userEvent.click(screen.getByRole('button', { name: 'Delete Doomed' }))
-    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
-    expect(useResumes.getState().resumes.map((r) => r.name)).toEqual(['Keeper'])
-    expect(useChats.getState().chats.map((c) => c.resumeId)).toEqual([b.id])
+    expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeInTheDocument()
+    expect(screen.getByText('0 of 5 done')).toBeInTheDocument()
+    expect(screen.getByText(/No resumes yet/)).toBeInTheDocument()
+    expect(screen.getByText(/Nothing tracked yet/)).toBeInTheDocument()
+  })
+
+  it('shows the user\'s name, counts and recent items', () => {
+    useResumes.getState().create('Backend CV', sampleContent())
+    useJobs.getState().add({ title: 'Data Engineer', company: 'Globex', status: 'interviewing' })
+    useJobs.getState().add({ title: 'SRE', company: 'Initech', status: 'rejected' })
+    renderAt(<DashboardPage />)
+    expect(screen.getByRole('heading', { name: 'Welcome back, Ada' })).toBeInTheDocument()
+    const stats = within(screen.getByRole('list', { name: 'Overview' }))
+    expect(stats.getByText('Resumes').previousElementSibling).toHaveTextContent('1')
+    // The rejected application is not counted as live.
+    expect(stats.getByText('Applications').previousElementSibling).toHaveTextContent('1')
+    expect(stats.getByText('Interviews and offers').previousElementSibling).toHaveTextContent('1')
+    expect(screen.getByRole('link', { name: 'Backend CV' })).toHaveAttribute('href', expect.stringMatching(/^\/resume\//))
+    expect(screen.getByText('Data Engineer')).toBeInTheDocument()
+    expect(screen.getByText('2 of 5 done')).toBeInTheDocument()
   })
 })

@@ -23,7 +23,7 @@ export function WorkspacePage() {
   const resume = useResumes((s) => s.resumes.find((r) => r.id === id))
   if (!resume) {
     return (
-      <EmptyState title="Resume not found" action={<Link to="/" className="btn-primary">Back to resumes</Link>}>
+      <EmptyState title="Resume not found" action={<Link to="/resumes" className="btn-primary">Back to resumes</Link>}>
         It may have been deleted, or it lives in another browser.
       </EmptyState>
     )
@@ -40,6 +40,12 @@ function Workspace({ resume }: { resume: Resume }) {
   return (
     <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1">
       <div className="no-print flex shrink-0 flex-wrap items-center gap-3">
+        <Link to="/resumes" className="btn-secondary h-9 gap-1.5 px-3" aria-label="Back to resumes">
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          Back
+        </Link>
         <div className="min-w-48 flex-1">
           <label htmlFor="resume-name" className="sr-only">
             Resume name

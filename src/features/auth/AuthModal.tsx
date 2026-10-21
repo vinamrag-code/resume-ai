@@ -42,7 +42,7 @@ function Field({
         <input
           id={id}
           type={reveal && shown ? 'text' : type}
-          className={`input ${reveal ? 'pr-16' : ''} ${error ? 'border-red-500 dark:border-red-500' : ''}`}
+          className={`input h-10 ${reveal ? 'pr-14' : ''} ${error ? 'border-red-500 dark:border-red-500' : ''}`}
           value={value}
           autoComplete={autoComplete}
           autoFocus={autoFocus}
@@ -75,7 +75,7 @@ function StrengthMeter({ password }: { password: string }) {
   const score = passwordStrength(password)
   const labels = ['Weak', 'Fair', 'Good', 'Strong', 'Excellent']
   return (
-    <div className="mt-1.5" aria-live="polite">
+    <div className="mb-1" aria-live="polite">
       <div className="flex gap-1" aria-hidden="true">
         {[0, 1, 2, 3].map((i) => (
           <span key={i} className={`h-1 flex-1 rounded-full ${i < score ? (score <= 1 ? 'bg-red-500' : score === 2 ? 'bg-spark-500' : 'bg-brand-500') : 'bg-ink-200 dark:bg-ink-700'}`} />
@@ -88,7 +88,7 @@ function StrengthMeter({ password }: { password: string }) {
 
 function SubmitButton({ busy, children }: { busy: boolean; children: string }) {
   return (
-    <button type="submit" className="btn-primary w-full" disabled={busy}>
+    <button type="submit" className="btn-primary h-10 w-full" disabled={busy}>
       {busy ? (
         <>
           <Spinner label="Please wait" /> Please wait…
@@ -113,7 +113,7 @@ function LoginForm({ onForgot }: { onForgot: () => void }) {
     await signInWithEmail(email, password)
   }
   return (
-    <form onSubmit={(e) => void submit(e)} noValidate className="space-y-3" aria-label="Log in">
+    <form onSubmit={(e) => void submit(e)} noValidate className="space-y-3.5" aria-label="Log in">
       <Field label="Email" type="email" value={email} onChange={setEmail} error={errors.email} autoComplete="email" autoFocus />
       <Field label="Password" type="password" value={password} onChange={setPassword} error={errors.password} autoComplete="current-password" reveal />
       <div className="text-right">
@@ -147,21 +147,24 @@ function SignUpForm() {
     await signUp({ name: v.name.trim().replace(/\s+/g, ' '), email: v.email, password: v.password })
   }
   return (
-    <form onSubmit={(e) => void submit(e)} noValidate className="space-y-3" aria-label="Sign up">
+    <form onSubmit={(e) => void submit(e)} noValidate className="space-y-3.5" aria-label="Sign up">
       <Field label="Full name" value={v.name} onChange={set('name')} error={errors.name} autoComplete="name" autoFocus />
       <Field label="Email" type="email" value={v.email} onChange={set('email')} error={errors.email} autoComplete="email" />
-      <div>
-        <Field label="Password" type="password" value={v.password} onChange={set('password')} error={errors.password} autoComplete="new-password" hint="At least 8 characters, with a letter and a number." reveal />
-        <StrengthMeter password={v.password} />
+      <div className="grid gap-3.5 sm:grid-cols-2">
+        <Field label="Password" type="password" value={v.password} onChange={set('password')} error={errors.password} autoComplete="new-password" reveal />
+        <Field label="Confirm password" type="password" value={v.confirm} onChange={set('confirm')} error={errors.confirm} autoComplete="new-password" reveal />
       </div>
-      <Field label="Confirm password" type="password" value={v.confirm} onChange={set('confirm')} error={errors.confirm} autoComplete="new-password" reveal />
+      <div>
+        <StrengthMeter password={v.password} />
+        <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">At least 8 characters, with a letter and a number.</p>
+      </div>
       {error && (
         <p role="alert" className="rounded-lg bg-red-50 p-2.5 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
           {error}
         </p>
       )}
       <SubmitButton busy={busy}>Create account</SubmitButton>
-      <p className="text-center text-xs text-ink-500 dark:text-ink-400">We will email you a link to confirm your address before you can use the app.</p>
+      <p className="text-center text-xs text-ink-500 dark:text-ink-400">We will email you a link to confirm your address.</p>
     </form>
   )
 }
@@ -216,9 +219,9 @@ export function AuthModal({ initialMode, onClose }: { initialMode: AuthMode; onC
     setMode(m)
   }
   return (
-    <Modal title={forgot ? 'Reset your password' : mode === 'login' ? 'Welcome back' : 'Create your account'} onClose={onClose}>
+    <Modal title={forgot ? 'Reset your password' : mode === 'login' ? 'Welcome back' : 'Create your account'} onClose={onClose} size="md">
       {!forgot && (
-        <div role="tablist" aria-label="Account" className="mb-4 grid grid-cols-2 gap-1 rounded-xl bg-ink-100 p-1 dark:bg-ink-800">
+        <div role="tablist" aria-label="Account" className="mb-4 grid grid-cols-2 border-b border-ink-200 dark:border-ink-700">
           {(['login', 'signup'] as const).map((m) => (
             <button
               key={m}
@@ -226,26 +229,27 @@ export function AuthModal({ initialMode, onClose }: { initialMode: AuthMode; onC
               role="tab"
               aria-selected={mode === m}
               onClick={() => switchTo(m)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${mode === m ? 'bg-white shadow-sm dark:bg-ink-900' : 'text-ink-600 hover:text-ink-900 dark:text-ink-300'}`}
+              className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition ${mode === m ? 'border-brand-500 text-brand-600 dark:text-brand-300' : 'border-transparent text-ink-500 hover:text-ink-900 dark:text-ink-400 dark:hover:text-ink-100'}`}
             >
               {m === 'login' ? 'Log in' : 'Sign up'}
             </button>
           ))}
         </div>
       )}
-      <div key={`${mode}-${forgot}`} className="animate-fade-up">
-        {forgot ? <ForgotForm onBack={() => setForgot(false)} /> : mode === 'login' ? <LoginForm onForgot={() => setForgot(true)} /> : <SignUpForm />}
-      </div>
+      <p className="mb-4 text-sm text-ink-500 dark:text-ink-400">
+        {forgot ? 'We will email you a reset link.' : mode === 'login' ? 'Log in to pick up where you left off.' : 'Free, and your resumes stay yours.'}
+      </p>
       {!forgot && (
         <>
-          <div className="my-4 flex items-center gap-3 text-xs text-ink-400" aria-hidden="true">
-            <span className="h-px flex-1 bg-ink-200 dark:bg-ink-700" /> or <span className="h-px flex-1 bg-ink-200 dark:bg-ink-700" />
-          </div>
-          <div className="flex justify-center">
-            <GoogleSignInButton showError={false} label={mode === 'login' ? 'Continue with Google' : 'Sign up with Google'} />
+          <GoogleSignInButton showError={false} label={mode === 'login' ? 'Continue with Google' : 'Sign up with Google'} fullWidth />
+          <div className="my-5 flex items-center gap-3 text-xs text-ink-400" aria-hidden="true">
+            <span className="h-px flex-1 bg-ink-200 dark:bg-ink-700" /> or with email <span className="h-px flex-1 bg-ink-200 dark:bg-ink-700" />
           </div>
         </>
       )}
+      <div key={`${mode}-${forgot}`} className="animate-fade-up">
+        {forgot ? <ForgotForm onBack={() => setForgot(false)} /> : mode === 'login' ? <LoginForm onForgot={() => setForgot(true)} /> : <SignUpForm />}
+      </div>
     </Modal>
   )
 }
