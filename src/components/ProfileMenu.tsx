@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { IconSettings, IconUser } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 import { GoogleSignInButton } from '@/components/GoogleSignInButton'
 import { useAuth } from '@/lib/auth/store'
@@ -11,7 +12,7 @@ function initialsOf(name: string): string {
 }
 
 /** Profile button with a dropdown. There are no accounts; the name comes from your most recent resume. */
-export function ProfileMenu({ active = false }: { active?: boolean }) {
+export function ProfileMenu({ active = false, placement = 'header', collapsed }: { active?: boolean; placement?: 'header' | 'sidebar'; collapsed?: boolean }) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const menuId = useId()
@@ -41,9 +42,10 @@ export function ProfileMenu({ active = false }: { active?: boolean }) {
     }
   }, [open])
 
+  const showName = collapsed !== undefined
   const initials = initialsOf(name)
   return (
-    <div ref={root} className="relative">
+    <div ref={root} className={`relative ${showName ? 'w-full' : ''}`}>
       <button
         type="button"
         aria-label="Profile"
@@ -52,19 +54,19 @@ export function ProfileMenu({ active = false }: { active?: boolean }) {
         aria-current={active ? 'page' : undefined}
         aria-controls={open ? menuId : undefined}
         onClick={() => setOpen((o) => !o)}
-        className={`flex h-9 w-9 items-center justify-center rounded-full ${active ? 'ring-2 ring-brand-300 ring-offset-2 ring-offset-white dark:ring-offset-ink-900' : ''} bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 dark:bg-brand-500 dark:text-ink-950`}
+        className={showName ? 'flex w-full items-center gap-2.5 overflow-hidden rounded-lg p-1.5 text-left hover:bg-ink-100 dark:hover:bg-ink-800' : undefined}
       >
-        {auth.user?.picture ? (
-          <img src={auth.user.picture} alt="" referrerPolicy="no-referrer" className="h-9 w-9 rounded-full object-cover" />
-        ) : initials || (
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-            <circle cx="12" cy="8" r="4" />
-            <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
-          </svg>
-        )}
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full ${active ? 'ring-2 ring-brand-300 ring-offset-2 ring-offset-white dark:ring-offset-ink-950' : ''} bg-brand-600 text-sm font-semibold text-white ${showName ? '' : 'hover:bg-brand-700'} dark:bg-brand-500 dark:text-white`}>
+          {auth.user?.picture ? (
+            <img src={auth.user.picture} alt="" referrerPolicy="no-referrer" className="h-9 w-9 rounded-full object-cover" />
+          ) : initials || (
+            <IconUser className="h-5 w-5" stroke={2} aria-hidden="true" />
+          )}
+        </span>
+        {showName && <span className={`min-w-0 flex-1 truncate whitespace-nowrap text-sm font-medium transition-opacity duration-300 motion-reduce:transition-none ${collapsed ? 'opacity-0' : 'opacity-100'}`}>{name || (auth.user ? 'Signed in' : 'Your profile')}</span>}
       </button>
       {open && (
-        <div id={menuId} role="menu" aria-label="Profile menu" className="absolute right-0 top-11 z-40 w-64 rounded-xl border border-ink-200 bg-white p-1.5 shadow-lg dark:border-ink-700 dark:bg-ink-900">
+        <div id={menuId} role="menu" aria-label="Profile menu" className={`absolute z-40 w-64 ${placement === 'sidebar' ? 'bottom-11 left-0' : 'right-0 top-11'} rounded-xl border border-ink-200 bg-white p-1.5 shadow-lg dark:border-ink-700 dark:bg-ink-900`}>
           <div className="border-b border-ink-100 px-3 py-2 dark:border-ink-800">
             <p className="truncate text-sm font-semibold">{name || (auth.user ? 'Signed in' : 'Your profile')}</p>
             <p className="truncate text-xs text-ink-500 dark:text-ink-400">{email || 'Saved in this browser only'}</p>
@@ -86,10 +88,7 @@ export function ProfileMenu({ active = false }: { active?: boolean }) {
             onClick={() => setOpen(false)}
             className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-ink-100 dark:hover:bg-ink-800"
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
-            </svg>
+            <IconSettings className="h-4 w-4" stroke={2} aria-hidden="true" />
             Settings
           </Link>
           {auth.user && (

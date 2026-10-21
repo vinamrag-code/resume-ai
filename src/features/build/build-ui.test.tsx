@@ -81,8 +81,8 @@ describe('build a resume from the bank', () => {
 
 describe('where building lives', () => {
   it('is offered on the Resumes page and opens the build page, not the bank page', async () => {
-    const { DashboardPage } = await import('@/features/dashboard/DashboardPage')
-    renderAt(<DashboardPage />)
+    const { ResumesPage } = await import('@/features/dashboard/ResumesPage')
+    renderAt(<ResumesPage />)
     expect(screen.getByRole('link', { name: 'Build from experience bank' })).toHaveAttribute('href', '/build')
   })
 

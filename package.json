@@ -9,15 +9,17 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build:server": "esbuild server/index.ts --bundle --platform=node --format=esm --target=node20 --outfile=server-dist/index.mjs",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --format=esm --target=node20 --banner:js=\"import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\" --outfile=server-dist/index.mjs",
     "start": "node server-dist/index.mjs"
   },
-  "description": "Free, open-source, local-first AI resume builder",
+  "description": "Local-first AI resume builder",
   "dependencies": {
     "@huggingface/transformers": "^4.3.1",
     "@langchain/core": "^1.2.18",
     "@langchain/openai": "^1.6.2",
     "@langchain/textsplitters": "^1.0.2",
+    "@tabler/icons-react": "^3.49.0",
+    "cheerio": "^1.2.0",
     "docx": "^9.9.0",
     "firebase": "^13.0.0",
     "idb": "^8.0.4",
@@ -55,5 +57,5 @@
   },
   "private": true,
   "type": "module",
-  "license": "MIT"
+  "license": "UNLICENSED"
 }

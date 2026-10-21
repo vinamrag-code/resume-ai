@@ -59,7 +59,7 @@ export function isPreparingEdits(raw: string): boolean {
  */
 function allowedOnFirstTurn(c: Change): boolean {
   const addsSkills = c.target.kind === 'skills' && (c.afterSkills?.length ?? 0) > (c.beforeSkills?.length ?? 0)
-  return c.target.kind === 'format' || c.target.kind === 'field' || c.target.kind === 'bullet-remove' || addsSkills
+  return c.target.kind === 'format' || c.target.kind === 'field' || c.target.kind === 'bullet-remove' || c.target.kind === 'section-remove' || addsSkills
 }
 
 /** Turn a finished reply into reviewable changes. */

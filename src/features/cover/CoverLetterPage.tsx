@@ -1,3 +1,4 @@
+import { IconX } from '@tabler/icons-react'
 import { useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { SignInNotice } from '@/components/SignInNotice'
@@ -161,7 +162,7 @@ export function CoverLetterPage() {
                         {l.title}
                       </button>
                       <button type="button" className="btn-ghost btn-sm" aria-label={`Delete ${l.title}`} disabled={busy} onClick={() => { remove(l.id); if (l.id === selected?.id) setParams({}) }}>
-                        ✕
+                        <IconX className="h-4 w-4" stroke={2} aria-hidden="true" />
                       </button>
                     </li>
                   ))}

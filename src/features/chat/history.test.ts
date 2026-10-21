@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildHistory, appliedSummary, HISTORY_CHAR_BUDGET, turnToMessage } from './history'
+import { buildHistory, appliedSummary, HISTORY_CHAR_BUDGET, HISTORY_MAX_MESSAGES, turnToMessage } from './history'
 import type { Change } from '@/lib/changes'
 import type { ChatTurn } from '@/types/chat'
 
@@ -51,6 +51,17 @@ describe('buildHistory', () => {
   it('skips an assistant turn that was cut off before any text arrived', () => {
     const h = buildHistory([user('hi'), bot(''), user('hello again')])
     expect(h.messages.map((m) => m.content)).toEqual(['hi', 'hello again'])
+  })
+
+  it('never sends more messages than providers accept, keeping the newest and starting with a user message', () => {
+    const turns = Array.from({ length: 60 }, (_, i) => (i % 2 === 0 ? user(`q${i}`) : bot(`a${i}`)))
+    turns.push(user('LATEST'))
+    const h = buildHistory(turns)
+    expect(h.messages.length).toBeLessThanOrEqual(HISTORY_MAX_MESSAGES)
+    expect(h.messages.length + 1).toBeLessThanOrEqual(40) // plus the system prompt
+    expect(h.messages[0]!.role).toBe('user')
+    expect(h.messages.at(-1)?.content).toBe('LATEST')
+    expect(h.truncated).toBe(true)
   })
 
   it('has a sensible default budget', () => {
