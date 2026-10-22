@@ -4,7 +4,7 @@ import { Document, Packer, Paragraph, TextRun } from 'docx'
 export function buildLetterDocx(body: string, title = 'Cover letter'): Document {
   const blocks = body.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean)
   return new Document({
-    creator: 'Resume AI',
+    creator: 'Resumely',
     title,
     sections: [
       {
