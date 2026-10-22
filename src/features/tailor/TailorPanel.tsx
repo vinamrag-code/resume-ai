@@ -2,7 +2,7 @@ import { IconArrowRight } from '@tabler/icons-react'
 import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { SignInNotice } from '@/components/SignInNotice'
-import { EmptyState, ErrorBanner, Spinner, TruthfulnessNote } from '@/components/ui'
+import { EmptyState, ErrorBanner, Spinner } from '@/components/ui'
 import { useAiAccess } from '@/lib/auth/useAiAccess'
 import { scoreTone } from '@/features/ats/scoreTone'
 import { computeAtsScore } from '@/lib/ats/score'
@@ -103,7 +103,6 @@ export function TailorPanel({ resume, similarity }: { resume: Resume; similarity
 
   return (
     <div className="space-y-4">
-      <TruthfulnessNote />
       <SignInNotice feature="tailoring" />
       <div className="card space-y-3">
         <fieldset>

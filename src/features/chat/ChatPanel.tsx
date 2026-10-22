@@ -1,7 +1,7 @@
 import { IconAlertTriangle, IconCheck } from '@tabler/icons-react'
 import { useEffect, useRef, useState } from 'react'
 import { SignInNotice } from '@/components/SignInNotice'
-import { ErrorBanner, Spinner, TruthfulnessNote } from '@/components/ui'
+import { ErrorBanner, Spinner } from '@/components/ui'
 import { useAiAccess } from '@/lib/auth/useAiAccess'
 import { applyChanges, currentFormat, formatPatch, isStaleFor } from '@/lib/changes'
 import type { Change } from '@/lib/changes'
@@ -161,7 +161,6 @@ export function ChatPanel({ resume, embedded = false }: { resume: Resume; embedd
 
   return (
     <div className={embedded ? 'flex h-full min-h-0 flex-col gap-3' : 'space-y-3'}>
-      <TruthfulnessNote />
       <SignInNotice feature={ASSISTANT_NAME} />
       <section className={`flex flex-col gap-3 ${embedded ? 'min-h-0 flex-1' : 'card max-h-[70vh] min-h-80'}`} aria-label="Resume agent chat">
         <div className="no-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto" role="log" aria-live="polite">

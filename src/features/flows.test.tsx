@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLlmClient, LlmError } from '@/lib/llm'
 import { resumeToText } from '@/lib/resume'
+import { useBank } from '@/store/bank'
 import { useCoverLetters } from '@/store/coverLetters'
 import { useJobs } from '@/store/jobs'
 import { useResumes } from '@/store/resumes'
@@ -15,6 +16,7 @@ import type { Resume } from '@/types/resume'
 import { ChatPanel } from './chat/ChatPanel'
 import { useChats } from '@/store/chats'
 import { CoverLetterPage } from './cover/CoverLetterPage'
+import { MailPage } from './mail/MailPage'
 import { ImportPage } from './import/ImportPage'
 import { TailorPanel } from './tailor/TailorPanel'
 import { TrackerPage } from './tracker/TrackerPage'
@@ -25,6 +27,7 @@ beforeEach(() => {
   useJobs.setState({ jobs: [] })
   useCoverLetters.setState({ letters: [] })
   useChats.setState({ chats: [] })
+  useBank.setState({ items: [] })
 })
 afterEach(() => setLlmClient(null))
 
@@ -431,9 +434,61 @@ describe('cover letters', () => {
     expect(screen.getByTestId('letter-preview')).toHaveTextContent('P.S. Thanks!')
   })
 
-  it('shows an empty state without resumes', () => {
+  it('writes a letter with no resume from the experience bank', async () => {
+    const llm = mockLlm(['Dear Hiring Team,\n\nI am a careful engineer.\n\nSam Rivera'])
     renderAt(<CoverLetterPage />, { path: '/cover', route: '/cover' })
-    expect(screen.getByText('You need a resume first')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Generate letter' })).toBeDisabled()
+    await userEvent.type(screen.getByLabelText('Job description'), 'Build things')
+    expect(screen.getByRole('button', { name: 'Generate letter' })).toBeDisabled()
+    expect(screen.queryByLabelText('Your name')).not.toBeInTheDocument()
+    useBank.getState().add({ kind: 'work', title: 'Engineer', org: 'Initech', location: '', start: '', end: '', link: '', bullets: ['5 years of React'], skills: [] })
+    await userEvent.click(await screen.findByRole('button', { name: 'Generate letter' }))
+    await waitFor(() => expect(useCoverLetters.getState().letters[0]?.body).toContain('Sam Rivera'))
+    expect(useCoverLetters.getState().letters[0]?.resumeId).toBeUndefined()
+    expect(llm.calls[0]![1]!.content).toContain('5 years of React')
+  })
+})
+
+describe('emails', () => {
+  it('writes an email, splits the subject, and builds a mail link with the recipient', async () => {
+    const r = seedResume()
+    const llm = mockLlm(['Subject: Frontend Engineer application\n\nHello,\n\nI build React apps.\n\nAda Lovelace'])
+    renderAt(<MailPage />, { path: '/mail', route: `/mail?resume=${r.id}` })
+    await userEvent.click(screen.getByRole('button', { name: 'Write email' }))
+    const body = (await screen.findByLabelText(/message \(editable\)/i)) as HTMLTextAreaElement
+    await waitFor(() => expect(body.value).toContain('Ada Lovelace'))
+    expect(llm.calls[0]![0]!.content).toMatch(/attach their resume/)
+    expect((screen.getByLabelText('Subject') as HTMLInputElement).value).toBe('Frontend Engineer application')
+    await userEvent.type(screen.getByLabelText('To'), 'hr@acme.com')
+    expect(screen.getByRole('link', { name: 'Open in email app' })).toHaveAttribute('href', expect.stringContaining('mailto:hr@acme.com?subject=Frontend%20Engineer%20application'))
+    expect(screen.getByRole('button', { name: /download attachments/i })).toBeInTheDocument()
+  })
+
+  it('from the nav bar asks for a resume and a job instead of prefilling', async () => {
+    const r = seedResume()
+    renderAt(<MailPage />, { path: '/mail', route: '/mail' })
+    expect((screen.getByLabelText('Job description') as HTMLTextAreaElement).value).toBe('')
+    expect(screen.getByRole('button', { name: 'Write email' })).toBeDisabled()
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: /^Resume/ }), r.id)
+    await userEvent.click(screen.getByRole('radio', { name: 'Enter it manually' }))
+    expect((screen.getByLabelText('Job description') as HTMLTextAreaElement).value).toBe('')
+    await userEvent.click(screen.getByRole('radio', { name: 'Import from a job link' }))
+    expect(screen.getByPlaceholderText(/company\.com\/careers/)).toBeInTheDocument()
+  })
+
+  it('writes an email with no resume from the experience bank', async () => {
+    const llm = mockLlm(['Subject: Hello\n\nHi,\n\nI build React apps.\n\nSam Rivera'])
+    renderAt(<MailPage />, { path: '/mail', route: '/mail' })
+    expect(screen.getByRole('button', { name: 'Write email' })).toBeDisabled()
+    await userEvent.type(screen.getByLabelText('Job description'), 'Build things')
+    expect(screen.queryByLabelText('Your name')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Write email' })).toBeDisabled()
+    useBank.getState().add({ kind: 'work', title: 'Engineer', org: 'Initech', location: '', start: '', end: '', link: '', bullets: ['5 years of React'], skills: [] })
+    await userEvent.click(await screen.findByRole('button', { name: 'Write email' }))
+    const body = (await screen.findByLabelText(/message \(editable\)/i)) as HTMLTextAreaElement
+    await waitFor(() => expect(body.value).toContain('Sam Rivera'))
+    expect(llm.calls[0]![1]!.content).toContain('5 years of React')
+    expect(llm.calls[0]![0]!.content).toMatch(/Nothing is attached/)
   })
 })
 

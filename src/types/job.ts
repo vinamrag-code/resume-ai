@@ -33,7 +33,7 @@ export type Job = z.infer<typeof JobSchema>
 export const CoverLetterSchema = z.object({
   id: z.string(),
   title: z.string(),
-  resumeId: z.string(),
+  resumeId: z.string().optional(),
   jobId: z.string().optional(),
   tone: z.enum(['formal', 'friendly', 'concise']),
   jobTitle: z.string(),
