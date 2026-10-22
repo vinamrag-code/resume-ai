@@ -60,7 +60,7 @@ export function restoreBackup(raw: string): ImportResult {
   }
   const parsed = BackupSchema.safeParse(json)
   if (!parsed.success) {
-    return { ok: false, error: 'That file is not a Resume AI backup (or it is from an incompatible version).' }
+    return { ok: false, error: 'That file is not a Resumely backup (or it is from an incompatible version).' }
   }
   const b = parsed.data
   useResumes.setState({ resumes: b.resumes })

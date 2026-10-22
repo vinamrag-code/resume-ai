@@ -27,7 +27,7 @@ export function SettingsPage() {
 
   const exportAll = () => {
     const blob = new Blob([JSON.stringify(createBackup(), null, 2)], { type: 'application/json' })
-    downloadBlob(blob, `resume-ai-backup-${new Date().toISOString().slice(0, 10)}.json`)
+    downloadBlob(blob, `resumely-backup-${new Date().toISOString().slice(0, 10)}.json`)
     setMessage({ ok: true, text: 'Backup downloaded.' })
   }
 

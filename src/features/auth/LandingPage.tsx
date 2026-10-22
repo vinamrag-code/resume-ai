@@ -139,7 +139,7 @@ export function LandingPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2 font-semibold tracking-tight">
             <Logo />
-            <span>Resume AI</span>
+            <span>Resumely</span>
           </div>
           <nav aria-label="Sections" className="hidden items-center gap-6 text-sm text-ink-600 dark:text-ink-300 md:flex">
             <a href="#features" className="hover:text-brand-600 dark:hover:text-brand-300">Features</a>
@@ -314,7 +314,7 @@ export function LandingPage() {
       </main>
 
       <footer className="border-t border-ink-200 px-4 py-6 text-center text-xs text-ink-500 dark:border-ink-800 dark:text-ink-400">
-        {canEnter ? 'Resume AI · truthful by design.' : 'Sign in to use Resume AI.'}
+        {canEnter ? 'Resumely · truthful by design.' : 'Sign in to use Resumely.'}
       </footer>
       {modal && <AuthModal initialMode={modal} onClose={() => setModal(null)} />}
     </div>

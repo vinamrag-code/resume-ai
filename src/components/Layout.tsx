@@ -51,9 +51,9 @@ function Sidebar({ rail, onNavigate, onToggleRail }: { rail: boolean; onNavigate
   return (
     <div className="relative flex h-full flex-col gap-4 p-3">
       <div className="flex items-center gap-1">
-        <Link to="/" onClick={onNavigate} className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden px-2.5 py-1.5 font-semibold tracking-tight" aria-label="Resume AI home">
+        <Link to="/" onClick={onNavigate} className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden px-2.5 py-1.5 font-semibold tracking-tight" aria-label="Resumely home">
           <Logo className="h-7 w-7 shrink-0" />
-          <span className={`whitespace-nowrap transition-opacity duration-300 motion-reduce:transition-none ${rail ? 'opacity-0' : 'opacity-100'}`}>Resume AI</span>
+          <span className={`whitespace-nowrap transition-opacity duration-300 motion-reduce:transition-none ${rail ? 'opacity-0' : 'opacity-100'}`}>Resumely</span>
         </Link>
         {collapseBtn}
       </div>
@@ -153,7 +153,7 @@ export function Layout() {
             </button>
             <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
               <Logo />
-              <span>Resume AI</span>
+              <span>Resumely</span>
             </Link>
           </div>
         </header>
@@ -163,7 +163,7 @@ export function Layout() {
         <footer className="no-print border-t border-ink-200 px-4 py-3 text-center text-xs text-ink-500 dark:border-ink-800 dark:text-ink-400">
           <strong>Truthful by design:</strong> the AI never invents facts; review every change. · Your data stays in this browser. ·{' '}
           <Link to="/welcome" className="underline hover:text-brand-600 dark:hover:text-brand-300">
-            About Resume AI
+            About Resumely
           </Link>
         </footer>
       </div>

@@ -86,7 +86,7 @@ export function buildResumeDocx(content: ResumeContent, style: ResumeStyle, temp
   }
 
   return new Document({
-    creator: 'Resume AI',
+    creator: 'Resumely',
     title: c.contact.name ? `${c.contact.name} - Resume` : 'Resume',
     numbering: {
       config: [
