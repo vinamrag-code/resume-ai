@@ -1,4 +1,4 @@
-import { IconLayoutDashboard, IconFileText, IconLayoutKanban, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconMail, IconMailForward, IconMenu2, IconMoon, IconStack2, IconSun } from '@tabler/icons-react'
+import { IconLayoutDashboard, IconFileText, IconLayoutKanban, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconMailForward, IconNotes, IconMenu2, IconMoon, IconStack2, IconSun } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { ProfileMenu } from '@/components/ProfileMenu'
@@ -12,7 +12,7 @@ const NAV = [
   { to: '/resumes', label: 'Resumes', icon: IconFileText, match: (p: string) => p.startsWith('/resumes') || p.startsWith('/resume/') || p.startsWith('/import') || p.startsWith('/build') },
   { to: '/bank', label: 'Experience bank', icon: IconStack2, match: (p: string) => p.startsWith('/bank') },
   { to: '/tracker', label: 'Tracker', icon: IconLayoutKanban, match: (p: string) => p.startsWith('/tracker') },
-  { to: '/cover', label: 'Cover letters', icon: IconMail, match: (p: string) => p.startsWith('/cover') },
+  { to: '/cover', label: 'Cover letters', icon: IconNotes, match: (p: string) => p.startsWith('/cover') },
   { to: '/mail', label: 'Emails', icon: IconMailForward, match: (p: string) => p.startsWith('/mail') },
 ]
 

@@ -1,4 +1,4 @@
-import { IconActivity, IconArrowRight, IconCheck, IconDownload, IconLayoutKanban, IconMail, IconMessageCircle, IconMoon, IconSun, IconWand } from '@tabler/icons-react'
+import { IconActivity, IconArrowRight, IconCheck, IconDownload, IconLayoutKanban, IconMessageCircle, IconMoon, IconNotes, IconSun, IconWand } from '@tabler/icons-react'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
@@ -14,7 +14,7 @@ const FEATURES = [
   { title: 'Tailor in one click', text: 'See every suggested change as a before and after, and accept only what is true for you.', icon: IconWand },
   { title: 'Talk to an editor', text: 'Sage asks the right questions, then edits your content and layout while you watch.', icon: IconMessageCircle },
   { title: 'Track every application', text: 'A Kanban board linking each job to the exact resume and cover letter you sent.', icon: IconLayoutKanban },
-  { title: 'Cover letters that fit', text: 'Draft a letter from your real experience and the job description, then edit it freely.', icon: IconMail },
+  { title: 'Cover letters that fit', text: 'Draft a letter from your real experience and the job description, then edit it freely.', icon: IconNotes },
   { title: 'Export anywhere', text: 'Clean, ATS-safe PDF and DOCX with templates you can restyle in a click.', icon: IconDownload },
 ]
 
