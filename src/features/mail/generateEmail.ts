@@ -6,7 +6,10 @@ import type { CoverTone } from '@/types/job'
 import type { Resume } from '@/types/resume'
 
 export interface EmailRequest {
-  resume: Resume
+  /** Resume to draw on; without one, `background` and `candidateName` come from the user. */
+  resume?: Resume
+  background?: string
+  candidateName?: string
   jobTitle: string
   company: string
   jobDescription: string
@@ -19,13 +22,13 @@ export interface EmailRequest {
 /** Streams an email ("Subject: ..." then body); `onToken` receives each chunk. Resolves with the full text. */
 export function streamEmail(req: EmailRequest, onToken: (t: string) => void, signal?: AbortSignal): Promise<string> {
   const messages = emailPrompt({
-    resumeText: resumeToText(req.resume.content),
+    resumeText: req.resume ? resumeToText(req.resume.content) : (req.background ?? ''),
     jobTitle: req.jobTitle,
     company: req.company,
     jobDescription: req.jobDescription,
     kind: req.kind,
     tone: req.tone,
-    candidateName: req.resume.content.contact.name,
+    candidateName: req.resume?.content.contact.name ?? req.candidateName ?? '',
     recipientName: req.recipientName,
     attachments: req.attachments,
   })
