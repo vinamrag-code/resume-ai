@@ -169,9 +169,13 @@ export function CoverLetterPage() {
                 }}
               />
             )}
-            <TextField label="Job title" value={jobTitle} onChange={setJobTitle} />
-            <TextField label="Company" value={company} onChange={setCompany} />
-            <AreaField label="Job description" rows={6} value={jd} onChange={setJd} />
+            {source !== 'link' && (
+              <>
+              <TextField label="Job title" value={jobTitle} onChange={setJobTitle} />
+              <TextField label="Company" value={company} onChange={setCompany} />
+              <AreaField label="Job description" rows={6} value={jd} onChange={setJd} />
+              </>
+            )}
             <fieldset>
               <legend className="label">Tone</legend>
               <div className="flex gap-3 text-sm">

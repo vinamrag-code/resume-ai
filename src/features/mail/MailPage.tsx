@@ -169,9 +169,13 @@ export function MailPage() {
               }}
             />
           )}
-          <TextField label="Job title" value={jobTitle} onChange={setJobTitle} />
-          <TextField label="Company" value={company} onChange={setCompany} />
-          <AreaField label="Job description" rows={5} value={jd} onChange={setJd} />
+          {source !== 'link' && (
+            <>
+            <TextField label="Job title" value={jobTitle} onChange={setJobTitle} />
+            <TextField label="Company" value={company} onChange={setCompany} />
+            <AreaField label="Job description" rows={5} value={jd} onChange={setJd} />
+            </>
+          )}
           <div>
             <label htmlFor="ml-kind" className="label">Email type</label>
             <select id="ml-kind" className="input" value={kind} onChange={(e) => setKind(e.target.value as EmailKind)}>

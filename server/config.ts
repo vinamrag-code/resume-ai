@@ -39,7 +39,7 @@ const num = (v: string | undefined, fallback: number) => {
 export const DEFAULT_MODELS: Record<Provider, string[]> = {
   groq: ['openai/gpt-oss-120b'],
   openrouter: ['nvidia/nemotron-3-super-120b-a12b:free'],
-  inception: ['mercury-2.5'],
+  inception: ['mercury-2.5', 'mercury-3'],
 }
 
 /** Read server settings from environment variables. API keys never reach the browser bundle. */

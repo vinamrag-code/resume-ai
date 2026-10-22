@@ -1,4 +1,4 @@
-import { IconLayoutDashboard, IconFileText, IconLayoutKanban, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconMail, IconMailForward, IconMenu2, IconMoon, IconStack2, IconSun } from '@tabler/icons-react'
+import { IconLayoutDashboard, IconFileText, IconLayoutKanban, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconMailForward, IconNotes, IconMenu2, IconMoon, IconStack2, IconSun } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { ProfileMenu } from '@/components/ProfileMenu'
@@ -12,7 +12,7 @@ const NAV = [
   { to: '/resumes', label: 'Resumes', icon: IconFileText, match: (p: string) => p.startsWith('/resumes') || p.startsWith('/resume/') || p.startsWith('/import') || p.startsWith('/build') },
   { to: '/bank', label: 'Experience bank', icon: IconStack2, match: (p: string) => p.startsWith('/bank') },
   { to: '/tracker', label: 'Tracker', icon: IconLayoutKanban, match: (p: string) => p.startsWith('/tracker') },
-  { to: '/cover', label: 'Cover letters', icon: IconMail, match: (p: string) => p.startsWith('/cover') },
+  { to: '/cover', label: 'Cover letters', icon: IconNotes, match: (p: string) => p.startsWith('/cover') },
   { to: '/mail', label: 'Emails', icon: IconMailForward, match: (p: string) => p.startsWith('/mail') },
 ]
 
@@ -157,7 +157,7 @@ export function Layout() {
             </Link>
           </div>
         </header>
-        <main id="main" className={`relative mx-auto w-full ${maxW} flex-1 px-4 py-6 ${isWorkspace ? 'lg:flex lg:min-h-0 lg:flex-col' : ''}`}>
+        <main id="main" key={pathname} className={`animate-page-in relative mx-auto w-full ${maxW} flex-1 px-4 py-6 ${isWorkspace ? 'lg:flex lg:min-h-0 lg:flex-col' : ''}`}>
           <Outlet />
         </main>
         <footer className="no-print border-t border-ink-200 px-4 py-3 text-center text-xs text-ink-500 dark:border-ink-800 dark:text-ink-400">

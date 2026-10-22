@@ -41,12 +41,12 @@ export function parseModelList(text: string): { models: string[]; invalid: strin
   return { models: models.slice(0, 20), invalid: parts.filter((p) => !MODEL_NAME.test(p)) }
 }
 
-/** Save the allowed models and defaults. Only admins can write this document (enforced by the Firestore rules). */
+/** Save the allowed models, defaults and pipeline roles. Only admins can write this document (enforced by the Firestore rules). */
 export async function saveModelConfig(cfg: ServerModels): Promise<void> {
   for (const p of ['groq', 'openrouter', 'inception'] as CloudProvider[]) {
     if (cfg.allowed[p].length === 0) throw new Error(`Add at least one ${p} model.`)
     if (!cfg.allowed[p].includes(cfg.defaults[p])) throw new Error(`The default ${p} model must be one of its allowed models.`)
   }
   const { fs, db: d } = await db()
-  await fs.setDoc(fs.doc(d, 'config', 'models'), { groq: cfg.allowed.groq, openrouter: cfg.allowed.openrouter, inception: cfg.allowed.inception, defaults: cfg.defaults, updatedAt: Date.now() })
+  await fs.setDoc(fs.doc(d, 'config', 'models'), { groq: cfg.allowed.groq, openrouter: cfg.allowed.openrouter, inception: cfg.allowed.inception, defaults: cfg.defaults, ...(cfg.roles ? { roles: cfg.roles } : {}), updatedAt: Date.now() })
 }

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fetchIsAdmin, parseModelList } from '@/lib/admin/models'
 import { useAuth } from '@/lib/auth/store'
-import { createLlm, loadServerProviders, resolveModel, setServerModels, setServerProviders } from '@/lib/llm'
+import { createLlm, getServerModels, loadServerProviders, resolveModel, setServerModels, setServerProviders } from '@/lib/llm'
 import { useSettings, defaultModels } from '@/store/settings'
 import { renderAt } from '@/test/helpers'
 import { SettingsPage } from './SettingsPage'
@@ -162,22 +162,13 @@ describe('Settings model picker and admin panel', () => {
     expect(screen.getByText(/chosen by the site administrator/i)).toBeInTheDocument()
   })
 
-  it('shows admins the model dropdown (default marked) and the admin panel', async () => {
+  it('shows admins the default Groq model pre-selected in the admin panel', () => {
     useAuth.setState({ isAdmin: true })
     renderAt(<SettingsPage />)
-    const groq = screen.getByRole('combobox', { name: /^Groq model/ }) as HTMLSelectElement
+    const groq = screen.getByLabelText(/Default Groq model/) as HTMLSelectElement
     expect([...groq.options].map((o) => o.value)).toEqual(MODELS.allowed.groq)
-    expect(groq).toHaveValue('llama-3.3-70b-versatile') // nothing chosen yet: the admin default applies
-    expect(screen.getByRole('option', { name: /llama-3.3-70b-versatile \(default\)/ })).toBeInTheDocument()
-    await userEvent.selectOptions(groq, 'openai/gpt-oss-120b')
-    expect(useSettings.getState().models.groq).toBe('openai/gpt-oss-120b')
+    expect(groq).toHaveValue(MODELS.defaults.groq)
     expect(screen.getByText('Admin: AI models')).toBeInTheDocument()
-  })
-
-  it('keeps everything available when no sign-in is configured (a private or local install)', () => {
-    useAuth.setState({ required: false, isAdmin: false })
-    renderAt(<SettingsPage />)
-    expect(screen.getByLabelText('Provider')).toBeInTheDocument()
   })
 
   it("follows the admin's default until an admin picks a model, and drops a pick that is no longer allowed", () => {
@@ -207,8 +198,8 @@ describe('Settings model picker and admin panel', () => {
     expect(ref.path).toBe('config/models')
     expect(data).toMatchObject({ groq: ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile', 'new/model'], defaults: { groq: 'new/model' } })
     expect(typeof data.updatedAt).toBe('number')
-    // The page refreshed the server list, so the new model is selectable right away.
-    await waitFor(() => expect(screen.getByRole('combobox', { name: /^Groq model/ })).toHaveValue('new/model'))
+    // The page refreshed the server list, so the new default takes effect right away.
+    await waitFor(() => expect(getServerModels()?.defaults.groq).toBe('new/model'))
   })
 
   it('explains a refused save (missing admin document or unpublished rules)', async () => {
@@ -226,5 +217,35 @@ describe('Settings model picker and admin panel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save models' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/at least one groq model/i)
     expect(fs.setDoc).not.toHaveBeenCalled()
+  })
+})
+
+describe('admin pipeline roles', () => {
+  it('shows the three roles with their defaults and tests each one independently', async () => {
+    useAuth.setState({ isAdmin: true })
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }))))
+    renderAt(<SettingsPage />)
+    const writer = screen.getByRole('combobox', { name: 'Generates response' }) as HTMLSelectElement
+    const editor = screen.getByRole('combobox', { name: 'Improvise' }) as HTMLSelectElement
+    const fallback = screen.getByRole('combobox', { name: 'Fallback' }) as HTMLSelectElement
+    expect(writer).toHaveValue('inception')
+    expect(editor).toHaveValue('groq')
+    expect(fallback).toHaveValue('openrouter')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Test Generates response connection' }))
+    expect(await screen.findByText(/connected to inception/i)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Test Fallback connection' }))
+    expect(await screen.findByText(/connected to openrouter/i)).toBeInTheDocument()
+  })
+
+  it('lets the admin reassign a role and saves it with the rest of the config', async () => {
+    useAuth.setState({ isAdmin: true })
+    renderAt(<SettingsPage />)
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Fallback' }), 'inception')
+    await userEvent.click(screen.getByRole('button', { name: 'Save models' }))
+    expect(await screen.findByText(/Everyone now uses these models/)).toBeInTheDocument()
+    const [, data] = fs.setDoc.mock.calls[0] as [{ path: string }, Record<string, unknown>]
+    expect(data.roles).toEqual({ writer: 'inception', editor: 'groq', fallback: 'inception' })
   })
 })

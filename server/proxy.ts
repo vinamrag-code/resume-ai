@@ -111,7 +111,7 @@ export function createLlmHandler(cfg: ServerConfig, fetchImpl: FetchLike = fetch
     }
     if (url.pathname === '/api/llm/status' && req.method === 'GET') {
       const m = await models()
-      send(res, 200, { providers: { groq: !!cfg.keys.groq, openrouter: !!cfg.keys.openrouter, inception: !!cfg.keys.inception }, models: m.allowed, defaults: m.defaults })
+      send(res, 200, { providers: { groq: !!cfg.keys.groq, openrouter: !!cfg.keys.openrouter, inception: !!cfg.keys.inception }, models: m.allowed, defaults: m.defaults, roles: m.roles })
       return true
     }
     const m = url.pathname.match(/^\/api\/llm\/(groq|openrouter|inception)\/chat(?:\/completions)?$/)
