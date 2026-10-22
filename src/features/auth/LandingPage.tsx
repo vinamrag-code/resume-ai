@@ -14,7 +14,7 @@ const FEATURES = [
   { title: 'Tailor in one click', text: 'See every suggested change as a before and after, and accept only what is true for you.', icon: IconWand },
   { title: 'Talk to an editor', text: 'Sage asks the right questions, then edits your content and layout while you watch.', icon: IconMessageCircle },
   { title: 'Track every application', text: 'A Kanban board linking each job to the exact resume and cover letter you sent.', icon: IconLayoutKanban },
-  { title: 'Cover letters that fit', text: 'Draft a letter from your real experience and the job description, then edit it freely.', icon: IconNotes },
+  { title: 'Cover letters and emails', text: 'Draft a cover letter or a job email from your real experience and the job description, then edit it freely.', icon: IconNotes },
   { title: 'Export anywhere', text: 'Clean, ATS-safe PDF and DOCX with templates you can restyle in a click.', icon: IconDownload },
 ]
 
@@ -22,7 +22,7 @@ const STEPS = [
   { n: '01', title: 'Import', text: 'Upload a PDF or DOCX, or paste your resume. Nothing to retype.' },
   { n: '02', title: 'Score', text: 'Paste a job description and see exactly where you match and where you fall short.' },
   { n: '03', title: 'Tailor', text: 'Review each suggested rewrite as a diff. Accept what is true, reject the rest.' },
-  { n: '04', title: 'Apply', text: 'Export, track the application and write the cover letter in the same place.' },
+  { n: '04', title: 'Apply', text: 'Export, track the application and write the cover letter or email in the same place.' },
 ]
 
 const STATS = [
@@ -39,7 +39,7 @@ const FAQ = [
   { q: 'Does it work with scanned PDFs?', a: 'Not yet. Text-based PDFs and DOCX files import cleanly. For a scanned file, paste the text instead.' },
 ]
 
-const TICKER = ['Keyword match', 'Semantic score', 'Weak bullet finder', 'Diff review', 'Cover letters', 'Kanban tracker', 'PDF export', 'DOCX export', 'Experience bank', 'Sage assistant']
+const TICKER = ['Keyword match', 'Semantic score', 'Weak bullet finder', 'Diff review', 'Cover letters', 'Email writer', 'Kanban tracker', 'PDF export', 'DOCX export', 'Experience bank', 'Sage assistant']
 
 
 function Eyebrow({ children }: { children: ReactNode }) {

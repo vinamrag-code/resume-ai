@@ -24,6 +24,10 @@ import type { ChatTurn } from '@/types/chat'
 
 const NO_TURNS: ChatTurn[] = []
 const STARTERS = ['Help me improve my experience section', 'Review my summary', 'Make my skills fit the target job', 'Strengthen my project bullets']
+// A cosmetic status trace, not the model's real reasoning: no provider here streams that back. Shown only until
+// the reply's own text starts arriving, one step every THINKING_STEP_MS.
+const THINKING_STEPS = ['Reading your resume…', 'Checking the target job…', 'Drafting a reply…']
+const THINKING_STEP_MS = 1400
 
 function Suggestion({ change, resume, onApplied }: { change: Change; resume: Resume; onApplied: () => void }) {
   const [text, setText] = useState(change.after)
@@ -89,6 +93,7 @@ export function ChatPanel({ resume, embedded = false }: { resume: Resume; embedd
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
+  const [thinkingStep, setThinkingStep] = useState(0)
   const abort = useRef<AbortController | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -100,6 +105,14 @@ export function ChatPanel({ resume, embedded = false }: { resume: Resume; embedd
     box.style.height = 'auto'
     box.style.height = `${box.scrollHeight}px`
   }, [input])
+
+  // Step through the thinking trace while a reply is on its way; it stops being shown once real text arrives.
+  useEffect(() => {
+    if (!busy) return
+    setThinkingStep(0)
+    const id = setInterval(() => setThinkingStep((i) => Math.min(i + 1, THINKING_STEPS.length - 1)), THINKING_STEP_MS)
+    return () => clearInterval(id)
+  }, [busy])
 
   // Follow new messages and streaming text, but not other changes such as a suggestion being applied.
   const last = turns[turns.length - 1]
@@ -179,26 +192,38 @@ export function ChatPanel({ resume, embedded = false }: { resume: Resume; embedd
               </div>
             </div>
           )}
-          {turns.map((t) => (
-            <div key={t.id} className={t.role === 'user' ? 'text-right' : ''}>
-              <div className={`inline-block max-w-full whitespace-pre-wrap rounded-2xl px-3 py-2 text-left text-sm ${t.role === 'user' ? 'bg-brand-600 text-white dark:bg-brand-500 dark:text-white' : 'bg-ink-100 dark:bg-ink-800'}`}>
-                <span className="sr-only">{t.role === 'user' ? 'You: ' : `${ASSISTANT_NAME}: `}</span>
-                {t.role === 'assistant' ? visibleText(t.content) || (busy || isPreparingEdits(t.content) ? 'Preparing suggestions…' : '') : t.content}
+          {turns.map((t) => {
+            const text = t.role === 'assistant' ? visibleText(t.content) : t.content
+            // Before any of the reply's own text has streamed in, show the thinking trace instead of an empty bubble.
+            const thinking = t.role === 'assistant' && !text && (busy || isPreparingEdits(t.content))
+            return (
+              <div key={t.id} className={t.role === 'user' ? 'text-right' : ''}>
+                {thinking ? (
+                  <p className="text-sm text-ink-500 dark:text-ink-400" aria-live="polite">
+                    <span className="sr-only">{ASSISTANT_NAME}: </span>
+                    <span className="animate-pulse">{THINKING_STEPS[thinkingStep]}</span>
+                  </p>
+                ) : (
+                  <div className={`inline-block max-w-full whitespace-pre-wrap rounded-2xl px-3 py-2 text-left text-sm ${t.role === 'user' ? 'bg-brand-600 text-white dark:bg-brand-500 dark:text-white' : 'bg-ink-100 dark:bg-ink-800'}`}>
+                    <span className="sr-only">{t.role === 'user' ? 'You: ' : `${ASSISTANT_NAME}: `}</span>
+                    {text}
+                  </div>
+                )}
+                {t.changes.length > 0 && (
+                  <ul className="mt-2 space-y-2 text-left" aria-label="Suggested edits">
+                    {t.changes.map((c) => (
+                      <Suggestion
+                        key={c.id}
+                        change={c}
+                        resume={resume}
+                        onApplied={() => setTurns(resume.id, (ts) => ts.map((x) => (x.id === t.id ? { ...x, changes: x.changes.map((y) => (y.id === c.id ? { ...y, status: 'accepted' } : y)) } : x)))}
+                      />
+                    ))}
+                  </ul>
+                )}
               </div>
-              {t.changes.length > 0 && (
-                <ul className="mt-2 space-y-2 text-left" aria-label="Suggested edits">
-                  {t.changes.map((c) => (
-                    <Suggestion
-                      key={c.id}
-                      change={c}
-                      resume={resume}
-                      onApplied={() => setTurns(resume.id, (ts) => ts.map((x) => (x.id === t.id ? { ...x, changes: x.changes.map((y) => (y.id === c.id ? { ...y, status: 'accepted' } : y)) } : x)))}
-                    />
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
+            )
+          })}
           <div ref={endRef} />
         </div>
         <ErrorBanner error={error} onDismiss={() => setError(null)} />

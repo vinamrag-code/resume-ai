@@ -63,5 +63,5 @@
 
 /* Respect "reduce motion": no entrance or floating animations. */
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-up, .animate-modal-in, .animate-backdrop-in, .animate-float, .animate-glow, .animate-marquee { animation: none !important; }
+  .animate-fade-up, .animate-page-in, .animate-modal-in, .animate-backdrop-in, .animate-float, .animate-glow, .animate-marquee, .animate-pulse { animation: none !important; }
 }

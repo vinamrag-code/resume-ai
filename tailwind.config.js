@@ -15,6 +15,7 @@ export default {
       keyframes: {
         'fade-up': { '0%': { opacity: '0', transform: 'translateY(14px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
         'modal-in': { '0%': { opacity: '0', transform: 'translateY(12px) scale(0.96)' }, '100%': { opacity: '1', transform: 'translateY(0) scale(1)' } },
+        'page-in': { '0%': { opacity: '0', transform: 'translateY(8px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
         'backdrop-in': { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
         glow: { '0%, 100%': { opacity: '0.55' }, '50%': { opacity: '0.9' } },
         marquee: { '0%': { transform: 'translateX(0)' }, '100%': { transform: 'translateX(-50%)' } },
@@ -23,6 +24,8 @@ export default {
       animation: {
         'fade-up': 'fade-up 0.6s ease-out both',
         'modal-in': 'modal-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both',
+        // backwards fill only: a lingering transform would trap fixed/sticky children
+        'page-in': 'page-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards',
         'backdrop-in': 'backdrop-in 0.2s ease-out both',
         glow: 'glow 6s ease-in-out infinite',
         marquee: 'marquee 40s linear infinite',

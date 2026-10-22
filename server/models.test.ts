@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createLlmHandler } from './proxy'
 import { loadConfig } from './config'
-import { createModelSource, envModels, parseModelDoc } from './modelConfig'
+import { createModelSource, DEFAULT_ROLES, envModels, parseModelDoc } from './modelConfig'
 
 const FB = { FIREBASE_API_KEY: 'k', FIREBASE_AUTH_DOMAIN: 'x.firebaseapp.com', FIREBASE_PROJECT_ID: 'proj', FIREBASE_APP_ID: '1:1:web:1' }
 const arr = (...v: string[]) => ({ arrayValue: { values: v.map((stringValue) => ({ stringValue })) } })
@@ -33,6 +33,10 @@ describe('model config parsing', () => {
   it('caps the list size', () => {
     const many = Array.from({ length: 50 }, (_, i) => `m/${i}`)
     expect(parseModelDoc(doc({ groq: arr(...many) }), env).allowed.groq).toHaveLength(20)
+  })
+  it('reads the admin roles, keeping the default for a missing or invalid one', () => {
+    const withRoles = doc({ roles: { mapValue: { fields: { writer: { stringValue: 'groq' }, editor: { stringValue: 'not-a-provider' } } } } })
+    expect(parseModelDoc(withRoles, env).roles).toEqual({ writer: 'groq', editor: env.roles.editor, fallback: env.roles.fallback })
   })
 })
 
@@ -68,7 +72,7 @@ describe('model source', () => {
 describe('proxy uses the admin-managed models', () => {
   let close: (() => void) | null = null
   afterEach(() => close?.())
-  const models = async () => ({ allowed: { groq: ['new/model-a', 'new/model-b'], openrouter: ['x/y:free'], inception: ['mercury-2.5'] }, defaults: { groq: 'new/model-b', openrouter: 'x/y:free', inception: 'mercury-2.5' } })
+  const models = async () => ({ allowed: { groq: ['new/model-a', 'new/model-b'], openrouter: ['x/y:free'], inception: ['mercury-2.5'] }, defaults: { groq: 'new/model-b', openrouter: 'x/y:free', inception: 'mercury-2.5' }, roles: DEFAULT_ROLES })
 
   async function start() {
     const upstream = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ choices: [{ message: { content: 'hi' } }] })))
@@ -87,6 +91,7 @@ describe('proxy uses the admin-managed models', () => {
     const status = await (await fetch(`${base}/api/llm/status`)).json()
     expect(status.models).toEqual({ groq: ['new/model-a', 'new/model-b'], openrouter: ['x/y:free'], inception: ['mercury-2.5'] })
     expect(status.defaults).toEqual({ groq: 'new/model-b', openrouter: 'x/y:free', inception: 'mercury-2.5' })
+    expect(status.roles).toEqual(DEFAULT_ROLES)
   })
 
   it('accepts models the admin added and refuses the old default and anything else', async () => {

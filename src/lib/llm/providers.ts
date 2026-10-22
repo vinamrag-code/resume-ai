@@ -40,12 +40,21 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
 export type CloudProvider = 'groq' | 'openrouter' | 'inception'
 export const CLOUD_PROVIDERS: CloudProvider[] = ['groq', 'openrouter', 'inception']
 
+/**
+ * The three jobs in the Auto-mode pipeline: `writer` generates the answer, `editor` rewrites the prompt and
+ * polishes the draft, `fallback` backs up both and goes first when an independent checker is needed.
+ */
+export type PipelineRole = 'writer' | 'editor' | 'fallback'
+export const PIPELINE_ROLES: PipelineRole[] = ['writer', 'editor', 'fallback']
+export const DEFAULT_ROLES: Record<PipelineRole, CloudProvider> = { writer: 'inception', editor: 'groq', fallback: 'openrouter' }
+
 /** Which cloud providers have a key on the server. `null` until the status request finishes. */
 let serverProviders: Set<CloudProvider> | null = null
-/** Models the server allows per provider, and the admin's default for each. `null` until known. */
+/** Models the server allows per provider, the admin's default for each, and which provider plays which pipeline role. */
 export interface ServerModels {
   allowed: Record<CloudProvider, string[]>
   defaults: Record<CloudProvider, string>
+  roles?: Record<PipelineRole, CloudProvider>
 }
 let serverModels: ServerModels | null = null
 const listeners = new Set<() => void>()
@@ -76,13 +85,16 @@ export function subscribeServerProviders(l: () => void): () => void {
   return () => void listeners.delete(l)
 }
 
+const isValidRoles = (r: unknown): r is Record<PipelineRole, CloudProvider> =>
+  !!r && typeof r === 'object' && PIPELINE_ROLES.every((role) => CLOUD_PROVIDERS.includes((r as Record<string, unknown>)[role] as CloudProvider))
+
 /** Ask the server which providers it has keys for (the keys themselves are never sent). */
 export async function loadServerProviders(): Promise<Set<CloudProvider>> {
   try {
     const res = await fetch(`${import.meta.env.BASE_URL}api/llm/status`)
-    const data = (await res.json()) as { providers?: Partial<Record<CloudProvider, boolean>>; models?: Partial<Record<CloudProvider, string[]>>; defaults?: Partial<Record<CloudProvider, string>> }
+    const data = (await res.json()) as { providers?: Partial<Record<CloudProvider, boolean>>; models?: Partial<Record<CloudProvider, string[]>>; defaults?: Partial<Record<CloudProvider, string>>; roles?: unknown }
     if (data.models && data.defaults && CLOUD_PROVIDERS.every((id) => Array.isArray(data.models?.[id]) && typeof data.defaults?.[id] === 'string')) {
-      serverModels = { allowed: data.models as ServerModels['allowed'], defaults: data.defaults as ServerModels['defaults'] }
+      serverModels = { allowed: data.models as ServerModels['allowed'], defaults: data.defaults as ServerModels['defaults'], roles: isValidRoles(data.roles) ? data.roles : undefined }
     }
     setServerProviders(new Set(CLOUD_PROVIDERS.filter((id) => data.providers?.[id])))
   } catch {

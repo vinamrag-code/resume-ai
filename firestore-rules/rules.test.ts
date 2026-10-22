@@ -112,6 +112,15 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('Firestore security rules'
       await assertFails(ada().doc('config/other').set(models()))
     })
 
+    it('validates the optional pipeline roles', async () => {
+      await makeAdmin('ada')
+      await assertSucceeds(cfg(ada()).set(models({ roles: { writer: 'inception', editor: 'groq', fallback: 'openrouter' } })))
+      await assertFails(cfg(ada()).set(models({ roles: { writer: 'inception', editor: 'groq' } }))) // missing fallback
+      await assertFails(cfg(ada()).set(models({ roles: { writer: 'inception', editor: 'groq', fallback: 'openrouter', extra: 'groq' } })))
+      await assertFails(cfg(ada()).set(models({ roles: { writer: 'not-a-provider', editor: 'groq', fallback: 'openrouter' } })))
+      await assertFails(cfg(ada()).set(models({ roles: 'inception' })))
+    })
+
     it('does not let users make themselves admin or see other admins', async () => {
       await assertFails(ada().doc('admins/ada').set({ role: 'admin' }))
       await assertFails(anon().doc('admins/ada').set({ role: 'admin' }))

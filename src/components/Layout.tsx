@@ -157,7 +157,7 @@ export function Layout() {
             </Link>
           </div>
         </header>
-        <main id="main" className={`relative mx-auto w-full ${maxW} flex-1 px-4 py-6 ${isWorkspace ? 'lg:flex lg:min-h-0 lg:flex-col' : ''}`}>
+        <main id="main" key={pathname} className={`animate-page-in relative mx-auto w-full ${maxW} flex-1 px-4 py-6 ${isWorkspace ? 'lg:flex lg:min-h-0 lg:flex-col' : ''}`}>
           <Outlet />
         </main>
         <footer className="no-print border-t border-ink-200 px-4 py-3 text-center text-xs text-ink-500 dark:border-ink-800 dark:text-ink-400">

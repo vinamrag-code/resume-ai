@@ -27,12 +27,21 @@ service cloud.firestore {
       allow list, delete: if false;
       allow create, update: if isAdmin()
         && doc == 'models'
-        && request.resource.data.keys().hasOnly(['groq', 'openrouter', 'inception', 'defaults', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['groq', 'openrouter', 'inception', 'defaults', 'roles', 'updatedAt'])
         && request.resource.data.keys().hasAll(['groq', 'openrouter', 'defaults', 'updatedAt'])
         && request.resource.data.groq is list && request.resource.data.groq.size() >= 1 && request.resource.data.groq.size() <= 20
         && request.resource.data.openrouter is list && request.resource.data.openrouter.size() >= 1 && request.resource.data.openrouter.size() <= 20
         && (!('inception' in request.resource.data) || (request.resource.data.inception is list && request.resource.data.inception.size() >= 1 && request.resource.data.inception.size() <= 20))
         && request.resource.data.defaults is map
+        // Which provider plays each role in the Auto-mode pipeline (writer/editor/fallback); optional for older docs.
+        && (!('roles' in request.resource.data) || (
+          request.resource.data.roles is map
+          && request.resource.data.roles.keys().hasOnly(['writer', 'editor', 'fallback'])
+          && request.resource.data.roles.keys().hasAll(['writer', 'editor', 'fallback'])
+          && request.resource.data.roles.writer in ['groq', 'openrouter', 'inception']
+          && request.resource.data.roles.editor in ['groq', 'openrouter', 'inception']
+          && request.resource.data.roles.fallback in ['groq', 'openrouter', 'inception']
+        ))
         && request.resource.data.updatedAt is number;
     }
 

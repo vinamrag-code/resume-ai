@@ -3,7 +3,7 @@ import { LlmError } from './types'
 import type { LlmClient } from './types'
 import { defaultModels } from '@/store/settings'
 import { ChainLlmClient, LangChainClient } from '@/lib/chain'
-import { createLlm, setServerProviders } from './index'
+import { createLlm, setServerModels, setServerProviders } from './index'
 import { OpenAiCompatibleClient } from './openai'
 
 const cfg = { baseUrl: 'https://api.example.com/v1/', model: 'm1', apiKey: 'sk-test', label: 'Example', supportsJsonFormat: true }
@@ -169,5 +169,27 @@ describe('Auto mode with Inception on the server', () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u: string) => { seen.push(u.split('/')[3]!); return u.includes('inception') ? new Response('x', { status: 429 }) : ok() }))
     expect(await createLlm(settings).chat(msgs, { json: true })).toBe('ok')
     expect(seen).toEqual(['inception', 'openrouter'])
+  })
+})
+
+describe('Auto mode honours admin-configured pipeline roles', () => {
+  afterEach(() => { setServerProviders(null); setServerModels(null) })
+  const settings = { provider: 'auto' as const, models: defaultModels() }
+  const ok = () => new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }))
+  const urls = async (role: 'primary' | 'checker', json = false) => {
+    const seen: string[] = []
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u: string) => { seen.push(u.split('/')[3]!); return ok() }))
+    await createLlm(settings, role).chat(msgs, { json })
+    return seen
+  }
+  it('writes with whichever provider the admin assigned to the writer role', async () => {
+    setServerProviders(new Set(['groq', 'openrouter', 'inception']))
+    setServerModels({ allowed: {} as never, defaults: {} as never, roles: { writer: 'groq', editor: 'inception', fallback: 'openrouter' } })
+    expect(await urls('primary', true)).toEqual(['groq'])
+  })
+  it('sends the checker to the admin-assigned fallback role first', async () => {
+    setServerProviders(new Set(['groq', 'openrouter', 'inception']))
+    setServerModels({ allowed: {} as never, defaults: {} as never, roles: { writer: 'inception', editor: 'openrouter', fallback: 'groq' } })
+    expect(await urls('checker')).toEqual(['groq'])
   })
 })
