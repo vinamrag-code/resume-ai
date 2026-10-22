@@ -161,9 +161,7 @@ export function Layout() {
           <Outlet />
         </main>
         <footer className="no-print border-t border-ink-200 px-4 py-3 text-center text-xs text-ink-500 dark:border-ink-800 dark:text-ink-400">
-          <strong>Truthful by design.</strong> The AI may reword and reprioritise what is already in your resume. It is instructed never to invent employers, titles, dates, degrees, metrics or skills. Always review changes before accepting.
-          <br />
-          Your data stays in this browser; AI answers come through this site's server. ·{' '}
+          <strong>Truthful by design:</strong> the AI never invents facts; review every change. · Your data stays in this browser. ·{' '}
           <Link to="/welcome" className="underline hover:text-brand-600 dark:hover:text-brand-300">
             About Resume AI
           </Link>
