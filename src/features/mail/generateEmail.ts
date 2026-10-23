@@ -29,6 +29,7 @@ export function streamEmail(req: EmailRequest, onToken: (t: string) => void, sig
     kind: req.kind,
     tone: req.tone,
     candidateName: req.resume?.content.contact.name ?? req.candidateName ?? '',
+    links: (req.resume?.content.contact.links ?? []).map((l) => l.url).filter(Boolean),
     recipientName: req.recipientName,
     attachments: req.attachments,
   })
